@@ -106,7 +106,7 @@
     }
     @media screen and (max-width: 600px) { .container { padding: 5px; } h2 { font-size: 24px; } .entry-form, .button-group, .button-container { grid-template-columns: 1fr; } .sub-section-content .button-group { grid-template-columns: repeat(3, 1fr); gap: 5px; } .sub-section-content .button-group button { padding: 10px 5px; font-size: 14px; } .button-group button, .button-container button { padding: 14px; font-size: 16px; } .file-actions { flex-direction: column; padding: 0 10px; align-items: stretch; } .file-actions button { width: 100%; max-width: none; } .back-button { width: 100%; } }
     
-    /* === START: REVISED PRINT STYLES FOR BLANK PAGE FIX === */
+    /* === START: REVISED PRINT STYLES === */
     @media screen {
         #print-container {
             display: none;
@@ -121,7 +121,7 @@
             visibility: visible;
         }
         #print-container {
-            position: absolute; /* This is the key change */
+            position: absolute;
             left: 0;
             top: 0;
             width: 100%;
@@ -140,7 +140,7 @@
         body {
             background: #fff !important;
             font-size: 10pt;
-            margin: 0; /* Ensure no body margin interferes */
+            margin: 0;
         }
         
         #print-container .summaryResult {
@@ -161,7 +161,7 @@
         }
         #print-container p, #print-container li {
             font-size: 9.5pt;
-            line-height: 1.0;
+            line-height: 0.5;
         }
         #print-container table {
             width: 100% !important;
@@ -180,6 +180,7 @@
             border: 1px solid #888 !important;
             padding: 4px 6px;
             text-align: center;
+            line-height: 1.4; /* Added this line for vertical spacing */
         }
         #print-container th {
             background-color: #f0f0f0 !important;
