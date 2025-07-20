@@ -106,7 +106,7 @@
     }
     @media screen and (max-width: 600px) { .container { padding: 5px; } h2 { font-size: 24px; } .entry-form, .button-group, .button-container { grid-template-columns: 1fr; } .sub-section-content .button-group { grid-template-columns: repeat(3, 1fr); gap: 5px; } .sub-section-content .button-group button { padding: 10px 5px; font-size: 14px; } .button-group button, .button-container button { padding: 14px; font-size: 16px; } .file-actions { flex-direction: column; padding: 0 10px; align-items: stretch; } .file-actions button { width: 100%; max-width: none; } .back-button { width: 100%; } }
     
-    /* === START: UPDATED PRINT STYLES (CORRECTED) === */
+    /* === START: REVISED PRINT STYLES FOR BLANK PAGE FIX === */
     @media screen {
         #print-container {
             display: none;
@@ -119,14 +119,12 @@
         }
         #print-container, #print-container * {
             visibility: visible;
-            color: #000 !important;
         }
         #print-container {
-            position: absolute;
+            position: absolute; /* This is the key change */
             left: 0;
             top: 0;
             width: 100%;
-            display: block !important;
         }
         
         @page {
@@ -142,6 +140,7 @@
         body {
             background: #fff !important;
             font-size: 10pt;
+            margin: 0; /* Ensure no body margin interferes */
         }
         
         #print-container .summaryResult {
@@ -162,13 +161,13 @@
         }
         #print-container p, #print-container li {
             font-size: 9.5pt;
-            line-height: 0.7; /* Adjusted for better readability */
+            line-height: 1.0;
         }
         #print-container table {
             width: 100% !important;
             border-collapse: collapse !important;
             font-size: 9pt;
-            margin-top: 0.8em; /* Adjusted spacing */
+            margin-top: 0.8em;
             page-break-inside: auto;
         }
         #print-container thead {
@@ -194,7 +193,7 @@
              margin: 1.5em 0;
         }
     }
-    /* === END: UPDATED PRINT STYLES === */
+    /* === END: REVISED PRINT STYLES === */
   </style>
 </head>
 <body>
@@ -750,7 +749,6 @@
     function openSummaryOutputModal() { document.getElementById('summaryOutputModal').style.display = 'flex'; }
     function closeSummaryOutputModal() { document.getElementById('summaryOutputModal').style.display = 'none'; summaryContext = {}; }
     
-    // --- START: CORRECTED FUNCTION ---
     function handleSummaryOutput(choice) {
         if (!summaryContext || !summaryContext.summaryResult) {
             console.error("Summary context is missing. Cannot proceed.");
@@ -770,16 +768,13 @@
                 const htmlWithDetailsForPdf = buildPdfSummaryHtml(summaryContext);
                 printContainer.innerHTML = `<div class="summaryResult">${htmlWithDetailsForPdf}</div>`;
                 
-                // This setTimeout is the key to fixing blank pages on mobile.
-                // It gives the browser a moment to render the content before printing.
                 setTimeout(() => {
                     window.print();
-                }, 250); // 250ms delay is usually sufficient
+                }, 250);
             }
         }
         closeSummaryOutputModal();
     }
-    // --- END: CORRECTED FUNCTION ---
 
     function generateSummaryData(startDate, endDate) {
         if (!currentAccount || !accountTypes.has(currentAccount)) { alert("ไม่พบบัญชีหรือประเภทของบัญชี"); return null; }
@@ -808,7 +803,6 @@
         return { summary, periodRecords, totalBalance };
     }
     
-    // --- FUNCTION ที่ปรับคืนตามต้นฉบับ (buildOriginalSummaryHtml) ---
     function buildOriginalSummaryHtml(context) {
         const { summaryResult, title, dateString, remark, transactionDaysInfo, type, thaiDateString, headerLine1, headerLine2, headerLine3 } = context;
         const { summary, periodRecords, totalBalance } = summaryResult;
@@ -859,7 +853,6 @@
         return ` <p><strong>ชื่อบัญชี:</strong> ${currentAccount}</p> <p><strong>สรุปเมื่อวันที่ : </strong> ${summaryDateTime}</p> <p><strong>${title} : </strong> ${thaiDateString}</p> ${transactionDaysInfo ? transactionDaysInfo : ''} <hr> <p><strong>รายรับ : </strong> ${summary.incomeCount} ครั้ง เป็นเงิน ${summary.totalIncome.toLocaleString()} บาท</p>${incomeHTML} <hr> <p><strong>รายจ่าย : </strong> ${summary.expenseCount} ครั้ง เป็นเงิน ${summary.totalExpense.toLocaleString()} บาท</p>${expenseHTML} <hr> ${summaryLineHTML} ${totalBalanceLine} <p>ข้อความเพิ่ม : <span style="color: orange;">${remark}</span></p> ${recordsHTML}`;
     }
 
-    // --- FUNCTION สำหรับสร้าง HTML สำหรับ PDF โดยเฉพาะ (แสดงรายละเอียดเสมอ) ---
     function buildPdfSummaryHtml(context) {
         const { summaryResult, title, dateString, remark, transactionDaysInfo, type, thaiDateString, headerLine1, headerLine2, headerLine3 } = context;
         const { summary, periodRecords, totalBalance } = summaryResult;
