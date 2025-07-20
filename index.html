@@ -84,7 +84,6 @@
     .install-prompt ul { padding-left: 20px; margin-bottom: 0; }
     .install-prompt .close-prompt { position: absolute; top: 10px; right: 15px; font-size: 20px; font-weight: bold; cursor: pointer; color: #856404; }
     .format-modal-content { background-color: #fff; padding: 20px 30px; border-radius: 15px; text-align: center; box-shadow: 0 5px 15px rgba(0,0,0,0.3); width: 90%; max-width: 400px; }
-    .format-modal-content h3 { margin-top: 0; color: #333; }
     .format-modal-buttons { display: flex; flex-direction: column; gap: 15px; margin-top: 20px; }
     .format-modal-buttons button { padding: 15px; font-size: 16px; border: none; border-radius: 10px; color: white; cursor: pointer; transition: background-color 0.3s; }
     .format-modal-buttons .btn-json { background-color: #9C27B0; }
@@ -751,7 +750,7 @@
     function openSummaryOutputModal() { document.getElementById('summaryOutputModal').style.display = 'flex'; }
     function closeSummaryOutputModal() { document.getElementById('summaryOutputModal').style.display = 'none'; summaryContext = {}; }
     
-    // --- FUNCTION ที่อัปเดต (handleSummaryOutput) ---
+    // --- START: FUNCTION ที่แก้ไข ---
     function handleSummaryOutput(choice) {
         if (!summaryContext || !summaryContext.summaryResult) {
             console.error("Summary context is missing. Cannot proceed.");
@@ -762,22 +761,27 @@
         const htmlForDisplay = buildOriginalSummaryHtml(summaryContext);
         
         if (choice === 'display') {
-            openSummaryModal(htmlForDisplay); // แก้ไข: ไม่มีการสร้าง div ซ้อน
+            openSummaryModal(htmlForDisplay);
         } else if (choice === 'csv') {
             const { summaryResult, title, dateString, remark, transactionDaysInfo, periodName } = summaryContext;
             exportSummaryToCsv(summaryResult, title, dateString, remark, transactionDaysInfo, periodName);
         } else if (choice === 'pdf') {
-             // สำหรับ PDF เราจะใช้ HTML ที่มีรายละเอียดครบถ้วนเสมอ
             const htmlWithDetailsForPdf = buildPdfSummaryHtml(summaryContext);
             const printContainer = document.getElementById('print-container');
             if (printContainer) {
                 printContainer.innerHTML = `<div class="summaryResult">${htmlWithDetailsForPdf}</div>`;
-                window.print();
-                printContainer.innerHTML = ''; // Clean up after printing
+                // ---- การแก้ไข ----
+                // เพิ่มการหน่วงเวลาก่อนสั่งพิมพ์ เพื่อให้แน่ใจว่าเบราว์เซอร์บนมือถือ render เนื้อหาเสร็จแล้ว
+                setTimeout(() => {
+                    window.print();
+                    printContainer.innerHTML = ''; // ล้างเนื้อหาหลังพิมพ์
+                }, 100); // หน่วงเวลา 100 มิลลิวินาที
+                // ---- สิ้นสุดการแก้ไข ----
             }
         }
         closeSummaryOutputModal();
     }
+    // --- END: FUNCTION ที่แก้ไข ---
 
     function generateSummaryData(startDate, endDate) {
         if (!currentAccount || !accountTypes.has(currentAccount)) { alert("ไม่พบบัญชีหรือประเภทของบัญชี"); return null; }
