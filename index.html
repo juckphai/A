@@ -106,7 +106,7 @@
     }
     @media screen and (max-width: 600px) { .container { padding: 5px; } h2 { font-size: 24px; } .entry-form, .button-group, .button-container { grid-template-columns: 1fr; } .sub-section-content .button-group { grid-template-columns: repeat(3, 1fr); gap: 5px; } .sub-section-content .button-group button { padding: 10px 5px; font-size: 14px; } .button-group button, .button-container button { padding: 14px; font-size: 16px; } .file-actions { flex-direction: column; padding: 0 10px; align-items: stretch; } .file-actions button { width: 100%; max-width: none; } .back-button { width: 100%; } }
     
-    /* === START: UPDATED PRINT STYLES === */
+    /* === START: UPDATED PRINT STYLES (CORRECTED) === */
     @media screen {
         #print-container {
             display: none;
@@ -162,13 +162,13 @@
         }
         #print-container p, #print-container li {
             font-size: 9.5pt;
-            line-height: 0.5;
+            line-height: 0.7; /* Adjusted for better readability */
         }
         #print-container table {
             width: 100% !important;
             border-collapse: collapse !important;
             font-size: 9pt;
-            margin-top: 0.5em;
+            margin-top: 0.8em; /* Adjusted spacing */
             page-break-inside: auto;
         }
         #print-container thead {
@@ -750,7 +750,7 @@
     function openSummaryOutputModal() { document.getElementById('summaryOutputModal').style.display = 'flex'; }
     function closeSummaryOutputModal() { document.getElementById('summaryOutputModal').style.display = 'none'; summaryContext = {}; }
     
-    // --- START: FUNCTION ที่แก้ไข ---
+    // --- START: CORRECTED FUNCTION ---
     function handleSummaryOutput(choice) {
         if (!summaryContext || !summaryContext.summaryResult) {
             console.error("Summary context is missing. Cannot proceed.");
@@ -758,9 +758,8 @@
             return;
         }
         
-        const htmlForDisplay = buildOriginalSummaryHtml(summaryContext);
-        
         if (choice === 'display') {
+            const htmlForDisplay = buildOriginalSummaryHtml(summaryContext);
             openSummaryModal(htmlForDisplay);
         } else if (choice === 'csv') {
             const { summaryResult, title, dateString, remark, transactionDaysInfo, periodName } = summaryContext;
@@ -771,25 +770,16 @@
                 const htmlWithDetailsForPdf = buildPdfSummaryHtml(summaryContext);
                 printContainer.innerHTML = `<div class="summaryResult">${htmlWithDetailsForPdf}</div>`;
                 
-                // ---- START: การแก้ไขที่เชื่อถือได้มากขึ้น ----
-                // 1. ทำให้ container แสดงผล เพื่อบังคับให้เบราว์เซอร์เริ่มวาดเนื้อหา
-                printContainer.style.display = 'block';
-
-                // 2. หน่วงเวลาสั้นๆ เพื่อให้เบราว์เซอร์มีเวลาวาดเนื้อหาลงไปจริงๆ
+                // This setTimeout is the key to fixing blank pages on mobile.
+                // It gives the browser a moment to render the content before printing.
                 setTimeout(() => {
-                    // 3. เรียกคำสั่งพิมพ์
                     window.print();
-
-                    // 4. ทำความสะอาดหลังจากที่หน้าต่างพิมพ์ถูกปิดไปแล้ว
-                    printContainer.style.display = 'none';
-                    printContainer.innerHTML = '';
-                }, 250); // เพิ่มเวลาหน่วงเป็น 250ms เพื่อความแน่นอนบนอุปกรณ์ที่ช้า
-                // ---- END: การแก้ไขที่เชื่อถือได้มากขึ้น ----
+                }, 250); // 250ms delay is usually sufficient
             }
         }
         closeSummaryOutputModal();
     }
-    // --- END: FUNCTION ที่แก้ไข ---
+    // --- END: CORRECTED FUNCTION ---
 
     function generateSummaryData(startDate, endDate) {
         if (!currentAccount || !accountTypes.has(currentAccount)) { alert("ไม่พบบัญชีหรือประเภทของบัญชี"); return null; }
