@@ -766,17 +766,25 @@
             const { summaryResult, title, dateString, remark, transactionDaysInfo, periodName } = summaryContext;
             exportSummaryToCsv(summaryResult, title, dateString, remark, transactionDaysInfo, periodName);
         } else if (choice === 'pdf') {
-            const htmlWithDetailsForPdf = buildPdfSummaryHtml(summaryContext);
             const printContainer = document.getElementById('print-container');
             if (printContainer) {
+                const htmlWithDetailsForPdf = buildPdfSummaryHtml(summaryContext);
                 printContainer.innerHTML = `<div class="summaryResult">${htmlWithDetailsForPdf}</div>`;
-                // ---- การแก้ไข ----
-                // เพิ่มการหน่วงเวลาก่อนสั่งพิมพ์ เพื่อให้แน่ใจว่าเบราว์เซอร์บนมือถือ render เนื้อหาเสร็จแล้ว
+                
+                // ---- START: การแก้ไขที่เชื่อถือได้มากขึ้น ----
+                // 1. ทำให้ container แสดงผล เพื่อบังคับให้เบราว์เซอร์เริ่มวาดเนื้อหา
+                printContainer.style.display = 'block';
+
+                // 2. หน่วงเวลาสั้นๆ เพื่อให้เบราว์เซอร์มีเวลาวาดเนื้อหาลงไปจริงๆ
                 setTimeout(() => {
+                    // 3. เรียกคำสั่งพิมพ์
                     window.print();
-                    printContainer.innerHTML = ''; // ล้างเนื้อหาหลังพิมพ์
-                }, 100); // หน่วงเวลา 100 มิลลิวินาที
-                // ---- สิ้นสุดการแก้ไข ----
+
+                    // 4. ทำความสะอาดหลังจากที่หน้าต่างพิมพ์ถูกปิดไปแล้ว
+                    printContainer.style.display = 'none';
+                    printContainer.innerHTML = '';
+                }, 250); // เพิ่มเวลาหน่วงเป็น 250ms เพื่อความแน่นอนบนอุปกรณ์ที่ช้า
+                // ---- END: การแก้ไขที่เชื่อถือได้มากขึ้น ----
             }
         }
         closeSummaryOutputModal();
