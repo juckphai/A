@@ -309,25 +309,45 @@
               <input type="text" id="description" required>
             </div>
             
-<div class="section-header header-import" onclick="toggleSection('import-from-account-submenu')">
-    <span>เติมข้อมูลจากบัญชีอื่น</span>
+<!-- START: SECTION ที่ปรับปรุงแล้ว -->
+<div class="section-header header-import" onclick="toggleSection('import-data-main-submenu')">
+    <span>เติมข้อมูล</span>
     <span class="arrow">▶</span>
 </div>
-                <div id="import-from-account-submenu" class="section-content sub-section-content">
-                    <div class="entry-form">
-                        <div class="entry-group">
-                            <label for="importAccountSelect">เลือกบัญชีต้นทาง</label>
-                            <select id="importAccountSelect"></select>
-                        </div>
-                        <div class="entry-group">
-                            <label for="importDate">เลือกวันที่ของข้อมูล</label>
-                            <input type="date" id="importDate">
-                        </div>
-                    </div>
-                    <div class="button-container" style="text-align: center; margin-top: 10px;">
-                        <button type="button" onclick="importEntriesFromAccount()" style="background-color: #673ab7;">ดึงข้อมูลมาเติม</button>
-                    </div>
-                </div>
+<div id="import-data-main-submenu" class="section-content sub-section-content">
+    
+    <!-- เติมข้อมูลจากบัญชีอื่น -->
+    <div id="import-from-account-section">
+        <label class="summary-subsection-header" style="color: #673ab7; margin-bottom: 10px;">เติมข้อมูลจากบัญชีอื่น</label>
+        <div class="entry-form">
+            <div class="entry-group">
+                <label for="importAccountSelect">เลือกบัญชีต้นทาง</label>
+                <select id="importAccountSelect"></select>
+            </div>
+            <div class="entry-group">
+                <label for="importDate">เลือกวันที่ของข้อมูล</label>
+                <input type="date" id="importDate">
+            </div>
+        </div>
+        <div class="button-container" style="text-align: center; margin-top: 10px;">
+            <button type="button" onclick="importEntriesFromAccount()" style="background-color: #673ab7;">ดึงข้อมูลมาเติม</button>
+        </div>
+    </div>
+
+    <!-- เติมข้อมูลจากไฟล์ -->
+    <div id="import-from-file-section" style="border-top: 1px solid #ccc; margin-top: 15px; padding-top: 15px;">
+        <label class="summary-subsection-header" style="color: #009688; margin-bottom: 10px;">เติมข้อมูลจากไฟล์ (รายวัน)</label>
+        <p style="text-align:center; color:#333; margin-bottom:10px;">
+            ใช้สำหรับนำเข้าไฟล์ที่ได้จากการ "ส่งออกเฉพาะวันที่เลือก" เพื่อเติมข้อมูลลงในบัญชีปัจจุบัน
+        </p>
+        <input type="file" id="mergeFileInput" onchange="importFromFileForMerging(event)" style="display: none;" accept=".json,application/json,.csv,text/csv">
+        <div class="button-container" style="text-align: center;">
+            <button type="button" onclick="document.getElementById('mergeFileInput').click()" style="background-color: #009688;">เลือกไฟล์ข้อมูลรายวัน</button>
+        </div>
+    </div>
+</div>
+<!-- END: SECTION ที่ปรับปรุงแล้ว -->
+
 
             <div class="entry-group" id="multiAccountSelector" style="display: none; margin-top: 10px;">
                 <div class="section-header header-import" onclick="toggleSection('multi-account-submenu')">
@@ -355,7 +375,6 @@
               <button onclick="toggleRecordsVisibility()" style="flex: 1; background-color: #607d8b;">แสดง/ซ่อนรายการ</button>
             </div>
             
-            <!-- START: CODE ที่เพิ่มเข้ามาสำหรับรหัสผ่าน -->
             <div class="sub-section-header" onclick="toggleSection('backup-password-submenu')">
                 <span>ตั้งรหัสผ่านไฟล์สำรอง (JSON)</span>
                 <span class="arrow">▶</span>
@@ -382,12 +401,10 @@
                 </form>
                 <p id="password-status" style="font-weight: bold; margin-top: 15px; text-align:center;"></p>
             </div>
-            <!-- END: CODE ที่เพิ่มเข้ามาสำหรับรหัสผ่าน -->
             
             <div class="button-container" style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px;">
-              <button type="button" onclick="saveToFile()" style="flex: 1; background-color: #0d47a1;">บันทึกถาวรทุกบัญชี</button>
               <button type="button" onclick="saveToLocal()" style="flex: 1; background-color: #17a2b8;">บันทึกชั่วคราว</button>
-              <button type="button" onclick="exportSelectedAccount()" style="flex: 1; background-color: #ff9800; color: white;">ส่งออกบัญชีที่เลือก</button>
+              <button type="button" onclick="openExportOptionsModal()" style="flex: 1; background-color: #0d47a1;">ส่งออกข้อมูล</button>
             </div>
             
             <div class="summary-subsection">
@@ -518,9 +535,47 @@
     </div>
 </div>
 
-<div id="toast" class="toast-notification"></div>
+<div id="exportOptionsModal" class="modal-overlay">
+  <div class="format-modal-content">
+    <h3>เลือกประเภทการส่งออกข้อมูล</h3>
+    <div class="format-modal-buttons">
+      <button onclick="saveToFile()" style="background-color: #0d47a1;">ส่งออกข้อมูลทั้งหมด (ทุกบัญชี)</button>
+      <button onclick="exportSelectedAccount()" style="background-color: #ff9800;">ส่งออกบัญชีที่เลือก (ทั้งหมด)</button>
+      <button onclick="initiateSingleDateExport()" style="background-color: #009688;">ส่งออกเฉพาะวันที่เลือก (บัญชีนี้)</button>
+      <button class="btn-cancel" onclick="closeExportOptionsModal()">ยกเลิก</button>
+    </div>
+  </div>
+</div>
 
-<!-- Container for printing -->
+<div id="singleDateExportModal" class="modal-overlay">
+  <div class="format-modal-content">
+    <h3>เลือกวันที่ต้องการส่งออก</h3>
+    <p>ข้อมูลจากบัญชี: <strong id="singleDateAccountName"></strong></p>
+    <div class="entry-form" style="margin-bottom: 20px;">
+      <div class="entry-group">
+        <label for="exportSingleDate">เลือกวันที่:</label>
+        <input type="date" id="exportSingleDate">
+      </div>
+    </div>
+    <div class="format-modal-buttons">
+      <button class="btn-display" onclick="processSingleDateExport()">ดำเนินการต่อ</button>
+      <button class="btn-cancel" onclick="closeSingleDateExportModal()">ยกเลิก</button>
+    </div>
+  </div>
+</div>
+
+<div id="singleDateExportFormatModal" class="modal-overlay">
+  <div class="format-modal-content">
+    <h3>เลือกรูปแบบไฟล์ที่จะส่งออก</h3>
+    <div class="format-modal-buttons">
+      <button class="btn-json" onclick="handleSingleDateExportAs('json')">JSON (.json)</button>
+      <button class="btn-csv" onclick="handleSingleDateExportAs('csv')">CSV (.csv)</button>
+      <button class="btn-cancel" onclick="closeSingleDateExportFormatModal()">ยกเลิก</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast-notification"></div>
 <div id="print-container"></div>
 
 <script>
@@ -534,12 +589,184 @@
     let accountTypes = new Map();
     let tempTypeValue = '';
     
-    // START: CODE ที่เพิ่มเข้ามาสำหรับรหัสผ่าน
     let backupPassword = null;
-    // END: CODE ที่เพิ่มเข้ามาสำหรับรหัสผ่าน
-    
     let summaryContext = {};
+    let singleDateExportContext = {}; 
 
+    function openExportOptionsModal() { document.getElementById('exportOptionsModal').style.display = 'flex'; }
+    function closeExportOptionsModal() { document.getElementById('exportOptionsModal').style.display = 'none'; }
+    function closeSingleDateExportModal() { document.getElementById('singleDateExportModal').style.display = 'none'; }
+    function closeSingleDateExportFormatModal() { document.getElementById('singleDateExportFormatModal').style.display = 'none'; }
+
+    function initiateSingleDateExport() {
+        if (!currentAccount) {
+            alert("กรุณาเลือกบัญชีที่ต้องการส่งออกก่อน");
+            return;
+        }
+        closeExportOptionsModal();
+        document.getElementById('singleDateAccountName').textContent = currentAccount;
+        document.getElementById('exportSingleDate').value = new Date().toISOString().slice(0, 10);
+        document.getElementById('singleDateExportModal').style.display = 'flex';
+    }
+    
+    function processSingleDateExport() {
+        const selectedDateStr = document.getElementById('exportSingleDate').value;
+        if (!selectedDateStr) {
+            alert("กรุณาเลือกวันที่ที่ต้องการส่งออก");
+            return;
+        }
+        const filteredRecords = records.filter(record => {
+            return record.account === currentAccount && record.dateTime.startsWith(selectedDateStr);
+        });
+        if (filteredRecords.length === 0) {
+            alert(`ไม่พบข้อมูลในบัญชี "${currentAccount}" ในวันที่ ${selectedDateStr}`);
+            return;
+        }
+        singleDateExportContext = {
+            records: filteredRecords,
+            selectedDate: selectedDateStr,
+        };
+        closeSingleDateExportModal();
+        document.getElementById('singleDateExportFormatModal').style.display = 'flex';
+    }
+    
+    async function handleSingleDateExportAs(format) {
+        closeSingleDateExportFormatModal();
+        const { records: filteredRecords, selectedDate } = singleDateExportContext;
+        
+        if (!filteredRecords || filteredRecords.length === 0) {
+            alert("เกิดข้อผิดพลาด: ไม่พบข้อมูลที่จะส่งออก");
+            return;
+        }
+        const fileName = prompt(`กรุณากรอกชื่อไฟล์ (ไม่ต้องใส่นามสกุล):`, `${currentAccount}_${selectedDate}`);
+        if (!fileName) return;
+        const fullFileName = `${fileName}.${format}`;
+        
+        if (format === 'json') {
+            const exportData = {
+                accountName: currentAccount,
+                isDailyExport: true,
+                exportDate: selectedDate,
+                records: filteredRecords
+            };
+            let dataString = JSON.stringify(exportData, null, 2);
+            if (backupPassword) {
+                alert('กำลังเข้ารหัสข้อมูล...');
+                try {
+                    const encryptedObject = await encryptData(dataString, backupPassword);
+                    dataString = JSON.stringify(encryptedObject, null, 2);
+                } catch (e) {
+                    alert('การเข้ารหัสล้มเหลว!'); return;
+                }
+            }
+            const blob = new Blob([dataString], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a'); a.href = url; a.download = fullFileName; a.click();
+            URL.revokeObjectURL(url);
+            alert(`ส่งออกข้อมูลวันที่ ${selectedDate} เป็น JSON เรียบร้อย\n\nไฟล์: ${fullFileName}`);
+
+        } else if (format === 'csv') {
+            let csvData = [];
+            csvData.push([`ชื่อบัญชี: ${currentAccount}`]);
+            csvData.push([`isDailyExport: true`]);
+            csvData.push([`exportDate: ${selectedDate}`]);
+            csvData.push([]);
+            csvData.push(["วันที่", "เวลา", "ประเภท", "รายละเอียด", "จำนวนเงิน (บาท)"]);
+            const sortedRecords = [...filteredRecords].sort((a, b) => new Date(a.dateTime) - new Date(b.dateTime));
+            sortedRecords.forEach(record => {
+                const dt = new Date(record.dateTime);
+                const d = `${String(dt.getDate()).padStart(2, '0')}/${String(dt.getMonth() + 1).padStart(2, '0')}/${dt.getFullYear()}`;
+                const t = `${String(dt.getHours()).padStart(2, '0')}.${String(dt.getMinutes()).padStart(2, '0')} น.`;
+                csvData.push([d, t, record.type, record.description, record.amount]);
+            });
+            let csvContent = Papa.unparse(csvData, { header: false });
+            const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
+            const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = fullFileName; link.click();
+            setTimeout(() => URL.revokeObjectURL(link.href), 100);
+            alert(`ส่งออกข้อมูลวันที่ ${selectedDate} เป็น CSV เรียบร้อย\n\nไฟล์: ${fullFileName}`);
+        }
+        singleDateExportContext = {};
+    }
+    
+    // *** START: ฟังก์ชันใหม่สำหรับนำเข้าไฟล์รายวัน ***
+    function importFromFileForMerging(event) {
+        const file = event.target.files[0];
+        if (!file) { return; }
+        if (!currentAccount) {
+            alert("กรุณาเลือกบัญชีปัจจุบัน (บัญชีปลายทาง) ก่อน");
+            event.target.value = '';
+            return;
+        }
+
+        const reader = new FileReader();
+        const fileName = file.name.toLowerCase();
+
+        const processAndMerge = async (dataString) => {
+            try {
+                let parsedData = JSON.parse(dataString);
+                let finalDataToMerge = null;
+
+                if (parsedData && parsedData.isEncrypted === true) {
+                    const password = prompt("ไฟล์นี้ถูกเข้ารหัส กรุณากรอกรหัสผ่านเพื่อถอดรหัส:");
+                    if (!password) { alert("ยกเลิกการนำเข้าไฟล์"); return; }
+                    alert('กำลังถอดรหัส...');
+                    const decryptedString = await decryptData(parsedData, password);
+                    if (decryptedString) {
+                        finalDataToMerge = JSON.parse(decryptedString);
+                        alert('ถอดรหัสสำเร็จ!');
+                    } else {
+                        alert("ถอดรหัสล้มเหลว! รหัสผ่านอาจไม่ถูกต้อง"); return;
+                    }
+                } else {
+                    finalDataToMerge = parsedData;
+                }
+
+                if (finalDataToMerge && finalDataToMerge.isDailyExport === true) {
+                    const { exportDate, records: recordsToAdd } = finalDataToMerge;
+                    
+                    let addedCount = 0;
+                    let skippedCount = 0;
+
+                    recordsToAdd.forEach(recordToAdd => {
+                        const isDuplicate = records.some(existingRecord =>
+                            existingRecord.account === currentAccount &&
+                            existingRecord.dateTime === recordToAdd.dateTime &&
+                            existingRecord.amount === recordToAdd.amount &&
+                            existingRecord.description === recordToAdd.description &&
+                            existingRecord.type === recordToAdd.type
+                        );
+                        if (!isDuplicate) {
+                            records.push({ ...recordToAdd, account: currentAccount }); // Force to current account
+                            addedCount++;
+                        } else {
+                            skippedCount++;
+                        }
+                    });
+
+                    alert(`เติมข้อมูลสำเร็จ!\nเพิ่ม ${addedCount} รายการใหม่\nข้าม ${skippedCount} รายการที่ซ้ำซ้อน`);
+                    displayRecords();
+                    saveDataAndShowToast();
+
+                } else {
+                    alert("ไฟล์ที่เลือกไม่ใช่ไฟล์ข้อมูลรายวันที่ถูกต้อง\nกรุณาใช้ไฟล์ที่ได้จากการ 'ส่งออกเฉพาะวันที่เลือก' เท่านั้น");
+                }
+            } catch (error) {
+                alert("ไฟล์ JSON ไม่ถูกต้องหรือเสียหาย: " + error.message);
+            }
+        };
+        
+        if (fileName.endsWith('.json')) {
+            reader.onload = (e) => processAndMerge(e.target.result);
+            reader.readAsText(file);
+        } else {
+            alert("ฟังก์ชันนี้รองรับเฉพาะไฟล์ .json เท่านั้น");
+        }
+        
+        reader.onerror = () => alert("เกิดข้อผิดพลาดในการอ่านไฟล์");
+        event.target.value = ''; // Reset file input
+    }
+    // *** END: ฟังก์ชันใหม่ ***
+    
     function showAllTypes(inputElement) { tempTypeValue = inputElement.value; inputElement.value = ''; }
     function restoreType(inputElement) { if (inputElement.value === '') { inputElement.value = tempTypeValue; } }
     function updateMultiAccountSelector() { const selectorDiv = document.getElementById('multiAccountSelector'); const checkboxesDiv = document.getElementById('multiAccountCheckboxes'); checkboxesDiv.innerHTML = ''; if (accounts.length > 1 && editingIndex === null) { selectorDiv.style.display = 'block'; accounts.forEach(acc => { if (acc !== currentAccount) { const itemDiv = document.createElement('div'); itemDiv.className = 'checkbox-item'; const checkbox = document.createElement('input'); checkbox.type = 'checkbox'; checkbox.id = `acc-check-${acc}`; checkbox.value = acc; const label = document.createElement('label'); label.htmlFor = `acc-check-${acc}`; label.textContent = acc; itemDiv.appendChild(checkbox); itemDiv.appendChild(label); checkboxesDiv.appendChild(itemDiv); } }); } else { selectorDiv.style.display = 'none'; } }
@@ -563,11 +790,9 @@
     
     function updateImportAccountSelect() {
         const importSelect = document.getElementById('importAccountSelect');
-        const importButton = document.querySelector('#import-from-account-submenu button');
+        const importButton = document.querySelector('#import-from-account-section button');
         importSelect.innerHTML = '';
-
         const otherAccounts = accounts.filter(acc => acc !== currentAccount);
-
         if (otherAccounts.length === 0 || !currentAccount) {
             importSelect.innerHTML = '<option value="">ไม่มีบัญชีอื่นให้เลือก</option>';
             importSelect.disabled = true;
@@ -611,25 +836,30 @@
             return;
         }
 
-        const confirmImport = confirm(`พบ ${recordsToImport.length} รายการในบัญชี "${sourceAccount}" ของวันที่ ${importDateStr}\n\nคุณต้องการคัดลอกรายการทั้งหมดมายังบัญชี "${currentAccount}" หรือไม่?`);
+        const confirmImport = confirm(`พบ ${recordsToImport.length} รายการในบัญชี "${sourceAccount}" ของวันที่ ${importDateStr}\n\nคุณต้องการคัดลอกรายการทั้งหมดมายังบัญชี "${currentAccount}" หรือไม่? (ข้อมูลซ้ำจะถูกข้าม)`);
 
         if (confirmImport) {
             let importedCount = 0;
-            recordsToImport.forEach(record => {
-                const newEntry = {
-                    dateTime: record.dateTime,
-                    type: record.type,
-                    description: record.description,
-                    amount: record.amount,
-                    account: currentAccount
-                };
-                records.push(newEntry);
-                importedCount++;
+            let skippedCount = 0;
+            recordsToImport.forEach(recordToAdd => {
+                const isDuplicate = records.some(existingRecord => 
+                    existingRecord.account === currentAccount &&
+                    existingRecord.dateTime === recordToAdd.dateTime &&
+                    existingRecord.amount === recordToAdd.amount &&
+                    existingRecord.description === recordToAdd.description &&
+                    existingRecord.type === recordToAdd.type
+                );
+                if (!isDuplicate) {
+                    const newEntry = { ...recordToAdd, account: currentAccount };
+                    records.push(newEntry);
+                    importedCount++;
+                } else {
+                    skippedCount++;
+                }
             });
-
             displayRecords();
             saveDataAndShowToast();
-            alert(`คัดลอกข้อมูลสำเร็จ ${importedCount} รายการ`);
+            alert(`คัดลอกข้อมูลสำเร็จ!\nเพิ่ม ${importedCount} รายการใหม่\nข้าม ${skippedCount} รายการที่ซ้ำซ้อน`);
         }
     }
 
@@ -639,7 +869,6 @@
     function deleteRecordsByDate() {
         const dateInput = document.getElementById('deleteByDateInput');
         const selectedDate = dateInput.value;
-
         if (!currentAccount) {
             alert("กรุณาเลือกบัญชีที่ต้องการลบข้อมูลก่อน");
             return;
@@ -648,23 +877,18 @@
             alert("กรุณาเลือกวันที่ที่ต้องการลบข้อมูล");
             return;
         }
-
         const recordsToDelete = records.filter(record =>
             record.account === currentAccount && record.dateTime.startsWith(selectedDate)
         );
-
         if (recordsToDelete.length === 0) {
             alert(`ไม่พบข้อมูลในบัญชี "${currentAccount}" ของวันที่ ${selectedDate}`);
             return;
         }
-        
         const confirmDelete = confirm(
             `คุณแน่ใจหรือไม่ว่าจะลบข้อมูลทั้งหมด ${recordsToDelete.length} รายการ ของวันที่ ${selectedDate} ในบัญชี "${currentAccount}"?\n\n*** การกระทำนี้ไม่สามารถย้อนกลับได้! ***`
         );
-
         if (confirmDelete) {
             records = records.filter(record => !recordsToDelete.includes(record));
-            
             displayRecords();
             saveDataAndShowToast();
             alert(`ลบข้อมูล ${recordsToDelete.length} รายการของวันที่ ${selectedDate} เรียบร้อยแล้ว`);
@@ -679,16 +903,13 @@
         const typeText = typeInput.value.trim();
         const description = document.getElementById('description').value;
         const amount = parseFloat(document.getElementById('amount').value);
-
         let datePart, timePart;
-
         if (!entryDateInput || !entryTimeInput) {
             const now = new Date();
             const y = now.getFullYear();
             const m = String(now.getMonth() + 1).padStart(2, '0');
             const d = String(now.getDate()).padStart(2, '0');
             datePart = !entryDateInput ? `${y}-${m}-${d}` : entryDateInput;
-            
             const hh = String(now.getHours()).padStart(2, '0');
             const mm = String(now.getMinutes()).padStart(2, '0');
             timePart = !entryTimeInput ? `${hh}:${mm}` : entryTimeInput;
@@ -696,21 +917,17 @@
             datePart = entryDateInput;
             timePart = entryTimeInput;
         }
-
         const dateTime = `${datePart} ${timePart}`;
-
         if (!currentAccount) { alert("กรุณาเลือกบัญชีก่อนเพิ่มรายการ"); return; }
         if (!typeText) { alert("กรุณากรอกประเภท"); return; }
         if (!description) { alert("กรุณากรอกรายละเอียด"); return; }
         if (isNaN(amount) || amount <= 0) { alert("กรุณากรอกจำนวนเงินที่ถูกต้อง"); return; }
-        
         initializeAccountTypes(currentAccount);
         const types = accountTypes.get(currentAccount);
         let entryCategory = 'expense';
         if (types["รายรับ"].includes(typeText)) {
             entryCategory = 'income';
         }
-
         if (editingIndex !== null) {
             records[editingIndex] = { dateTime, type: typeText, description, amount, account: currentAccount };
             editingIndex = null;
@@ -722,7 +939,6 @@
                 records.push({ dateTime, type: typeText, description, amount, account: targetAccount });
             });
         }
-        
         displayRecords();
         document.getElementById('description').value = '';
         document.getElementById('amount').value = '';
@@ -732,7 +948,6 @@
         document.querySelectorAll('#multiAccountCheckboxes input:checked').forEach(checkbox => {
             checkbox.checked = false;
         });
-        
         saveDataAndShowToast(entryCategory);
         updateMultiAccountSelector();
     }
@@ -745,11 +960,9 @@
         document.getElementById('type').value = record.type;
         document.getElementById('description').value = record.description;
         document.getElementById('amount').value = record.amount;
-        
         const [datePart, timePart] = record.dateTime.split(' ');
         document.getElementById('entryDate').value = datePart;
         document.getElementById('entryTime').value = timePart;
-        
         editingIndex = index;
         updateMultiAccountSelector();
     }
@@ -773,7 +986,6 @@
             closeSummaryOutputModal();
             return;
         }
-        
         if (choice === 'display') {
             const htmlForDisplay = buildOriginalSummaryHtml(summaryContext);
             openSummaryModal(htmlForDisplay);
@@ -785,10 +997,7 @@
             if (printContainer) {
                 const htmlWithDetailsForPdf = buildPdfSummaryHtml(summaryContext);
                 printContainer.innerHTML = `<div class="summaryResult">${htmlWithDetailsForPdf}</div>`;
-                
-                setTimeout(() => {
-                    window.print();
-                }, 250);
+                setTimeout(() => { window.print(); }, 250);
             }
         }
         closeSummaryOutputModal();
@@ -824,10 +1033,8 @@
     function buildOriginalSummaryHtml(context) {
         const { summaryResult, title, dateString, remark, transactionDaysInfo, type, thaiDateString, headerLine1, headerLine2, headerLine3 } = context;
         const { summary, periodRecords, totalBalance } = summaryResult;
-
         let incomeHTML = ''; for (const type in summary.income) { incomeHTML += `<p>- ${type} : ${summary.income[type].count} ครั้ง เป็นเงิน ${summary.income[type].amount.toLocaleString()} บาท</p>`; }
         let expenseHTML = ''; for (const type in summary.expense) { expenseHTML += `<p>- ${type} : ${summary.expense[type].count} ครั้ง เป็นเงิน ${summary.expense[type].amount.toLocaleString()} บาท</p>`; }
-
         let recordsHTML = '';
         if ((type === 'today' || type === 'byDayMonth') && periodRecords.length > 0) {
             recordsHTML = ` <div style="margin-top: 20px;"> <h4 style="border-bottom: 1px solid #ddd; padding-bottom: 5px;">${headerLine3}</h4> <table style="width: 100%; border-collapse: collapse; margin-top: 10px;"> <thead><tr style="background-color: #f2f2f2;"><th style="padding: 8px; border: 1px solid #ddd; text-align: center;">เวลา</th><th style="padding: 8px; border: 1px solid #ddd; text-align: center;">ประเภท</th><th style="padding: 8px; border: 1px solid #ddd; text-align: center;">รายละเอียด</th><th style="padding: 8px; border: 1px solid #ddd; text-align: center;">จำนวนเงิน</th></tr></thead> <tbody> ${periodRecords.map(record => {
@@ -837,7 +1044,6 @@
                 return `<tr><td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${hours}.${minutes}</td><td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${record.type}</td><td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${record.description}</td><td style="padding: 8px; border: 1px solid #ddd; text-align: center; color: ${color}; font-weight: bold;">${record.amount.toLocaleString()}</td></tr>`;
             }).join('')} </tbody> </table> </div>`;
         }
-        
         let comparisonText = ''; let comparisonColor = ''; let differenceAmount = 0;
         if (summary.totalIncome > summary.totalExpense) {
             differenceAmount = summary.totalIncome - summary.totalExpense;
@@ -851,33 +1057,27 @@
             comparisonText = 'รายได้เท่ากับรายจ่าย';
             comparisonColor = 'black';
         }
-
         let summaryLineHTML;
         if (summary.totalIncome === 0 && summary.totalExpense === 0) {
              summaryLineHTML = `<p style="color: green; font-weight: bold;">${headerLine1} ไม่มีธุระกรรมการเงิน</p>`;
         } else {
              summaryLineHTML = `<p style="color: ${comparisonColor}; font-weight: bold;">${headerLine1} ${comparisonText}</p>`;
         }
-
         let totalBalanceLine;
         if (type === 'range' || type === 'all') {
             totalBalanceLine = `<p><span style="color: blue; font-size: 14px; font-weight: bold;">${headerLine2} = </span><span style="color: ${totalBalance >= 0 ? 'green' : 'red'}; font-size: 16px; font-weight: bold;">${totalBalance.toLocaleString()}</span> บาท</p>`
         } else {
             totalBalanceLine = `<p><span style="color: blue; font-size: 14px; font-weight: bold;">เงินในบัญชีถึงวันนี้มี = </span><span style="color: ${totalBalance >= 0 ? 'green' : 'red'}; font-size: 16px; font-weight: bold;">${totalBalance.toLocaleString()}</span> บาท</p>`
         }
-
         const summaryDateTime = new Date().toLocaleString("th-TH", { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'}) + ' น.';
-
         return ` <p><strong>ชื่อบัญชี:</strong> ${currentAccount}</p> <p><strong>สรุปเมื่อวันที่ : </strong> ${summaryDateTime}</p> <p><strong>${title} : </strong> ${thaiDateString}</p> ${transactionDaysInfo ? transactionDaysInfo : ''} <hr> <p><strong>รายรับ : </strong> ${summary.incomeCount} ครั้ง เป็นเงิน ${summary.totalIncome.toLocaleString()} บาท</p>${incomeHTML} <hr> <p><strong>รายจ่าย : </strong> ${summary.expenseCount} ครั้ง เป็นเงิน ${summary.totalExpense.toLocaleString()} บาท</p>${expenseHTML} <hr> ${summaryLineHTML} ${totalBalanceLine} <p>ข้อความเพิ่ม : <span style="color: orange;">${remark}</span></p> ${recordsHTML}`;
     }
 
     function buildPdfSummaryHtml(context) {
         const { summaryResult, title, dateString, remark, transactionDaysInfo, type, thaiDateString, headerLine1, headerLine2, headerLine3 } = context;
         const { summary, periodRecords, totalBalance } = summaryResult;
-
         let incomeHTML = ''; for (const type in summary.income) { incomeHTML += `<p style="margin-left: 15px;">- ${type} : ${summary.income[type].count} ครั้ง เป็นเงิน ${summary.income[type].amount.toLocaleString()} บาท</p>`; }
         let expenseHTML = ''; for (const type in summary.expense) { expenseHTML += `<p style="margin-left: 15px;">- ${type} : ${summary.expense[type].count} ครั้ง เป็นเงิน ${summary.expense[type].amount.toLocaleString()} บาท</p>`; }
-
         let recordsHTML = '';
         if (periodRecords.length > 0) {
             recordsHTML = ` <div style="margin-top: 20px;"> <h4>รายละเอียดธุรกรรม</h4> <table style="width: 100%; border-collapse: collapse; margin-top: 10px;"> <thead><tr style="background-color: #f2f2f2;"><th>วันเดือนปี</th><th>เวลา</th><th>ประเภท</th><th>รายละเอียด</th><th>จำนวนเงิน</th></tr></thead> <tbody> ${periodRecords.map(record => {
@@ -889,7 +1089,6 @@
                 return `<tr><td>${formattedDate}</td><td>${hours}.${minutes}</td><td>${record.type}</td><td>${record.description}</td><td style="color: ${color}; font-weight: bold;">${record.amount.toLocaleString()}</td></tr>`;
             }).join('')} </tbody> </table> </div>`;
         }
-        
         let comparisonText = ''; let comparisonColor = ''; let differenceAmount = 0;
         if (summary.totalIncome > summary.totalExpense) {
             differenceAmount = summary.totalIncome - summary.totalExpense;
@@ -903,23 +1102,19 @@
             comparisonText = 'รายได้เท่ากับรายจ่าย';
             comparisonColor = 'black';
         }
-
         let summaryLineHTML;
         if (summary.totalIncome === 0 && summary.totalExpense === 0) {
              summaryLineHTML = `<p style="color: green; font-weight: bold;">${headerLine1} ไม่มีธุรกรรมการเงิน</p>`;
         } else {
              summaryLineHTML = `<p style="color: ${comparisonColor}; font-weight: bold;">${headerLine1} ${comparisonText}</p>`;
         }
-
         let totalBalanceLine;
         if (type === 'range' || type === 'all') {
             totalBalanceLine = `<p><b>${headerLine2} = </b><b style="color: ${totalBalance >= 0 ? 'green' : 'red'}; font-size: 1.1em;">${totalBalance.toLocaleString()}</b> บาท</p>`
         } else {
             totalBalanceLine = `<p><b>เงินในบัญชีถึงวันนี้มี = </b><b style="color: ${totalBalance >= 0 ? 'green' : 'red'}; font-size: 1.1em;">${totalBalance.toLocaleString()}</b> บาท</p>`
         }
-
         const summaryDateTime = new Date().toLocaleString("th-TH", { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'}) + ' น.';
-
         return ` <p><strong>ชื่อบัญชี:</strong> ${currentAccount}</p> <p><strong>สรุปเมื่อวันที่ : </strong> ${summaryDateTime}</p> <p><strong>${title} : </strong> ${thaiDateString}</p> ${transactionDaysInfo ? transactionDaysInfo : ''} <hr> <p><strong>รายรับ : </strong> ${summary.incomeCount} ครั้ง เป็นเงิน ${summary.totalIncome.toLocaleString()} บาท</p>${incomeHTML} <hr> <p><strong>รายจ่าย : </strong> ${summary.expenseCount} ครั้ง เป็นเงิน ${summary.totalExpense.toLocaleString()} บาท</p>${expenseHTML} <hr> ${summaryLineHTML} ${totalBalanceLine} <p><b>ข้อความเพิ่ม : </b><span style="color: orange;">${remark}</span></p> ${recordsHTML}`;
     }
     
@@ -927,7 +1122,6 @@
         const { summary, periodRecords, totalBalance } = summaryResult; 
         let csvRows = [];
         const summaryDateTime = new Date().toLocaleString("th-TH", { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'}) + ' น.';
-        
         csvRows.push(['สรุปข้อมูลบัญชี']); csvRows.push(['ชื่อบัญชี:', currentAccount]); csvRows.push(['สรุปเมื่อวันที่:', summaryDateTime]); csvRows.push([`${title}:`, dateString]);
         if(transactionDaysInfo) {
             csvRows.push([transactionDaysInfo.totalDaysText]);
@@ -940,7 +1134,6 @@
         csvRows.push([`--- รายจ่าย: ${summary.expenseCount} ครั้ง | รวม ${summary.totalExpense.toLocaleString()} บาท ---`]);
         for (const type in summary.expense) { csvRows.push([`  ${type}`, `${summary.expense[type].count} ครั้ง`, `${summary.expense[type].amount.toLocaleString()} บาท`]); }
         csvRows.push(['']); 
-        
         csvRows.push(['--- สรุปยอดสุทธิ ---']);
         const netAmount = summary.totalIncome - summary.totalExpense; 
         const netText = netAmount > 0 ? 'รายได้มากกว่ารายจ่าย' : (netAmount < 0 ? 'รายจ่ายมากกว่ารายได้' : 'รายได้เท่ากับรายจ่าย');
@@ -950,7 +1143,6 @@
         csvRows.push([`ยอดเงินคงเหลือในบัญชี (ณ วันสิ้นสุด):`, `${totalBalance.toLocaleString()} บาท`]); 
         csvRows.push(['หมายเหตุ:', remark]); 
         csvRows.push(['']); 
-        
         if (periodRecords.length > 0) {
             csvRows.push([`--- รายละเอียดธุรกรรม ---`]);
             csvRows.push(['วันที่', 'เวลา', 'ประเภท', 'รายละเอียด', 'จำนวนเงิน']);
@@ -964,7 +1156,6 @@
                 csvRows.push([date, time, record.type, record.description, amount]);
             });
         }
-
         const csvContent = Papa.unparse(csvRows, { header: false }); 
         const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
         const fileName = `สรุป_${currentAccount}_${periodName}_${new Date().getTime()}.csv`;
@@ -984,17 +1175,8 @@
         const remarkInput = prompt("กรุณากรอกหมายเหตุ (ถ้าไม่กรอกจะใช้ 'No comment'):", "No comment") || "No comment";
         const thaiDate = new Date(startDate);
         const thaiDateString = `${thaiDate.getDate()} ${thaiDate.toLocaleString('th-TH', { month: 'long' })} ${thaiDate.getFullYear() + 543}`;
-        
         summaryContext = {
-            summaryResult, 
-            type: 'today',
-            title: "สรุปข้อมูลของวันที่", 
-            dateString: new Date(startDate).toLocaleDateString('en-CA'), // for CSV
-            thaiDateString: thaiDateString, // for display
-            remark: remarkInput, 
-            periodName: 'วันนี้',
-            headerLine1: 'สรุปวันนี้ :',
-            headerLine3: `รายละเอียดวันนี้ : ${thaiDateString}`
+            summaryResult, type: 'today', title: "สรุปข้อมูลของวันที่", dateString: new Date(startDate).toLocaleDateString('en-CA'), thaiDateString: thaiDateString, remark: remarkInput, periodName: 'วันนี้', headerLine1: 'สรุปวันนี้ :', headerLine3: `รายละเอียดวันนี้ : ${thaiDateString}`
         };
         openSummaryOutputModal();
     }
@@ -1011,17 +1193,8 @@
         const remarkInput = prompt("กรุณากรอกหมายเหตุ (ถ้าไม่กรอกจะใช้ 'No comment'):", "No comment") || "No comment";
         const thaiDate = new Date(startDate);
         const thaiDateString = `${thaiDate.getDate()} ${thaiDate.toLocaleString('th-TH', { month: 'long' })} ${thaiDate.getFullYear() + 543}`;
-        
         summaryContext = {
-            summaryResult, 
-            type: 'byDayMonth',
-            title: "สรุปข้อมูลของวันที่", 
-            dateString: dayMonthInput, // for CSV
-            thaiDateString: thaiDateString, // for display
-            remark: remarkInput, 
-            periodName: dayMonthInput.replace(/-/g, '_'),
-            headerLine1: 'สรุป :',
-            headerLine3: `รายละเอียดวันที่เลือก : ${thaiDateString}`
+            summaryResult, type: 'byDayMonth', title: "สรุปข้อมูลของวันที่", dateString: dayMonthInput, thaiDateString: thaiDateString, remark: remarkInput, periodName: dayMonthInput.replace(/-/g, '_'), headerLine1: 'สรุป :', headerLine3: `รายละเอียดวันที่เลือก : ${thaiDateString}`
         };
         openSummaryOutputModal();
     }
@@ -1040,21 +1213,10 @@
         const daysDiff = Math.floor((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
         const transactionDays = new Set(summaryResult.periodRecords.map(r => new Date(r.dateTime).toDateString()));
         const transactionDaysInfo = `<p style="font-size: 16px; color: blue; font-weight: bold;">จำนวน ${daysDiff} วัน</p><p style="font-size: 16px; color: #333; font-weight: bold;">ทำธุรกรรม ${transactionDays.size} วัน, ไม่ได้ทำ ${daysDiff - transactionDays.size} วัน</p>`;
-        
         const remarkInput = prompt("กรุณากรอกหมายเหตุ (ถ้าไม่กรอกจะใช้ 'No comment'):", "No comment") || "No comment";
         const thaiDateString = `${startDate.toLocaleDateString('th-TH', {day: 'numeric', month: 'long', year: 'numeric'})} ถึง ${endDate.toLocaleDateString('th-TH', {day: 'numeric', month: 'long', year: 'numeric'})}`;
-
         summaryContext = {
-            summaryResult, 
-            type: 'range',
-            title: "สรุปวันที่", 
-            dateString: `${startDateStr} to ${endDateStr}`, // for CSV
-            thaiDateString: thaiDateString, // for display
-            remark: remarkInput, 
-            transactionDaysInfo: transactionDaysInfo,
-            periodName: `จาก${startDateStr.replace(/-/g, '_')}_ถึง${endDateStr.replace(/-/g, '_')}`,
-            headerLine1: 'สรุป :',
-            headerLine2: 'เงินในบัญชีถึงวันนี้มี'
+            summaryResult, type: 'range', title: "สรุปวันที่", dateString: `${startDateStr} to ${endDateStr}`, thaiDateString: thaiDateString, remark: remarkInput, transactionDaysInfo: transactionDaysInfo, periodName: `จาก${startDateStr.replace(/-/g, '_')}_ถึง${endDateStr.replace(/-/g, '_')}`, headerLine1: 'สรุป :', headerLine2: 'เงินในบัญชีถึงวันนี้มี'
         };
         openSummaryOutputModal();
     }
@@ -1071,29 +1233,16 @@
         const daysDiff = Math.floor((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
         const transactionDays = new Set(summaryResult.periodRecords.map(r => new Date(r.dateTime).toDateString()));
         const transactionDaysInfo = `<p style="font-size: 16px; color: blue; font-weight: bold;">รวมเป็นเวลา ${daysDiff} วัน</p><p style="font-size: 16px; color: #333; font-weight: bold;">ทำธุรกรรม ${transactionDays.size} วัน, ไม่ได้ทำ ${daysDiff - transactionDays.size} วัน</p>`;
-
         const remarkInput = prompt("กรุณากรอกหมายเหตุ (ถ้าไม่กรอกจะใช้ 'No comment'):", "No comment") || "No comment";
         const startDateStr = `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, '0')}-${String(startDate.getDate()).padStart(2, '0')}`;
         const endDateStr = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`;
         const thaiDateString = `${startDate.toLocaleDateString('th-TH', {day: 'numeric', month: 'long', year: 'numeric'})} ถึง ${endDate.toLocaleDateString('th-TH', {day: 'numeric', month: 'long', year: 'numeric'})}`;
-        
         summaryContext = {
-            summaryResult, 
-            type: 'all',
-            title: "สรุปข้อมูลทั้งหมดตั้งแต่",
-            dateString: `${startDateStr} to ${endDateStr}`, // for CSV
-            thaiDateString: thaiDateString, // for display
-            remark: remarkInput, 
-            transactionDaysInfo: transactionDaysInfo, 
-            periodName: 'ทั้งหมด',
-            headerLine1: 'สรุป :',
-            headerLine2: 'เงินคงเหลือในบัญชีทั้งหมด'
+            summaryResult, type: 'all', title: "สรุปข้อมูลทั้งหมดตั้งแต่", dateString: `${startDateStr} to ${endDateStr}`, thaiDateString: thaiDateString, remark: remarkInput, transactionDaysInfo: transactionDaysInfo, periodName: 'ทั้งหมด', headerLine1: 'สรุป :', headerLine2: 'เงินคงเหลือในบัญชีทั้งหมด'
         };
         openSummaryOutputModal();
     }
     
-    // START: CODE ที่เพิ่มเข้ามาสำหรับรหัสผ่าน
-    // Helper functions for cryptography
     function arrayBufferToBase64(buffer) { let binary = ''; const bytes = new Uint8Array(buffer); const len = bytes.byteLength; for (let i = 0; i < len; i++) { binary += String.fromCharCode(bytes[i]); } return window.btoa(binary); }
     function base64ToArrayBuffer(base64) { const binary_string = window.atob(base64); const len = binary_string.length; const bytes = new Uint8Array(len); for (let i = 0; i < len; i++) { bytes[i] = binary_string.charCodeAt(i); } return bytes.buffer; }
     async function deriveKey(password, salt) { const enc = new TextEncoder(); const keyMaterial = await window.crypto.subtle.importKey('raw', enc.encode(password), { name: 'PBKDF2' }, false, ['deriveKey']); return window.crypto.subtle.deriveKey({ "name": 'PBKDF2', salt: salt, "iterations": 100000, "hash": 'SHA-256' }, keyMaterial, { "name": 'AES-GCM', "length": 256 }, true, [ "encrypt", "decrypt" ] ); }
@@ -1104,14 +1253,12 @@
         e.preventDefault();
         const newPassword = document.getElementById('backup-password').value;
         const confirmPassword = document.getElementById('backup-password-confirm').value;
-
         if (newPassword !== confirmPassword) {
             alert('รหัสผ่านไม่ตรงกัน กรุณากรอกใหม่อีกครั้ง');
             return;
         }
-
         backupPassword = newPassword.trim() || null;
-        saveToLocal(true); // Call saveToLocal with a flag to prevent the default alert
+        saveToLocal(true); 
         alert('บันทึกรหัสผ่านสำหรับไฟล์สำรองเรียบร้อยแล้ว');
         document.getElementById('backup-password').value = '';
         document.getElementById('backup-password-confirm').value = '';
@@ -1128,7 +1275,6 @@
             statusEl.style.color = '#f5a623';
         }
     }
-    // END: CODE ที่เพิ่มเข้ามาสำหรับรหัสผ่าน
 
     function loadFromLocal() {
         const data = localStorage.getItem('accountData');
@@ -1139,10 +1285,8 @@
                 currentAccount = parsed.currentAccount || null;
                 records = parsed.records || [];
                 accountTypes = new Map(parsed.accountTypes || []);
-                // --- CODE ที่เพิ่มเข้ามา ---
                 backupPassword = parsed.backupPassword || null; 
                 renderBackupPasswordStatus();
-                // --- จบส่วนที่เพิ่ม ---
                 updateAccountSelect();
                 if (currentAccount) {
                     document.getElementById('accountSelect').value = currentAccount;
@@ -1157,7 +1301,7 @@
 
     function closeFormatModal() { document.getElementById('formatSelectionModal').style.display = 'none'; }
     function closeExportSingleAccountModal() { document.getElementById('exportSingleAccountModal').style.display = 'none'; }
-    function saveToFile() { if (accounts.length === 0) { alert("ไม่มีบัญชีให้บันทึก"); return; } document.getElementById('formatSelectionModal').style.display = 'flex'; }
+    function saveToFile() { closeExportOptionsModal(); if (accounts.length === 0) { alert("ไม่มีบัญชีให้บันทึก"); return; } document.getElementById('formatSelectionModal').style.display = 'flex'; }
     
     function saveToLocal(fromPasswordSave = false) {
         const dataToSave = {
@@ -1165,11 +1309,11 @@
             currentAccount: currentAccount,
             records: [...records],
             accountTypes: Array.from(accountTypes.entries()),
-            backupPassword: backupPassword // Save password to local storage
+            backupPassword: backupPassword
         };
         try {
             localStorage.setItem('accountData', JSON.stringify(dataToSave));
-            if (!fromPasswordSave) { // Prevent double alert
+            if (!fromPasswordSave) {
                  alert('✓ บันทึกข้อมูลชั่วคราวในเบราว์เซอร์เรียบร้อยแล้ว');
             }
         } catch (error) {
@@ -1183,37 +1327,27 @@
         const formatLower = format.toLowerCase().trim();
         const fileName = prompt("กรุณากรอกชื่อไฟล์สำหรับสำรองข้อมูล (ไม่ต้องใส่นามสกุล):", "backup_all");
         if (!fileName) return;
-
         const now = new Date();
         const dateTimeString = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`;
-
         if (formatLower === 'json') {
             const fullFileName = `${fileName}_${dateTimeString}.json`;
-            const data = { accounts, currentAccount, records, accountTypes: Array.from(accountTypes.entries()), backupPassword: null }; // Exclude password from file
-            
+            const data = { accounts, currentAccount, records, accountTypes: Array.from(accountTypes.entries()), backupPassword: null };
             let dataString = JSON.stringify(data, null, 2);
-
             if (backupPassword) {
                 alert('กำลังเข้ารหัสข้อมูล...');
                 try {
                     const encryptedObject = await encryptData(dataString, backupPassword);
                     dataString = JSON.stringify(encryptedObject, null, 2);
                 } catch (e) {
-                    alert('การเข้ารหัสล้มเหลว!');
-                    return;
+                    alert('การเข้ารหัสล้มเหลว!'); return;
                 }
             }
-            
             const blob = new Blob([dataString], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = fullFileName;
-            a.click();
+            const a = document.createElement('a'); a.href = url; a.download = fullFileName; a.click();
             URL.revokeObjectURL(url);
             alert(`บันทึกข้อมูลทั้งหมดลงในไฟล์ "${fullFileName}" เรียบร้อยแล้ว`);
         } else if (formatLower === 'csv') {
-            // CSV saving logic remains unchanged as encryption is only for JSON
             const fullFileName = `${fileName}_${dateTimeString}.csv`;
             let csvData = [];
             csvData.push(['###ALL_ACCOUNTS_BACKUP_CSV###']);
@@ -1246,7 +1380,7 @@
         }
     }
     
-    function exportSelectedAccount() { if (!currentAccount) { alert("กรุณาเลือกบัญชีที่ต้องการส่งออกก่อน"); return; } document.getElementById('exportSingleAccountModal').style.display = 'flex'; }
+    function exportSelectedAccount() { closeExportOptionsModal(); if (!currentAccount) { alert("กรุณาเลือกบัญชีที่ต้องการส่งออกก่อน"); return; } document.getElementById('exportSingleAccountModal').style.display = 'flex'; }
     
     async function handleExportSelectedAs(format) {
         closeExportSingleAccountModal();
@@ -1256,10 +1390,8 @@
         }
         const fileName = prompt(`กรุณากรอกชื่อไฟล์สำหรับบัญชี ${currentAccount} (ไม่ต้องใส่นามสกุล):`, currentAccount);
         if (!fileName) return;
-
         const now = new Date();
         const dateTimeString = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`;
-
         if (format === 'json') {
             const fullFileName = `${fileName}_${dateTimeString}.json`;
             const accountData = {
@@ -1267,29 +1399,21 @@
                 records: records.filter(record => record.account === currentAccount),
                 accountTypes: accountTypes.get(currentAccount) || { "รายรับ": [], "รายจ่าย": [] }
             };
-
             let dataString = JSON.stringify(accountData, null, 2);
-
             if (backupPassword) {
                 alert('กำลังเข้ารหัสข้อมูล...');
                 try {
                     const encryptedObject = await encryptData(dataString, backupPassword);
                     dataString = JSON.stringify(encryptedObject, null, 2);
                 } catch (e) {
-                    alert('การเข้ารหัสล้มเหลว!');
-                    return;
+                    alert('การเข้ารหัสล้มเหลว!'); return;
                 }
             }
-
             const blob = new Blob([dataString], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = fullFileName;
-            a.click();
+            const a = document.createElement('a'); a.href = url; a.download = fullFileName; a.click();
             URL.revokeObjectURL(url);
             alert(`ส่งออกบัญชี "${currentAccount}" เป็น JSON เรียบร้อย\n\nไฟล์: ${fullFileName}`);
-
         } else if (format === 'csv') {
             const fullFileName = `${fileName}_${dateTimeString}.csv`;
             initializeAccountTypes(currentAccount);
@@ -1298,31 +1422,25 @@
             excelData.push([`ชื่อบัญชี: ${currentAccount}`]);
             excelData.push(['###ACCOUNT_TYPES###']);
             excelData.push(['รายรับ', ...(accountCurrentTypes['รายรับ'] || [])]);
-            excelData.push(['รายจ่าย', ...(accountCurrentTypes['จ่าย'] || [])]);
+            excelData.push(['รายจ่าย', ...(accountCurrentTypes['รายจ่าย'] || [])]);
             excelData.push(['###DATA_START###']);
             excelData.push(["วันที่", "เวลา", "ประเภท", "รายละเอียด", "จำนวนเงิน (บาท)"]);
-
             const filteredRecords = records.filter(record => record.account === currentAccount).sort((a, b) => new Date(a.dateTime) - new Date(b.dateTime));
-
             filteredRecords.forEach(record => {
                 const dateTime = new Date(record.dateTime);
                 const formattedDate = `${String(dateTime.getDate()).padStart(2, '0')}/${String(dateTime.getMonth() + 1).padStart(2, '0')}/${dateTime.getFullYear()}`;
                 const formattedTime = `${String(dateTime.getHours()).padStart(2, '0')}.${String(dateTime.getMinutes()).padStart(2, '0')} น.`;
                 excelData.push([formattedDate, formattedTime, record.type, record.description, record.amount]);
             });
-
             let csvContent = Papa.unparse(excelData, { header: false });
             const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
-            const link = document.createElement("a");
-            link.href = URL.createObjectURL(blob);
-            link.download = fullFileName;
-            link.click();
+            const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = fullFileName; link.click();
             setTimeout(() => URL.revokeObjectURL(link.href), 100);
             alert(`ส่งออกบัญชี "${currentAccount}" เป็น CSV เรียบร้อย\n\nไฟล์: ${fullFileName}`);
         }
     }
 
-    function loadFromFile(event) {
+    async function loadFromFile(event) {
         const file = event.target.files[0]; if (!file) { return; }
         const reader = new FileReader();
         const fileName = file.name.toLowerCase();
@@ -1331,46 +1449,58 @@
             reader.onload = (e) => loadFromCsv(e.target.result);
             reader.readAsText(file, 'UTF-8');
         } else if (fileName.endsWith('.json')) {
-            reader.onload = async (e) => { // Make async
+            reader.onload = async (e) => {
                 try {
                     const importedData = JSON.parse(e.target.result);
                     let finalDataToMerge = null;
-
-                    // Check if the file is encrypted
                     if (importedData && importedData.isEncrypted === true) {
                         const password = prompt("ไฟล์นี้ถูกเข้ารหัส กรุณากรอกรหัสผ่านเพื่อถอดรหัส:");
-                        if (!password) {
-                            alert("ยกเลิกการนำเข้าไฟล์");
-                            event.target.value = '';
-                            return;
-                        }
+                        if (!password) { alert("ยกเลิกการนำเข้าไฟล์"); event.target.value = ''; return; }
                         alert('กำลังถอดรหัส...');
                         const decryptedString = await decryptData(importedData, password);
                         if (decryptedString) {
                             finalDataToMerge = JSON.parse(decryptedString);
                             alert('ถอดรหัสสำเร็จ!');
                         } else {
-                            alert("ถอดรหัสล้มเหลว! รหัสผ่านอาจไม่ถูกต้อง");
-                            event.target.value = '';
-                            return;
+                            alert("ถอดรหัสล้มเหลว! รหัสผ่านอาจไม่ถูกต้อง"); event.target.value = ''; return;
                         }
                     } else {
                         finalDataToMerge = importedData;
                     }
-
-                    // Proceed with merging the final data
-                    if (finalDataToMerge.accounts && Array.isArray(finalDataToMerge.accounts)) { // All accounts backup
+                    if (finalDataToMerge.accounts && Array.isArray(finalDataToMerge.accounts)) {
                         if(confirm("ไฟล์นี้เป็นไฟล์สำรองข้อมูล JSON ทั้งหมด ต้องการโหลดข้อมูลทั้งหมดทับของเดิมหรือไม่?")) {
                             accounts = finalDataToMerge.accounts;
                             records = finalDataToMerge.records;
                             accountTypes = new Map(finalDataToMerge.accountTypes);
                             currentAccount = finalDataToMerge.currentAccount;
-                            updateAccountSelect();
-                            if (currentAccount) document.getElementById('accountSelect').value = currentAccount;
-                            changeAccount();
                             alert("โหลดข้อมูลทั้งหมดจาก JSON สำเร็จ");
                         }
-                    } else if (finalDataToMerge.accountName) { // Single account
+                    } else if (finalDataToMerge.isDailyExport === true) {
+                        const { accountName, exportDate, records: recordsToAdd } = finalDataToMerge;
+                        const confirmMsg = `ไฟล์นี้มีข้อมูลของวันที่ ${exportDate} จำนวน ${recordsToAdd.length} รายการ สำหรับบัญชี "${accountName}"\n\nกด OK เพื่อ "เพิ่ม" รายการเหล่านี้ลงในบัญชี (ข้อมูลซ้ำจะถูกข้าม)\nกด Cancel เพื่อยกเลิก`;
+                        if (confirm(confirmMsg)) {
+                            if (!accounts.includes(accountName)) { accounts.push(accountName); }
+                            let addedCount = 0;
+                            let skippedCount = 0;
+                            recordsToAdd.forEach(recordToAdd => {
+                                const isDuplicate = records.some(existingRecord =>
+                                    existingRecord.account === accountName &&
+                                    existingRecord.dateTime === recordToAdd.dateTime &&
+                                    existingRecord.amount === recordToAdd.amount &&
+                                    existingRecord.description === recordToAdd.description &&
+                                    existingRecord.type === recordToAdd.type
+                                );
+                                if (!isDuplicate) {
+                                    records.push({ ...recordToAdd, account: accountName });
+                                    addedCount++;
+                                } else {
+                                    skippedCount++;
+                                }
+                            });
+                            currentAccount = accountName;
+                            alert(`เติมข้อมูลสำเร็จ!\nเพิ่ม ${addedCount} รายการใหม่\nข้าม ${skippedCount} รายการที่ซ้ำซ้อน`);
+                        }
+                    } else if (finalDataToMerge.accountName) {
                         const confirmMsg = `ไฟล์นี้เป็นข้อมูลของบัญชี "${finalDataToMerge.accountName}"\n\nกด OK เพื่อ "แทนที่" ข้อมูลทั้งหมดของบัญชีนี้\nกด Cancel เพื่อยกเลิก`;
                         if (confirm(confirmMsg)) {
                             if (!accounts.includes(finalDataToMerge.accountName)) accounts.push(finalDataToMerge.accountName);
@@ -1378,13 +1508,13 @@
                             records.push(...(finalDataToMerge.records || []));
                             accountTypes.set(finalDataToMerge.accountName, finalDataToMerge.accountTypes || { "รายรับ": [], "รายจ่าย": [] });
                             currentAccount = finalDataToMerge.accountName;
-                            updateAccountSelect();
-                            document.getElementById('accountSelect').value = currentAccount;
-                            changeAccount();
-                            saveToLocal();
                             alert(`แทนที่ข้อมูลบัญชี "${finalDataToMerge.accountName}" สำเร็จ`);
                         }
                     } else { throw new Error("รูปแบบไฟล์ JSON ไม่ถูกต้อง"); }
+                    updateAccountSelect();
+                    if (currentAccount) document.getElementById('accountSelect').value = currentAccount;
+                    changeAccount();
+                    saveToLocal();
                     updateMultiAccountSelector();
                 } catch (error) {
                     alert("ไฟล์ JSON ไม่ถูกต้องหรือเสียหาย: " + error.message);
@@ -1395,61 +1525,79 @@
             alert("กรุณาเลือกไฟล์ .json หรือ .csv เท่านั้น");
         }
         reader.onerror = () => alert("เกิดข้อผิดพลาดในการอ่านไฟล์");
-        event.target.value = ''; // Reset file input
+        event.target.value = '';
     }
     
     function loadFromCsv(csvText) {
-        let isFullBackup = false; let isFirstRow = true; let newFullAccounts = []; let newFullRecords = []; let newFullAccountTypes = new Map(); let importAccountName = ''; let importedTypes = { "รายรับ": [], "รายจ่าย": [] }; let newRecords = []; let inTypesSection = false; let inDataSection = false; let isDataHeaderRow = true;
+        let csvImportData = { isFullBackup: false, isDailyExport: false, accountName: '', exportDate: '', types: { "รายรับ": [], "รายจ่าย": [] }, records: [] };
+        let inTypesSection = false;
+        let inDataSection = false;
+        let dataHeaderPassed = false;
         Papa.parse(csvText, {
             skipEmptyLines: true,
             step: function(results) {
-                const rowData = results.data; const firstCell = rowData[0] || '';
-                if (isFirstRow) { if (firstCell === '###ALL_ACCOUNTS_BACKUP_CSV###') { isFullBackup = true; } isFirstRow = false; if(isFullBackup) return; }
-                if (isFullBackup) {
-                    if (firstCell.startsWith('###')) {
-                        if (firstCell === '###ACCOUNTS_LIST###') newFullAccounts = rowData.slice(1).filter(Boolean); else if (firstCell === '###ACCOUNT_TYPES_START###') inTypesSection = true; else if (firstCell === '###ACCOUNT_TYPES_END###') inTypesSection = false; else if (firstCell === '###DATA_START###') { inDataSection = true; isDataHeaderRow = true; } return;
-                    }
-                    if (inTypesSection) {
-                        const accName = rowData[0]; const category = rowData[1]; const typesList = rowData.slice(2).filter(Boolean); if (!newFullAccountTypes.has(accName)) newFullAccountTypes.set(accName, { "รายรับ": [], "รายจ่าย": [] }); if ((category === 'รายรับ' || category === 'รายจ่าย') && typesList.length > 0) newFullAccountTypes.get(accName)[category].push(...typesList);
-                    } else if (inDataSection) {
-                        if (isDataHeaderRow) { isDataHeaderRow = false; return; } const [dateStr, timeStr, type, description, amountStr, recordAccount] = rowData;
-                        try {
-                            if (!dateStr || !timeStr || !type || !amountStr || !recordAccount) throw new Error("ข้อมูลไม่ครบถ้วน"); const [day, month, year] = dateStr.trim().split('/'); if(!day || !month || !year) throw new Error("รูปแบบวันที่ไม่ถูกต้อง (DD/MM/YYYY)");
-                            const formattedDate = `${year.trim()}-${String(month.trim()).padStart(2, '0')}-${String(day.trim()).padStart(2, '0')}`; const formattedTime = timeStr.trim().replace(' น.', '').replace('.', ':'); const dateTime = `${formattedDate} ${formattedTime}`; const amount = parseFloat(String(amountStr).replace(/,/g, ''));
-                            if (isNaN(new Date(dateTime).getTime())) throw new Error(`วันที่เวลาไม่ถูกต้อง: ${dateTime}`); if (isNaN(amount)) throw new Error(`จำนวนเงินไม่ถูกต้อง: ${amountStr}`);
-                            newFullRecords.push({ dateTime, type: type.trim(), description: (description || '').trim(), amount, account: recordAccount.trim() });
-                        } catch (e) { console.warn(`ข้ามแถวข้อมูลที่มีปัญหา (Full Backup): ${e.message}`, rowData); }
-                    }
+                const row = results.data;
+                const firstCell = (row[0] || '').trim();
+                if (firstCell === '###ALL_ACCOUNTS_BACKUP_CSV###') { csvImportData.isFullBackup = true; return; }
+                if (firstCell.startsWith('isDailyExport:')) { csvImportData.isDailyExport = true; return; }
+                if (firstCell.startsWith('exportDate:')) { csvImportData.exportDate = firstCell.split(':')[1].trim(); return; }
+                if (csvImportData.isFullBackup) {
                 } else {
-                    if (firstCell.startsWith('###')) { if (firstCell === '###ACCOUNT_TYPES###') inTypesSection = true; else if (firstCell === '###DATA_START###') { inTypesSection = false; inDataSection = true; isDataHeaderRow = true; } return; }
-                    if (inTypesSection) { if (firstCell === 'รายรับ') importedTypes['รายรับ'] = rowData.slice(1).filter(Boolean); else if (firstCell === 'รายจ่าย') importedTypes['รายจ่าย'] = rowData.slice(1).filter(Boolean);
+                    if (firstCell.startsWith('ชื่อบัญชี:')) {
+                        csvImportData.accountName = firstCell.split(':')[1].trim();
+                    } else if (firstCell === '###ACCOUNT_TYPES###') {
+                        inTypesSection = true; inDataSection = false;
+                    } else if (firstCell === '###DATA_START###') {
+                        inTypesSection = false; inDataSection = true; dataHeaderPassed = false;
+                    } else if (inTypesSection) {
+                        if (firstCell === 'รายรับ') csvImportData.types['รายรับ'] = row.slice(1).filter(Boolean);
+                        if (firstCell === 'รายจ่าย') csvImportData.types['รายจ่าย'] = row.slice(1).filter(Boolean);
                     } else if (inDataSection) {
-                        if (isDataHeaderRow) { isDataHeaderRow = false; return; } const [dateStr, timeStr, type, description, amountStr] = rowData;
+                        if (!dataHeaderPassed) { dataHeaderPassed = true; return; }
+                        const [dateStr, timeStr, type, description, amountStr] = row;
                         try {
-                             if (!dateStr || !timeStr || !type || !amountStr) throw new Error("ข้อมูลไม่ครบถ้วน"); const [day, month, year] = dateStr.trim().split('/'); if(!day || !month || !year) throw new Error("รูปแบบวันที่ไม่ถูกต้อง");
-                             const formattedDate = `${year.trim()}-${String(month.trim()).padStart(2, '0')}-${String(day.trim()).padStart(2, '0')}`; const formattedTime = timeStr.trim().replace(' น.', '').replace('.', ':'); const dateTime = `${formattedDate} ${formattedTime}`; const amount = parseFloat(String(amountStr).replace(/,/g, ''));
-                             if (isNaN(new Date(dateTime).getTime())) throw new Error(`วันที่เวลาไม่ถูกต้อง`); if (isNaN(amount)) throw new Error(`จำนวนเงินไม่ถูกต้อง`);
-                             newRecords.push({ dateTime, type: type.trim(), description: (description || '').trim(), amount, account: importAccountName });
-                        } catch (e) { console.warn(`ข้ามแถวข้อมูลที่มีปัญหา (Single Account): ${e.message}`, rowData); }
-                    } else { if (firstCell.startsWith('ชื่อบัญชี:')) importAccountName = firstCell.split(':')[1].trim(); }
+                             if (!dateStr || !timeStr || !type || !amountStr) throw new Error("ข้อมูลไม่ครบถ้วน");
+                             const [day, month, year] = dateStr.trim().split('/'); if(!day || !month || !year) throw new Error("รูปแบบวันที่ไม่ถูกต้อง");
+                             const fDate = `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+                             const fTime = timeStr.trim().replace(' น.', '').replace('.', ':');
+                             const amount = parseFloat(String(amountStr).replace(/,/g, ''));
+                             if(isNaN(amount)) throw new Error("จำนวนเงินไม่ถูกต้อง");
+                             csvImportData.records.push({ dateTime: `${fDate} ${fTime}`, type: type.trim(), description: (description||'').trim(), amount, account: csvImportData.accountName });
+                        } catch (e) { console.warn(`ข้ามแถวข้อมูล CSV ที่มีปัญหา: ${e.message}`, row); }
+                    }
                 }
             },
             complete: function() {
-                if (isFullBackup) {
-                    if (confirm(`ไฟล์นี้เป็นไฟล์สำรองข้อมูล CSV ทั้งหมด (${newFullRecords.length} รายการ) ต้องการโหลดข้อมูลทั้งหมดทับของเดิมหรือไม่?`)) {
-                        accounts = newFullAccounts; records = newFullRecords; accountTypes = newFullAccountTypes; currentAccount = accounts.includes(currentAccount) ? currentAccount : (accounts[0] || null);
-                        updateAccountSelect(); if (currentAccount) document.getElementById('accountSelect').value = currentAccount; changeAccount(); saveToLocal(); alert("โหลดข้อมูลทั้งหมดจาก CSV สำเร็จ!");
+                if (csvImportData.isDailyExport) {
+                    const { accountName, exportDate, records: recordsToAdd } = csvImportData;
+                    const confirmMsg = `ไฟล์ CSV นี้มีข้อมูลของวันที่ ${exportDate} จำนวน ${recordsToAdd.length} รายการ สำหรับบัญชี "${accountName}"\n\nกด OK เพื่อ "เพิ่ม" รายการเหล่านี้ (ข้อมูลซ้ำจะถูกข้าม)`;
+                    if (confirm(confirmMsg)) {
+                        if (!accounts.includes(accountName)) { accounts.push(accountName); }
+                        let addedCount = 0, skippedCount = 0;
+                        recordsToAdd.forEach(rec => {
+                            const isDup = records.some(ex => ex.account===accountName && ex.dateTime===rec.dateTime && ex.amount===rec.amount && ex.description===rec.description && ex.type===rec.type);
+                            if (!isDup) { records.push(rec); addedCount++; } else { skippedCount++; }
+                        });
+                        currentAccount = accountName;
+                        alert(`เติมข้อมูลสำเร็จ!\nเพิ่ม ${addedCount} รายการใหม่\nข้าม ${skippedCount} รายการที่ซ้ำซ้อน`);
+                        updateAccountSelect(); document.getElementById('accountSelect').value = currentAccount; changeAccount(); saveToLocal();
+                    }
+                } else if (csvImportData.accountName) {
+                    const { accountName, records: newRecords, types: importedTypes } = csvImportData;
+                     const confirmMsg = `คุณต้องการ "แทนที่" ข้อมูลทั้งหมดในบัญชี "${accountName}" ด้วยข้อมูล ${newRecords.length} รายการจากไฟล์ CSV นี้ใช่หรือไม่?\n\nคำเตือน: ข้อมูลเดิมในบัญชีนี้จะถูกลบทั้งหมด!`;
+                    if (confirm(confirmMsg)) {
+                        if (!accounts.includes(accountName)) accounts.push(accountName);
+                        records = records.filter(r => r.account !== accountName);
+                        records.push(...newRecords);
+                        accountTypes.set(accountName, importedTypes);
+                        currentAccount = accountName;
+                        alert(`แทนที่ข้อมูลบัญชี "${accountName}" สำเร็จ!`);
+                        updateAccountSelect(); document.getElementById('accountSelect').value = currentAccount; changeAccount(); saveToLocal();
                     }
                 } else {
-                    if (!importAccountName) { alert('ไฟล์ CSV ไม่ถูกต้อง: ไม่พบชื่อบัญชีในไฟล์'); return; }
-                    const confirmMsg = `คุณต้องการ "แทนที่" ข้อมูลทั้งหมดในบัญชี "${importAccountName}" ด้วยข้อมูล ${newRecords.length} รายการจากไฟล์นี้ใช่หรือไม่?\n\nคำเตือน: ข้อมูลเดิมในบัญชีนี้จะถูกลบทั้งหมด!`;
-                    if (confirm(confirmMsg)) {
-                        if (!accounts.includes(importAccountName)) accounts.push(importAccountName); records = records.filter(r => r.account !== importAccountName); records.push(...newRecords); accountTypes.set(importAccountName, importedTypes);
-                        currentAccount = importAccountName; updateAccountSelect(); document.getElementById('accountSelect').value = currentAccount; changeAccount(); saveToLocal(); alert(`แทนที่ข้อมูลบัญชี "${importAccountName}" สำเร็จ!`);
-                    }
+                    alert('ไม่สามารถประมวลผลไฟล์ CSV ได้ รูปแบบอาจไม่ถูกต้อง');
                 }
-            },
-            error: function(err) { alert('เกิดข้อผิดพลาดในการประมวลผลไฟล์ CSV: ' + err.message); }
+            }
         });
     }
 
@@ -1460,28 +1608,21 @@
         document.getElementById('detailsSection').style.display = 'none';
         loadFromLocal();
         toggleSection('account-section');
-        
-        // Add event listeners for new elements
         document.getElementById('backup-password-form').addEventListener('submit', saveBackupPassword);
         document.getElementById('show-backup-password').addEventListener('change', (e) => {
             document.getElementById('backup-password').type = e.target.checked ? 'text' : 'password';
             document.getElementById('backup-password-confirm').type = e.target.checked ? 'text' : 'password';
         });
-
         window.addEventListener('click', (event) => {
             const modal = document.getElementById('summaryModal');
-            if (event.target == modal) {
-                closeSummaryModal();
-            }
+            if (event.target == modal) { closeSummaryModal(); }
         });
-        
         if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone || localStorage.getItem('pwa_installed') === 'true') {
             hideInstallPrompt();
         }
     };
 </script>
 
-<!-- Script สำหรับลงทะเบียน Service Worker -->
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
