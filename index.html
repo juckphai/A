@@ -224,7 +224,7 @@
             <li><b>สำหรับ iPhone (iOS):</b> เปิดใน Safari แล้วกดที่ปุ่ม "แชร์" (Share) จากนั้นเลือก "เพิ่มไปยังหน้าจอโฮม" (Add to Home Screen)</li>
         </ul>
         <p style="color: red; font-weight: bold; margin-top: 10px; margin-bottom: 0;">
-            ข้อควรระวังสำหรับ iPhone: ระบบอาจลบข้อมูลที่บันทึกไว้หากไม่ได้ใช้งานนานๆ หรือพื้นที่เหลือน้อย! <br>แนะนำให้ "บันทึกถาวร" หรือ "ส่งออก Excel" เพื่อสำรองข้อมูลสม่ำเสมอ
+            ข้อควรระวังสำหรับ iPhone: ระบบอาจลบข้อมูลที่บันทึกไว้หากไม่ได้ใช้งานนานๆ หรือพื้นที่เหลือน้อย! <br>แนะนำให้ "บันทึกถาวร" หรือ "บันทึกเป็น CSV" เพื่อสำรองข้อมูลสม่ำเสมอ
         </p>
     </div>
 </div>
@@ -338,7 +338,7 @@
     <div id="import-from-file-section" style="border-top: 1px solid #ccc; margin-top: 15px; padding-top: 15px;">
         <label class="summary-subsection-header" style="color: #009688; margin-bottom: 10px;">เติมข้อมูลจากไฟล์ (รายวัน)</label>
         <p style="text-align:center; color:#333; margin-bottom:10px;">
-            ใช้สำหรับนำเข้าไฟล์ที่ได้จากการ "ส่งออกเฉพาะวันที่เลือก" เพื่อเติมข้อมูลลงในบัญชีปัจจุบัน
+            ใช้สำหรับนำเข้าไฟล์ที่ได้จากการ "บันทึกเฉพาะวันที่เลือก" เพื่อเติมข้อมูลลงในบัญชีปัจจุบัน
         </p>
         <input type="file" id="mergeFileInput" onchange="importFromFileForMerging(event)" style="display: none;" accept=".json,application/json,.csv,text/csv">
         <div class="button-container" style="text-align: center;">
@@ -404,7 +404,7 @@
             
             <div class="button-container" style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px;">
               <button type="button" onclick="saveToLocal()" style="flex: 1; background-color: #17a2b8;">บันทึกชั่วคราว</button>
-              <button type="button" onclick="openExportOptionsModal()" style="flex: 1; background-color: #0d47a1;">ส่งออกข้อมูล</button>
+              <button type="button" onclick="openExportOptionsModal()" style="flex: 1; background-color: #0d47a1;">บันทึกข้อมูล</button>
             </div>
             
             <div class="summary-subsection">
@@ -528,7 +528,7 @@
         <h3>เลือกรูปแบบการแสดงผลสรุป</h3>
         <div class="format-modal-buttons">
             <button class="btn-display" onclick="handleSummaryOutput('display')">แสดงบนจอ</button>
-            <button class="btn-csv" onclick="handleSummaryOutput('csv')">ส่งออกเป็น CSV</button>
+            <button class="btn-csv" onclick="handleSummaryOutput('csv')">บันทึกเป็น CSV</button>
             <button class="btn-pdf" onclick="handleSummaryOutput('pdf')">บันทึกเป็น PDF</button>
             <button class="btn-cancel" onclick="closeSummaryOutputModal()">ยกเลิก</button>
         </div>
@@ -537,11 +537,11 @@
 
 <div id="exportOptionsModal" class="modal-overlay">
   <div class="format-modal-content">
-    <h3>เลือกประเภทการส่งออกข้อมูล</h3>
+    <h3>เลือกประเภทการบันทึกข้อมูล</h3>
     <div class="format-modal-buttons">
-      <button onclick="saveToFile()" style="background-color: #0d47a1;">ส่งออกข้อมูลทั้งหมด (ทุกบัญชี)</button>
-      <button onclick="exportSelectedAccount()" style="background-color: #ff9800;">ส่งออกบัญชีที่เลือก (ทั้งหมด)</button>
-      <button onclick="initiateSingleDateExport()" style="background-color: #009688;">ส่งออกเฉพาะวันที่เลือก (บัญชีนี้)</button>
+      <button onclick="saveToFile()" style="background-color: #0d47a1;">บันทึกข้อมูลทั้งหมด (ทุกบัญชี)</button>
+      <button onclick="exportSelectedAccount()" style="background-color: #ff9800;">บันทึกบัญชีที่เลือก (ทั้งหมด)</button>
+      <button onclick="initiateSingleDateExport()" style="background-color: #009688;">บันทึกเฉพาะวันที่เลือก (บัญชีนี้)</button>
       <button class="btn-cancel" onclick="closeExportOptionsModal()">ยกเลิก</button>
     </div>
   </div>
@@ -549,7 +549,7 @@
 
 <div id="singleDateExportModal" class="modal-overlay">
   <div class="format-modal-content">
-    <h3>เลือกวันที่ต้องการส่งออก</h3>
+    <h3>เลือกวันที่ต้องการบันทึก</h3>
     <p>ข้อมูลจากบัญชี: <strong id="singleDateAccountName"></strong></p>
     <div class="entry-form" style="margin-bottom: 20px;">
       <div class="entry-group">
@@ -566,7 +566,7 @@
 
 <div id="singleDateExportFormatModal" class="modal-overlay">
   <div class="format-modal-content">
-    <h3>เลือกรูปแบบไฟล์ที่จะส่งออก</h3>
+    <h3>เลือกรูปแบบไฟล์ที่จะบันทึก</h3>
     <div class="format-modal-buttons">
       <button class="btn-json" onclick="handleSingleDateExportAs('json')">JSON (.json)</button>
       <button class="btn-csv" onclick="handleSingleDateExportAs('csv')">CSV (.csv)</button>
@@ -600,7 +600,7 @@
 
     function initiateSingleDateExport() {
         if (!currentAccount) {
-            alert("กรุณาเลือกบัญชีที่ต้องการส่งออกก่อน");
+            alert("กรุณาเลือกบัญชีที่ต้องการบันทึกก่อน");
             return;
         }
         closeExportOptionsModal();
@@ -612,7 +612,7 @@
     function processSingleDateExport() {
         const selectedDateStr = document.getElementById('exportSingleDate').value;
         if (!selectedDateStr) {
-            alert("กรุณาเลือกวันที่ที่ต้องการส่งออก");
+            alert("กรุณาเลือกวันที่ที่ต้องการบันทึก");
             return;
         }
         const filteredRecords = records.filter(record => {
@@ -635,7 +635,7 @@
         const { records: filteredRecords, selectedDate } = singleDateExportContext;
         
         if (!filteredRecords || filteredRecords.length === 0) {
-            alert("เกิดข้อผิดพลาด: ไม่พบข้อมูลที่จะส่งออก");
+            alert("เกิดข้อผิดพลาด: ไม่พบข้อมูลที่จะบันทึก");
             return;
         }
         const fileName = prompt(`กรุณากรอกชื่อไฟล์ (ไม่ต้องใส่นามสกุล):`, `${currentAccount}_${selectedDate}`);
@@ -663,7 +663,7 @@
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a'); a.href = url; a.download = fullFileName; a.click();
             URL.revokeObjectURL(url);
-            alert(`ส่งออกข้อมูลวันที่ ${selectedDate} เป็น JSON เรียบร้อย\n\nไฟล์: ${fullFileName}`);
+            alert(`บันทึกข้อมูลวันที่ ${selectedDate} เป็น JSON เรียบร้อย\n\nไฟล์: ${fullFileName}`);
 
         } else if (format === 'csv') {
             let csvData = [];
@@ -683,7 +683,7 @@
             const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
             const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = fullFileName; link.click();
             setTimeout(() => URL.revokeObjectURL(link.href), 100);
-            alert(`ส่งออกข้อมูลวันที่ ${selectedDate} เป็น CSV เรียบร้อย\n\nไฟล์: ${fullFileName}`);
+            alert(`บันทึกข้อมูลวันที่ ${selectedDate} เป็น CSV เรียบร้อย\n\nไฟล์: ${fullFileName}`);
         }
         singleDateExportContext = {};
     }
@@ -748,7 +748,7 @@
                     saveDataAndShowToast();
 
                 } else {
-                    alert("ไฟล์ที่เลือกไม่ใช่ไฟล์ข้อมูลรายวันที่ถูกต้อง\nกรุณาใช้ไฟล์ที่ได้จากการ 'ส่งออกเฉพาะวันที่เลือก' เท่านั้น");
+                    alert("ไฟล์ที่เลือกไม่ใช่ไฟล์ข้อมูลรายวันที่ถูกต้อง\nกรุณาใช้ไฟล์ที่ได้จากการ 'บันทึกเฉพาะวันที่เลือก' เท่านั้น");
                 }
             } catch (error) {
                 alert("ไฟล์ JSON ไม่ถูกต้องหรือเสียหาย: " + error.message);
@@ -1380,7 +1380,7 @@
         }
     }
     
-    function exportSelectedAccount() { closeExportOptionsModal(); if (!currentAccount) { alert("กรุณาเลือกบัญชีที่ต้องการส่งออกก่อน"); return; } document.getElementById('exportSingleAccountModal').style.display = 'flex'; }
+    function exportSelectedAccount() { closeExportOptionsModal(); if (!currentAccount) { alert("กรุณาเลือกบัญชีที่ต้องการบันทึกก่อน"); return; } document.getElementById('exportSingleAccountModal').style.display = 'flex'; }
     
     async function handleExportSelectedAs(format) {
         closeExportSingleAccountModal();
@@ -1413,7 +1413,7 @@
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a'); a.href = url; a.download = fullFileName; a.click();
             URL.revokeObjectURL(url);
-            alert(`ส่งออกบัญชี "${currentAccount}" เป็น JSON เรียบร้อย\n\nไฟล์: ${fullFileName}`);
+            alert(`บันทึกบัญชี "${currentAccount}" เป็น JSON เรียบร้อย\n\nไฟล์: ${fullFileName}`);
         } else if (format === 'csv') {
             const fullFileName = `${fileName}_${dateTimeString}.csv`;
             initializeAccountTypes(currentAccount);
@@ -1436,7 +1436,7 @@
             const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
             const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = fullFileName; link.click();
             setTimeout(() => URL.revokeObjectURL(link.href), 100);
-            alert(`ส่งออกบัญชี "${currentAccount}" เป็น CSV เรียบร้อย\n\nไฟล์: ${fullFileName}`);
+            alert(`บันทึกบัญชี "${currentAccount}" เป็น CSV เรียบร้อย\n\nไฟล์: ${fullFileName}`);
         }
     }
 
