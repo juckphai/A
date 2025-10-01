@@ -1,0 +1,3477 @@
+
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบบันทึกกิจกรรม</title>
+    <!-- [PWA] Link to Manifest & Theme Color -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#4a90e2">
+    
+    <!-- เพิ่มไลบรารีสำหรับการส่งออก -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    
+<style>
+    /* CSS styles remain the same */
+    body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 20px;
+        background-color: #f4f7f6;
+        color: #333;
+    }
+
+    .container {
+        max-width: 900px;
+        margin: 20px auto;
+        background-color: #fff;
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    /* ปรับปรุง header สำหรับมือถือ */
+    header {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 30px;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 20px;
+        position: relative;
+    }
+
+    .header-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
+    }
+
+    header h1, .container h1 {
+        color: #0056b3;
+        margin: 0;
+        font-size: clamp(1.2rem, 4vw, 1.8rem);
+    }
+
+    /* ปรับปรุงเมนูสำหรับมือถือ */
+    .menu-toggle {
+        display: none;
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        cursor: pointer;
+        color: #007bff;
+        padding: 5px 10px;
+    }
+
+    header nav {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+        width: 100%;
+        margin-top: 15px;
+        transition: all 0.3s ease;
+    }
+
+    /* เพิ่มสไตล์สำหรับเมนูแบบ 2 คอลัมน์ */
+    .nav-row {
+        display: flex;
+        width: 100%;
+        gap: 10px;
+    }
+
+    .nav-row a {
+        flex: 1;
+        text-align: center;
+    }
+
+    header nav.mobile-hidden {
+        display: none;
+    }
+
+    header nav a {
+        text-decoration: none;
+        color: #007bff;
+        font-weight: bold;
+        padding: 10px 15px;
+        border-radius: 5px;
+        transition: background-color 0.3s;
+        width: 100%;
+        box-sizing: border-box;
+        text-align: left;
+    }
+
+    header nav a:hover {
+        background-color: #e2e6ea;
+    }
+
+    header nav a.active {
+        background-color: #007bff;
+        color: white;
+    }
+
+    button, .button-group button {
+        background-color: #007bff;
+        color: white;
+        border: none;
+        padding: 10px 15px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 1rem;
+        transition: background-color 0.3s ease;
+        margin-right: 5px; /* Added for buttons in a group */
+    }
+    
+    .button-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 15px;
+    }
+
+    button:hover, .button-group button:hover {
+        background-color: #0056b3;
+    }
+
+    button:disabled, .button-group button:disabled {
+        background-color: #cccccc;
+        cursor: not-allowed;
+    }
+
+    .form-section, .data-section {
+        background-color: #f9f9f9;
+        padding: 20px;
+        border-radius: 8px;
+        margin-bottom: 25px;
+        border: 1px solid #eee;
+    }
+
+    h2 {
+        color: #0056b3;
+        margin-top: 0;
+        margin-bottom: 20px;
+        border-bottom: 2px solid #007bff;
+        padding-bottom: 10px;
+        font-size: clamp(1.1rem, 3.5vw, 1.5rem);
+    }
+
+    form {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+    }
+
+    input[type="text"],
+    input[type="password"],
+    input[type="date"],
+    input[type="time"],
+    select {
+        padding: 12px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        font-size: 1rem;
+        width: calc(100% - 24px); /* Account for padding */
+        box-sizing: border-box; /* Ensures padding doesn't expand width */
+    }
+    
+    textarea {
+        padding: 12px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        font-size: 1rem;
+        width: calc(100% - 24px);
+        box-sizing: border-box;
+        resize: vertical;
+    }
+
+    label {
+        font-weight: bold;
+        margin-top: 10px;
+    }
+
+    .filter-controls {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+
+    .filter-controls input, .filter-controls button, .filter-controls select {
+        padding: 10px;
+        border-radius: 4px;
+        border: 1px solid #ddd;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+        font-size: 0.9rem;
+    }
+
+    table th, table td {
+        border: 1px solid #ddd;
+        padding: 10px;
+        text-align: left;
+        word-break: break-word;
+    }
+
+    table th {
+        background-color: #007bff;
+        color: white;
+        font-weight: bold;
+    }
+
+    table tr:nth-child(even) {
+        background-color: #f2f2f2;
+    }
+
+    table tr:hover {
+        background-color: #e9e9e9;
+    }
+
+    .action-buttons {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+    }
+
+    .action-buttons button {
+        background: none;
+        border: none;
+        color: #007bff;
+        cursor: pointer;
+        padding: 5px;
+        font-size: 0.9rem;
+        transition: color 0.3s;
+        text-align: left;
+    }
+
+    .action-buttons button:hover {
+        color: #0056b3;
+        text-decoration: underline;
+    }
+
+    .action-buttons .delete-button {
+        color: #dc3545;
+    }
+    .action-buttons .delete-button:hover {
+        color: #bd2130;
+    }
+
+    .hidden {
+        display: none !important;
+    }
+
+    .error-message {
+        color: red;
+        margin-top: 10px;
+        font-weight: bold;
+    }
+
+    .success-message {
+        color: green;
+        margin-top: 10px;
+        font-weight: bold;
+    }
+
+    .info-message {
+        font-size: 0.9rem;
+        color: #6c757d;
+        margin-top: 20px;
+        border-top: 1px solid #eee;
+        padding-top: 10px;
+    }
+    
+    /* Navigation for logged out state */
+    #main-nav {
+        display: flex;
+    }
+
+    .summary-block {
+        background-color: #eaf6ff;
+        border-left: 5px solid #007bff;
+        padding: 15px;
+        margin-bottom: 15px;
+        border-radius: 5px;
+    }
+    .summary-block h4 {
+        margin-top: 0;
+        color: #0056b3;
+    }
+    .summary-block ul {
+        list-style-type: none;
+        padding: 0;
+    }
+    .summary-block li {
+        margin-bottom: 5px;
+    }
+    .summary-total {
+        font-weight: bold;
+        color: #28a745;
+        font-size: 1.1rem;
+        margin-top: 10px;
+        display: block;
+    }
+    
+    /* New styles for password toggle */
+    .password-container {
+        position: relative;
+        width: 100%;
+    }
+    
+    .password-toggle {
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: #666;
+    }
+    
+    .password-toggle:hover {
+        color: #333;
+    }
+    
+    /* Modal styles for user management */
+    .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 1000;
+        justify-content: center;
+        align-items: center;
+    }
+    
+    .modal-content {
+        background-color: white;
+        padding: 20px;
+        border-radius: 8px;
+        width: 90%;
+        max-width: 500px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+    
+    .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+        border-bottom: 1px solid #eee;
+        padding-bottom: 10px;
+    }
+    
+    .modal-title {
+        margin: 0;
+        color: #0056b3;
+    }
+    
+    .close-modal {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        cursor: pointer;
+        color: #666;
+    }
+    
+    .close-modal:hover {
+        color: #333;
+    }
+
+    /* เพิ่มสไตล์สำหรับ Modal ใหม่ */
+    .modal-overlay { 
+        position: fixed; 
+        z-index: 1000; 
+        left: 0; 
+        top: 0; 
+        width: 100%; 
+        height: 100%; 
+        background-color: rgba(0,0,0,0.6);
+        display: none; 
+        justify-content: center; 
+        align-items: center; 
+        padding: 10px;
+        overflow-y: auto; 
+    }
+    
+    .format-modal-content {
+        background-color: #fff;
+        padding: 20px 30px;
+        border-radius: 15px;
+        text-align: center;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        width: 90%;
+        max-width: 400px;
+    }
+
+    .format-modal-buttons {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        margin-top: 20px;
+    }
+
+    .format-modal-buttons button {
+        padding: 15px;
+        font-size: 16px;
+        border: none;
+        border-radius: 10px;
+        color: white;
+        cursor: pointer;
+        transition: background-color 0.3s;
+    }
+
+    .format-modal-buttons .btn-display { 
+        background-color: #007bff; 
+    }
+    .format-modal-buttons .btn-display:hover { 
+        background-color: #0056b3; 
+    }
+    
+    .format-modal-buttons .btn-xlsx { 
+        background-color: #107C41; 
+    }
+    .format-modal-buttons .btn-xlsx:hover { 
+        background-color: #0E6A37; 
+    }
+    
+    .format-modal-buttons .btn-pdf { 
+        background-color: #e64a19; 
+    }
+    .format-modal-buttons .btn-pdf:hover { 
+        background-color: #bf360c; 
+    }
+    
+    .format-modal-buttons .btn-cancel { 
+        background-color: #6c757d; 
+        margin-top: 10px;
+    }
+    .format-modal-buttons .btn-cancel:hover { 
+        background-color: #5a6268; 
+    }
+    
+    #main-header {
+        background: #f9f9f9;
+        border-bottom: 3px solid #ccc;
+        padding: 10px;
+    }
+
+    /* จัด layout ของ nav */
+    #main-nav {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-top: 10px;
+    }
+
+    /* แถวของเมนู */
+    .nav-row {
+        display: flex;
+        gap: 10px;
+    }
+
+    /* ลิงก์แต่ละหัวข้อ */
+    #main-nav a {
+        flex: 1;
+        text-align: center;
+        padding: 12px;
+        border-radius: 12px;
+        font-weight: bold;
+        text-decoration: none;
+        color: white;
+    }
+
+    /* สีแตกต่างกันแต่ละหัวข้อ */
+    #main-nav a[data-page="activity"] {
+        background: #ff6b6b; /* แดงอ่อน */
+    }
+
+    #main-nav a[data-page="activity-types"] {
+        background: #4ecdc4; /* ฟ้าเขียว */
+    }
+
+    #main-nav a[data-page="summary"] {
+        background: #45b7d1; /* น้ำเงินฟ้า */
+    }
+
+    #main-nav a[data-page="admin"] {
+        background: #f7b731; /* เหลือง */
+        color: #333;
+    }
+
+    /* ปุ่มออกจากระบบ */
+    #logout-button {
+        margin-top: 20px;
+        align-self: center;   /* จัดตรงกลาง */
+        background: #2d3436;
+        color: white;
+        border: none;
+        padding: 10px 25px;
+        border-radius: 15px;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: 0.3s;
+    }
+
+    #logout-button:hover {
+        background: #636e72;
+    }
+
+    /* === START: CSS ใหม่สำหรับ Modal แสดงสรุป === */
+    .summary-modal-overlay {
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0,0,0,0.6);
+        display: none;
+        justify-content: center;
+        align-items: flex-start; /* เปลี่ยนจาก center เป็น flex-start */
+        padding: 10px;
+        overflow-y: auto;
+    }
+
+    .summary-modal-content-container {
+        background-color: #FAFAD2;
+        padding: 15px;
+        border-radius: 10px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin: 20px 0; /* เพิ่ม margin บนล่าง */
+        width: 100%;
+        max-width: 800px;
+        /* ลบการตั้งค่าความสูงตายตัว */
+        overflow: hidden; /* เพิ่มเพื่อป้องกัน content ล้น */
+    }
+
+    .summary-modal-close-btn {
+        background-color: #E97132;
+        color: white;
+        padding: 12px 30px;
+        border: none;
+        cursor: pointer;
+        border-radius: 20px;
+        font-size: 16px;
+        margin-top: 10px;
+        transition: background-color 0.3s;
+        width: 90%;
+        max-width: 250px;
+    }
+
+    .summary-modal-close-btn:hover {
+        background-color: #e64a19;
+    }
+
+    .summary-modal-controls {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+        margin-top: 10px;
+        max-width: 600px;
+        background-color: #f0f0f0;
+        padding: 10px;
+        border-radius: 8px;
+    }
+
+    .summary-control-group {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+        margin-bottom: 15px;
+    }
+
+    .summary-control-group label, .summary-control-group span {
+        font-size: 16px;
+        color: #333;
+        margin-bottom: 8px;
+    }
+
+    .summary-control-group input[type="range"] {
+        width: 80%;
+        max-width: 300px;
+        margin: 0;
+    }
+
+    .summaryResult {
+        width: 100% !important;
+        max-width: 100% !important;
+        padding: 10px !important;
+        margin: 0 !important;
+        box-sizing: border-box;
+        overflow-x: hidden;
+        background-color: #FAFAD2 !important; /* เพิ่มบรรทัดนี้ */
+    }
+
+    .summaryResult table {
+        width: 100% !important;
+        max-width: 100% !important;
+        font-size: 14px !important;
+    }
+
+    .summaryResult th, 
+    .summaryResult td {
+        padding: 6px 4px !important;
+        font-size: 12px !important;
+        word-break: break-word; /* ให้คำยาวๆ ขึ้นบรรทัดใหม่ */
+    }
+
+    /* เพิ่ม container สำหรับตารางที่มีแถบเลื่อนแนวนอน */
+    .table-container {
+        overflow-x: auto;  /* สร้างแถบเลื่อนแนวนอนเมื่อเนื้อหาล้น */
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        margin-top: 20px;
+    }
+
+    /* === START: USER REQUEST - POPUP TABLE SINGLE-LINE ADJUSTMENT ON MOBILE === */
+    #modalBodyContent table,
+    .summaryResult table {
+        table-layout: auto;
+        width: auto;
+        min-width: 100%;
+    }
+
+    #modalBodyContent table th,
+    #modalBodyContent table td,
+    .summaryResult table th,
+    .summaryResult table td {
+        white-space: nowrap;
+        font-size: 11px;
+        vertical-align: middle;
+        /* ลบ height: 40px; ออก */
+        padding: 6px 4px; /* ปรับ padding ให้พอดี */
+    }
+    /* === END: USER REQUEST - POPUP TABLE SINGLE-LINE ADJUSTMENT ON MOBILE === */
+
+    /* ปรับปรุงตารางกิจกรรมสำหรับมือถือ */
+    #activity-list-table {
+        table-layout: auto;
+        width: auto;
+        min-width: 100%;
+    }
+
+    #activity-list-table th,
+    #activity-list-table td {
+        white-space: nowrap;
+        font-size: 11px;
+        vertical-align: middle;
+        padding: 8px 6px;
+        /* ลบ height: 40px; ออก */
+    }
+
+    /* ปรับปรุงตารางกิจกรรมในหน้า admin สำหรับมือถือ */
+    #all-activities-table {
+        table-layout: auto;
+        width: auto;
+        min-width: 100%;
+    }
+
+    #all-activities-table th,
+    #all-activities-table td {
+        white-space: nowrap;
+        font-size: 11px;
+        vertical-align: middle;
+        padding: 8px 6px;
+        /* ลบ height: 40px; ออก */
+    }
+
+    /* ปรับปรุงตารางทั้งหมดสำหรับมือถือ */
+    #activity-list-table,
+    #activity-types-table,
+    #user-list-table,
+    #all-activities-table,
+    .summaryResult table {
+        table-layout: auto;
+        width: auto;
+        min-width: 100%;
+    }
+
+    #activity-list-table th,
+    #activity-list-table td,
+    #activity-types-table th,
+    #activity-types-table td,
+    #user-list-table th,
+    #user-list-table td,
+    #all-activities-table th,
+    #all-activities-table td,
+    .summaryResult table th,
+    .summaryResult table td {
+        white-space: nowrap;
+        font-size: 11px;
+        vertical-align: middle;
+        padding: 8px 6px;
+        /* ลบ height: 40px; ออก */
+    }
+
+    /* Media Queries สำหรับมือถือ */
+    @media (max-width: 768px) {
+        /* === START: USER REQUEST - POPUP TABLE SINGLE-LINE ADJUSTMENT ON MOBILE === */
+        #modalBodyContent table,
+        .summaryResult table {
+            table-layout: auto;
+            width: auto;
+            min-width: 100%;
+        }
+
+        #modalBodyContent table th,
+        #modalBodyContent table td,
+        .summaryResult table th,
+        .summaryResult table td {
+            white-space: nowrap;
+            font-size: 11px;
+            vertical-align: middle;
+            padding: 6px 4px; /* ปรับ padding ให้เล็กลงสำหรับมือถือ */
+            /* ลบ height: 40px; ออก */
+        }
+        /* === END: USER REQUEST - POPUP TABLE SINGLE-LINE ADJUSTMENT ON MOBILE === */
+        
+        /* ปรับปรุงตารางกิจกรรมสำหรับมือถือ */
+        #activity-list-table {
+            table-layout: auto;
+            width: auto;
+            min-width: 100%;
+        }
+
+        #activity-list-table th,
+        #activity-list-table td {
+            white-space: nowrap;
+            font-size: 11px;
+            vertical-align: middle;
+            padding: 6px 4px; /* ปรับ padding ให้เล็กลง */
+            /* ลบ height: 40px; ออก */
+        }
+        
+        /* ปรับปรุงตารางกิจกรรมในหน้า admin สำหรับมือถือ */
+        #all-activities-table {
+            table-layout: auto;
+            width: auto;
+            min-width: 100%;
+        }
+
+        #all-activities-table th,
+        #all-activities-table td {
+            white-space: nowrap;
+            font-size: 11px;
+            vertical-align: middle;
+            padding: 6px 4px; /* ปรับ padding ให้เล็กลง */
+            /* ลบ height: 40px; ออก */
+        }
+        
+        .summary-modal-overlay {
+            padding: 5px;
+            align-items: flex-start;
+        }
+        
+        .summary-modal-content-container {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 8px;
+        }
+        
+        .summaryResult {
+            padding: 5px !important;
+            transform: none !important; /* ลบ transform บนมือถือ */
+        }
+        
+.summaryResult h2 {
+    color: #0056b3;
+    margin-bottom: 8px !important;
+    line-height: 1.0 !important; /* ลดจากค่าเดิม */
+    font-size: clamp(1.2rem, 3.5vw, 2em) !important;
+}
+        
+.summaryResult h3 {
+    color: #333;
+    margin-bottom: 8px !important;
+    line-height: 1.0 !important; /* ลดจากค่าเดิม */
+    font-size: clamp(1rem, 3vw, 1.5em) !important;
+}
+        
+.summaryResult h4 {
+    color: #0056b3;
+    margin-top: 15px !important;
+    margin-bottom: 8px !important;
+    line-height: 1.0 !important; /* ลดจากค่าเดิม */
+    font-size: clamp(0.9rem, 2.8vw, 1.0em) !important;
+}
+
+.summaryResult p {
+    margin: 3px 0 !important; /* ลดจาก 5px 0 */
+    line-height: 1.0 !important; /* ปรับให้เหมาะสม */
+    font-size: clamp(0.6rem, 1.8vw, 1rem) !important;
+}
+
+/* ปรับแต่งเฉพาะส่วนสรุปจำนวนวัน */
+.summaryResult > div > div:first-child p {
+    margin: 2px 0 !important; /* ลดระยะห่างให้มากขึ้น */
+    line-height: 1.0 !important;
+}
+        
+        .summaryResult table {
+            font-size: 12px !important;
+        }
+        
+        .summaryResult th, 
+        .summaryResult td {
+            padding: 4px 3px !important;
+            font-size: 11px !important;
+        }
+        
+        .summary-modal-controls {
+            padding: 8px;
+        }
+        
+        .summary-control-group label, 
+        .summary-control-group span {
+            font-size: 14px;
+        }
+        
+        .nav-row {
+            flex-direction: column;
+        }
+
+        /* ปรับปรุงตารางทั้งหมดสำหรับมือถือ */
+        #activity-list-table th,
+        #activity-list-table td,
+        #activity-types-table th,
+        #activity-types-table td,
+        #user-list-table th,
+        #user-list-table td,
+        #all-activities-table th,
+        #all-activities-table td,
+        .summaryResult table th,
+        .summaryResult table td {
+            white-space: nowrap;
+            font-size: 11px;
+            vertical-align: middle;
+            padding: 6px 4px; /* ปรับ padding ให้เล็กลง */
+            /* ลบ height: 40px; ออก */
+        }
+    }
+
+    @media (max-width: 480px) {
+        .summaryResult h3 {
+            font-size: 1rem !important;
+        }
+        
+        .summaryResult h4 {
+            font-size: 0.9rem !important;
+        }
+        
+        .summaryResult table {
+            font-size: 11px !important;
+        }
+        
+        .summaryResult th, 
+        .summaryResult td {
+            padding: 3px 2px !important;
+            font-size: 10px !important;
+        }
+        
+        /* ปรับปรุงตารางกิจกรรมสำหรับมือถือขนาดเล็ก */
+        #activity-list-table th,
+        #activity-list-table td {
+            font-size: 10px;
+            padding: 5px 3px; /* ปรับ padding ให้เล็กลงอีก */
+            /* ลบ height: 35px; ออก */
+        }
+        
+        /* ปรับปรุงตารางกิจกรรมในหน้า admin สำหรับมือถือขนาดเล็ก */
+        #all-activities-table th,
+        #all-activities-table td {
+            font-size: 10px;
+            padding: 5px 3px; /* ปรับ padding ให้เล็กลงอีก */
+            /* ลบ height: 35px; ออก */
+        }
+        
+        .summary-modal-close-btn {
+            padding: 10px 20px;
+            font-size: 14px;
+        }
+
+        /* ปรับปรุงตารางทั้งหมดสำหรับมือถือขนาดเล็ก */
+        #activity-list-table th,
+        #activity-list-table td,
+        #activity-types-table th,
+        #activity-types-table td,
+        #user-list-table th,
+        #user-list-table td,
+        #all-activities-table th,
+        #all-activities-table td {
+            font-size: 10px;
+            padding: 5px 3px; /* ปรับ padding ให้เล็กลงอีก */
+            /* ลบ height: 35px; ออก */
+        }
+    }
+</style></head>
+<body>
+    <div class="container">
+        <!-- Header for logged in users -->
+<header id="main-header" class="hidden">
+    <div class="header-top">
+        <h1 id="welcome-message">ยินดีต้อนรับ, ผู้ใช้งาน!</h1>
+        <button class="menu-toggle" id="menu-toggle">☰</button>
+    </div>
+    <nav id="main-nav" class="mobile-hidden">
+        <div class="nav-row">
+            <a href="#" data-page="activity" class="active">บันทึกกิจกรรม</a>
+            <a href="#" data-page="summary">สรุปกิจกรรม</a>
+        </div>
+        <div class="nav-row">
+            <a href="#" data-page="activity-types">จัดการกิจกรรม</a>
+            <a href="#" data-page="admin" id="admin-link" class="hidden">ผู้ดูแลระบบ</a>
+        </div>
+        <button id="logout-button">ออกจากระบบ</button>
+    </nav>
+</header>
+
+        <!-- ส่วนที่เหลือของโค้ด HTML ยังคงเหมือนเดิมทุกประการ -->
+        <!-- Login/Register Section -->
+        <div id="auth-section">
+            <h1>ระบบบันทึกกิจกรรม</h1>
+            
+            <div class="form-section" id="login-section">
+                <h2>เข้าสู่ระบบ</h2>
+                <form id="login-form">
+                    <input type="text" id="login-username" placeholder="ชื่อผู้ใช้งาน" required>
+                    
+                    <div class="password-container">
+                        <input type="password" id="login-password" placeholder="รหัสผ่าน" required>
+                        <button type="button" class="password-toggle" id="toggle-login-password">👁️</button>
+                    </div>
+                    
+                    <button type="submit">เข้าสู่ระบบ</button>
+                    <p id="login-message" class="error-message"></p>
+                </form>
+                <p style="text-align: center; margin-top: 15px;">
+                    ใช้ชื่อผู้ใช้: <strong>admin</strong> และรหัสผ่าน: <strong>123</strong>
+                </p>
+            </div>
+        </div>
+
+        <!-- ส่วนที่เหลือของโค้ด HTML ยังคงเหมือนเดิมทุกประการ -->
+        <!-- Activity Page Content -->
+        <div id="activity-page" class="hidden">
+            <section class="form-section">
+                <h2>บันทึกกิจกรรมใหม่</h2>
+                <form id="activity-form">
+                    <label for="activity-name-select">เลือกกิจกรรม:</label>
+                    <select id="activity-name-select" required>
+                        <option value="">-- เลือกประเภทกิจกรรม --</option>
+                        <!-- Options will be loaded here by JavaScript -->
+                    </select>
+                    <input type="date" id="activity-date" required>
+                    <label for="start-time">เวลาเริ่มต้น:</label>
+                    <input type="time" id="start-time" required>
+                    <label for="end-time">เวลาสิ้นสุด:</label>
+                    <input type="time" id="end-time" required>
+                    <label for="activity-details">รายละเอียดกิจกรรม (ไม่บังคับ):</label>
+                    <textarea id="activity-details" placeholder="เช่น การประชุมกับทีม, อ่านหนังสือบทที่ 5"></textarea>
+                    <button type="submit" id="save-activity-button">บันทึกกิจกรรม</button>
+                    <button type="button" id="update-activity-button" class="hidden">อัปเดตกิจกรรม</button>
+                    <button type="button" id="cancel-edit-activity-button" class="hidden">ยกเลิก</button>
+                    <p id="activity-message" class="error-message"></p>
+                </form>
+            </section>
+
+            <section class="data-section">
+                <h2>รายการกิจกรรมของคุณ</h2>
+                <div class="filter-controls">
+                    <input type="date" id="filter-date">
+                    <select id="filter-activity-type">
+                        <option value="">-- กรองตามประเภท --</option>
+                    </select>
+                    <button id="apply-filter-button">กรอง</button>
+                    <button id="reset-filter-button">รีเซ็ต</button>
+                </div>
+                <!-- เพิ่ม container สำหรับตาราง -->
+                <div class="table-container">
+                    <table id="activity-list-table">
+                        <thead>
+                            <tr>
+                                <th>กิจกรรม</th>
+                                <th>วันที่</th>
+                                <th>เริ่มเวลา</th>
+                                <th>จบเวลา</th>
+                                <th>รวมเวลา</th>
+                                <th>รายละเอียด</th>
+                                <th>จัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Activities will be loaded here by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+        
+        <!-- ส่วนที่เหลือของโค้ด HTML ยังคงเหมือนเดิมทุกประการ -->
+        <!-- Activity Types Management Page Content -->
+        <div id="activity-types-page" class="hidden">
+            <section class="form-section">
+                <h2>เพิ่ม/แก้ไขประเภทกิจกรรม</h2>
+                <form id="activity-type-form">
+                    <input type="text" id="activity-type-name" placeholder="ชื่อประเภทกิจกรรมใหม่" required>
+                    <button type="submit" id="save-activity-type-button">เพิ่มประเภทกิจกรรม</button>
+                    <button type="button" id="update-activity-type-button" class="hidden">อัปเดตประเภทกิจกรรม</button>
+                    <button type="button" id="cancel-activity-type-edit-button" class="hidden">ยกเลิก</button>
+                    <p id="activity-type-message" class="error-message"></p>
+                </form>
+            </section>
+
+            <section class="data-section">
+                <h2>ประเภทกิจกรรมทั้งหมด</h2>
+                <table id="activity-types-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>ชื่อประเภทกิจกรรม</th>
+                            <th>จัดการ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Activity types will be loaded here by JavaScript -->
+                    </tbody>
+                </table>
+            </section>
+        </div>
+
+        <!-- ส่วนที่เหลือของโค้ด HTML ยังคงเหมือนเดิมทุกประการ -->
+        <!-- Summary Page Content -->
+        <div id="summary-page" class="hidden">
+            <section class="data-section">
+                <h2>สรุปกิจกรรม</h2>
+                <div class="filter-controls">
+                    <label for="summary-type-select">ประเภทสรุป:</label>
+                    <select id="summary-type-select">
+                        <option value="single-day">ตามวันที่เลือก</option>
+                        <option value="date-range">ตามช่วงวันที่</option>
+                        <option value="all-time">ทั้งหมด</option>
+                    </select>
+                    <label for="summary-date-picker" id="label-summary-date-picker">เลือกวันที่:</label>
+                    <input type="date" id="summary-date-picker">
+                    <label for="summary-start-date" class="hidden" id="label-summary-start-date">จากวันที่:</label>
+                    <input type="date" id="summary-start-date" class="hidden">
+                    <label for="summary-end-date" class="hidden" id="label-summary-end-date">ถึงวันที่:</label>
+                    <input type="date" id="summary-end-date" class="hidden">
+                    <button id="view-summary-button">ดูสรุป</button>
+                </div>
+
+                <div id="daily-summary-results">
+                    <p>กรุณาเลือกประเภทสรุปและวันที่เพื่อดูข้อมูล</p>
+                </div>
+            </section>
+        </div>
+
+        <!-- ส่วนที่เหลือของโค้ด HTML ยังคงเหมือนเดิมทุกประการ -->
+        <!-- Admin Page Content -->
+<div id="admin-page" class="hidden">
+    <!-- ส่วนนำเข้า/ส่งออกข้อมูล -->
+    <section class="data-section">
+        <h2>นำเข้า/ส่งออกข้อมูล</h2>
+        <div class="button-group">
+            <button id="export-data-button">บันทึกข้อมูล (JSON)</button>
+            <input type="file" id="import-data-input" accept=".json" class="hidden">
+            <button id="show-import-button">โหลดข้อมูล (JSON)</button>
+        </div>
+        <p id="import-export-message" class="info-message"></p>
+        
+        <!-- เพิ่มส่วนสำรองข้อมูลและกู้คืนสำหรับผู้ดูแลระบบ -->
+        <div class="button-group">
+            <button id="backup-data-button">สำรองข้อมูล (มีรหัสผ่าน)</button>
+            <input type="file" id="restore-data-input" accept=".json" class="hidden">
+            <button id="show-restore-button">กู้คืนข้อมูล (ต้องใช้รหัสผ่าน)</button>
+        </div>
+        <p id="backup-restore-message" class="info-message"></p>
+        <p class="info-message" style="font-size: 0.8rem; margin-top: -10px;">
+            หมายเหตุ: การสำรองข้อมูลจะถูกเข้ารหัสด้วยรหัสผ่านที่คุณกำหนด<br>
+            คุณจะต้องใช้รหัสผ่านเดียวกันนี้ในการกู้คืนข้อมูล
+        </p>
+    </section>
+
+            <!-- User Management Section -->
+            <section class="form-section">
+                <h2>เพิ่มผู้ใช้งานใหม่</h2>
+                <form id="admin-add-user-form">
+                    <input type="text" id="admin-add-username" placeholder="ชื่อผู้ใช้งาน" required>
+                    
+                    <div class="password-container">
+                        <input type="password" id="admin-add-password" placeholder="รหัสผ่าน" required>
+                        <button type="button" class="password-toggle" id="toggle-admin-add-password">👁️</button>
+                    </div>
+                    
+                    <div class="password-container">
+                        <input type="password" id="admin-add-confirm-password" placeholder="ยืนยันรหัสผ่าน" required>
+                        <button type="button" class="password-toggle" id="toggle-admin-add-confirm-password">👁️</button>
+                    </div>
+                    
+                    <select id="admin-add-role" required>
+                        <option value="user">User</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                    <button type="submit">เพิ่มผู้ใช้งาน</button>
+                    <p id="admin-add-user-message" class="error-message"></p>
+                </form>
+            </section>
+
+            <section class="data-section">
+                <h2>ผู้ใช้งานทั้งหมด</h2>
+                <table id="user-list-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>ชื่อผู้ใช้งาน</th>
+                            <th>บทบาท</th>
+                            <th>จัดการ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Users will be loaded here by JavaScript -->
+                    </tbody>
+                </table>
+            </section>
+
+            <section class="data-section">
+                <h2>กิจกรรมทั้งหมด</h2>
+                <div class="filter-controls">
+                    <input type="text" id="admin-search-user" placeholder="ค้นหาผู้ใช้งาน">
+                    <input type="date" id="admin-filter-date">
+                    <select id="admin-filter-activity-type">
+                        <option value="">-- กรองตามประเภท --</option>
+                    </select>
+                    <button id="admin-apply-filter-button">กรอง</button>
+                    <button id="admin-reset-filter-button">รีเซ็ต</button>
+                </div>
+                <table id="all-activities-table">
+                    <thead>
+                        <tr>
+                            <th>ผู้ใช้งาน</th>
+                            <th>กิจกรรม</th>
+                            <th>วันที่</th>
+                            <th>เริ่มเวลา</th>
+                            <th>จบเวลา</th>
+                            <th>รวมเวลา</th>
+                            <th>รายละเอียด</th> <!-- เพิ่มบรรทัดนี้ -->
+                            <th>จัดการ</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- All activities will be loaded here by JavaScript -->
+                    </tbody>
+                </table>
+            </section>
+        </div>
+
+    <!-- Modal for editing users -->
+    <div id="edit-user-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">แก้ไขผู้ใช้งาน</h3>
+                <button class="close-modal">&times;</button>
+            </div>
+            <form id="edit-user-form">
+                <input type="hidden" id="edit-user-id">
+                <input type="text" id="edit-user-username" placeholder="ชื่อผู้ใช้งาน" required>
+                
+                <div class="password-container">
+                    <input type="password" id="edit-user-password" placeholder="รหัสผ่าน (เว้นว่างหากไม่ต้องการเปลี่ยน)">
+                    <button type="button" class="password-toggle" id="toggle-edit-user-password">👁️</button>
+                </div>
+                
+                <select id="edit-user-role" required>
+                    <option value="user">User</option>
+                    <option value="admin">Admin</option>
+                </select>
+                <button type="submit">อัปเดตผู้ใช้งาน</button>
+                <p id="edit-user-message" class="error-message"></p>
+            </form>
+        </div>
+    </div>
+    
+    <!-- Modal สำหรับเลือกรูปแบบการแสดงผลสรุป -->
+    <div id="summaryOutputModal" class="modal-overlay">
+        <div class="format-modal-content">
+            <h3>เลือกรูปแบบการแสดงผลสรุป</h3>
+            <div class="format-modal-buttons">
+                <button class="btn-display" onclick="handleSummaryOutput('display')">แสดงบนจอ</button>
+                <button class="btn-xlsx" onclick="handleSummaryOutput('xlsx')">บันทึกเป็น XLSX</button>
+                <button class="btn-pdf" onclick="handleSummaryOutput('pdf')">บันทึกเป็น PDF</button>
+                <button class="btn-cancel" onclick="closeSummaryOutputModal()">ยกเลิก</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal สำหรับแสดงสรุปบนจอ (ใหม่) -->
+    <div id="summaryModal" class="summary-modal-overlay">
+        <div class="summary-modal-content-container">
+            <div id="modalBodyContent" class="summaryResult">
+                <!-- เนื้อหาการสรุปจะถูกใส่ที่นี่โดย JavaScript -->
+            </div>
+            <div class="summary-modal-controls">
+                <button id="saveSummaryAsImageBtn" class="summary-modal-close-btn" style="background-color: #007bff; margin-bottom: 15px;">บันทึกเป็นรูปภาพ</button>
+                <div class="summary-control-group">
+                    <label for="summaryFontSizeSlider">ปรับขนาดตัวอักษร:</label>
+                    <input type="range" id="summaryFontSizeSlider" min="0.5" max="1.5" step="0.05" value="1.0">
+                    <span id="summaryFontSizeValue">ขนาด: 100%</span>
+                </div>
+                <div class="summary-control-group">
+                    <label for="summaryLineHeightSlider">ปรับขนาดของบรรทัด:</label>
+                    <input type="range" id="summaryLineHeightSlider" min="0.01" max="1.5" step="0.01" value="0.5">
+                    <span id="summaryLineHeightValue">ความสูงของบรรทัด: 0.5</span>
+                </div>
+                <button onclick="closeSummaryModal()" class="summary-modal-close-btn">ปิดหน้าต่างนี้</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Container สำหรับการพิมพ์ PDF -->
+    <div id="print-container"></div>
+
+
+
+<script>
+    // ตัวแปรเก็บข้อมูลสรุปสำหรับการส่งออก
+    let summaryContext = {};
+
+    // ========== Common Functions ==========
+    function getFromLocalStorage(key, defaultValue = []) {
+        const data = localStorage.getItem(key);
+        try {
+            return data ? JSON.parse(data) : defaultValue;
+        } catch (e) {
+            console.error(`Error parsing data from localStorage for key "${key}":`, e);
+            return defaultValue;
+        }
+    }
+
+    function saveToLocalStorage(key, data) {
+        localStorage.setItem(key, JSON.stringify(data));
+    }
+
+    function getLoggedInUser() {
+        const user = sessionStorage.getItem('loggedInUser');
+        return user ? JSON.parse(user) : null;
+    }
+
+    function setLoggedInUser(user) {
+        sessionStorage.setItem('loggedInUser', JSON.stringify(user));
+    }
+
+    function clearLoggedInUser() {
+        sessionStorage.removeItem('loggedInUser');
+    }
+
+    function checkAdminAccess() {
+        const user = getLoggedInUser();
+        return user && user.role === 'admin';
+    }
+
+    function updateAdminLinkVisibility() {
+        const loggedInUser = getLoggedInUser();
+        const adminLink = document.getElementById('admin-link');
+        if (adminLink) {
+            if (loggedInUser && loggedInUser.role === 'admin') {
+                adminLink.classList.remove('hidden');
+            } else {
+                adminLink.classList.add('hidden');
+            }
+        }
+    }
+
+    function formatDuration(minutes) {
+        if (isNaN(minutes) || minutes < 0) return "เวลาไม่ถูกต้อง";
+        const totalSeconds = Math.round(minutes * 60);
+        const hours = Math.floor(totalSeconds / 3600);
+        const remainingMinutes = Math.floor((totalSeconds % 3600) / 60);
+        const seconds = totalSeconds % 60;
+
+        let parts = [];
+        if (hours > 0) parts.push(`${hours} ชั่วโมง`);
+        if (remainingMinutes > 0) parts.push(`${remainingMinutes} นาที`);
+        if (seconds > 0 && hours === 0 && remainingMinutes === 0) parts.push(`${seconds} วินาที`);
+        
+        if (parts.length === 0) return "0 นาที";
+        return parts.join(' ');
+    }
+    
+    function formatDurationHms(totalMinutes) {
+        if (isNaN(totalMinutes) || totalMinutes < 0) return "00:00:00";
+        const totalSeconds = Math.round(totalMinutes * 60);
+        const hours = Math.floor(totalSeconds / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        const seconds = totalSeconds % 60;
+        return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    }
+
+function formatDate(dateString) {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return dateString;
+    
+    // แปลงเป็นรูปแบบ 29/09/2568
+    const day = date.getDate().toString().padStart(2, '0');
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const year = date.getFullYear() + 543; // แปลงเป็นพ.ศ.
+    
+    return `${day}/${month}/${year}`;
+}
+
+    function calculateDuration(start, end) {
+        const startDate = new Date(`2000-01-01T${start}`);
+        const endDate = new Date(`2000-01-01T${end}`);
+
+        if (isNaN(startDate) || isNaN(endDate)) {
+            return 0;
+        }
+
+        if (endDate < startDate) {
+            endDate.setDate(endDate.getDate() + 1);
+        }
+
+        const diffMilliseconds = endDate - startDate;
+        return diffMilliseconds / (1000 * 60);
+    }
+
+    function hashPassword(password) {
+        let hash = 0;
+        if (password.length === 0) return hash;
+        for (let i = 0; i < password.length; i++) {
+            const char = password.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash;
+        }
+        return hash.toString();
+    }
+
+function populateActivityTypeDropdowns(dropdownId) {
+    const dropdown = document.getElementById(dropdownId);
+    if (!dropdown) return;
+
+    const loggedInUser = getLoggedInUser();
+    if (!loggedInUser) return;
+
+    const allActivityTypes = getFromLocalStorage('activityTypes');
+    // กรองเฉพาะประเภทกิจกรรมของ user นี้
+    const userActivityTypes = allActivityTypes.filter(type => type.userId === loggedInUser.id);
+    
+    const selectedValue = dropdown.value;
+
+    // ตรวจสอบว่ามีประเภทกิจกรรมกี่รายการ
+    const activityTypeCount = userActivityTypes.length;
+    
+    // ถ้ามีแค่ 1 ประเภทกิจกรรม ให้เลือกอัตโนมัติและซ่อน dropdown
+    if (activityTypeCount === 1 && (dropdownId === 'activity-name-select')) {
+        dropdown.value = userActivityTypes[0].name;
+        dropdown.style.display = 'none'; // ซ่อน dropdown
+        
+        // แสดงชื่อกิจกรรมแทน
+        const activityNameDisplay = document.getElementById('activity-name-display') || createActivityNameDisplay();
+        activityNameDisplay.textContent = `กิจกรรม: ${userActivityTypes[0].name}`;
+    } else {
+        // ถ้ามีมากกว่า 1 ให้แสดง dropdown ปกติ
+        dropdown.style.display = 'block';
+        
+        // ซ่อนการแสดงชื่อกิจกรรมถ้ามี
+        const activityNameDisplay = document.getElementById('activity-name-display');
+        if (activityNameDisplay) {
+            activityNameDisplay.style.display = 'none';
+        }
+        
+        // ล้างและสร้าง options ใหม่
+        dropdown.innerHTML = '<option value="">-- เลือกประเภทกิจกรรม --</option>';
+        if (dropdownId === 'filter-activity-type' || dropdownId === 'admin-filter-activity-type') {
+            dropdown.innerHTML = '<option value="">-- กรองตามประเภท --</option>';
+        }
+
+        userActivityTypes.forEach(type => {
+            const option = document.createElement('option');
+            option.value = type.name;
+            option.textContent = type.name;
+            dropdown.appendChild(option);
+        });
+        dropdown.value = selectedValue;
+    }
+}
+
+// ฟังก์ชันสร้าง element สำหรับแสดงชื่อกิจกรรม
+function createActivityNameDisplay() {
+    const displayElement = document.createElement('div');
+    displayElement.id = 'activity-name-display';
+    displayElement.style.padding = '10px';
+    displayElement.style.backgroundColor = '#e9ecef';
+    displayElement.style.borderRadius = '5px';
+    displayElement.style.marginBottom = '10px';
+    displayElement.style.fontWeight = 'bold';
+    
+    const dropdown = document.getElementById('activity-name-select');
+    dropdown.parentNode.insertBefore(displayElement, dropdown);
+    
+    return displayElement;
+}
+
+// ========== Encryption Functions ==========
+function encryptData(data, password) {
+    try {
+        const dataStr = JSON.stringify(data);
+        const encrypted = CryptoJS.AES.encrypt(dataStr, password).toString();
+        return encrypted;
+    } catch (error) {
+        console.error('Encryption error:', error);
+        throw new Error('เกิดข้อผิดพลาดในการเข้ารหัสข้อมูล');
+    }
+}
+
+function decryptData(encryptedData, password) {
+    try {
+        const decrypted = CryptoJS.AES.decrypt(encryptedData, password);
+        const dataStr = decrypted.toString(CryptoJS.enc.Utf8);
+        
+        if (!dataStr) {
+            throw new Error('รหัสผ่านไม่ถูกต้อง');
+        }
+        
+        return JSON.parse(dataStr);
+    } catch (error) {
+        console.error('Decryption error:', error);
+        throw new Error('รหัสผ่านไม่ถูกต้องหรือข้อมูลเสียหาย');
+    }
+}
+
+    // ========== Password Toggle Functionality ==========
+    function setupPasswordToggles() {
+        const toggleLoginPassword = document.getElementById('toggle-login-password');
+        const loginPasswordInput = document.getElementById('login-password');
+        if (toggleLoginPassword && loginPasswordInput) {
+            toggleLoginPassword.addEventListener('click', function() {
+                const type = loginPasswordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                loginPasswordInput.setAttribute('type', type);
+                this.textContent = type === 'password' ? '👁️' : '🙈';
+            });
+        }
+
+        const toggleAdminAddPassword = document.getElementById('toggle-admin-add-password');
+        const adminAddPasswordInput = document.getElementById('admin-add-password');
+        if (toggleAdminAddPassword && adminAddPasswordInput) {
+            toggleAdminAddPassword.addEventListener('click', function() {
+                const type = adminAddPasswordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                adminAddPasswordInput.setAttribute('type', type);
+                this.textContent = type === 'password' ? '👁️' : '🙈';
+            });
+        }
+
+        const toggleAdminAddConfirmPassword = document.getElementById('toggle-admin-add-confirm-password');
+        const adminAddConfirmPasswordInput = document.getElementById('admin-add-confirm-password');
+        if (toggleAdminAddConfirmPassword && adminAddConfirmPasswordInput) {
+            toggleAdminAddConfirmPassword.addEventListener('click', function() {
+                const type = adminAddConfirmPasswordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                adminAddConfirmPasswordInput.setAttribute('type', type);
+                this.textContent = type === 'password' ? '👁️' : '🙈';
+            });
+        }
+
+        const toggleEditUserPassword = document.getElementById('toggle-edit-user-password');
+        const editUserPasswordInput = document.getElementById('edit-user-password');
+        if (toggleEditUserPassword && editUserPasswordInput) {
+            toggleEditUserPassword.addEventListener('click', function() {
+                const type = editUserPasswordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+                editUserPasswordInput.setAttribute('type', type);
+                this.textContent = type === 'password' ? '👁️' : '🙈';
+            });
+        }
+    }
+
+    // ========== Page Navigation ==========
+    function showPage(pageId) {
+        console.log('Showing page:', pageId);
+        
+        // Hide all pages
+        document.getElementById('auth-section').classList.add('hidden');
+        document.getElementById('activity-page').classList.add('hidden');
+        document.getElementById('activity-types-page').classList.add('hidden');
+        document.getElementById('summary-page').classList.add('hidden');
+        document.getElementById('admin-page').classList.add('hidden');
+
+        // Show header for logged-in users
+        const header = document.getElementById('main-header');
+        if (header) {
+            header.classList.remove('hidden');
+        }
+
+        // Show the requested page
+        const targetPage = document.getElementById(pageId);
+        if (targetPage) {
+            targetPage.classList.remove('hidden');
+            console.log('Page displayed successfully');
+        } else {
+            console.error('Page not found:', pageId);
+        }
+
+        // Update navigation
+        const navLinks = document.querySelectorAll('nav a');
+        navLinks.forEach(link => {
+            if (link.getAttribute('data-page') === pageId.replace('-page', '')) {
+                link.classList.add('active');
+            } else {
+                link.classList.remove('active');
+            }
+        });
+
+        // Load data for the page
+        switch(pageId) {
+            case 'activity-page':
+                loadUserActivities();
+                populateActivityTypeDropdowns('activity-name-select');
+                populateActivityTypeDropdowns('filter-activity-type');
+                break;
+            case 'activity-types-page':
+                loadActivityTypes();
+                break;
+            case 'summary-page':
+                loadSummaryData();
+                break;
+            case 'admin-page':
+                if (checkAdminAccess()) {
+                    loadAllUsers();
+                    loadAllActivities();
+                    populateActivityTypeDropdowns('admin-filter-activity-type');
+                } else {
+                    showPage('activity-page');
+                }
+                break;
+        }
+    }
+
+    // ========== Login/Logout Functionality ==========
+    function handleLogin(event) {
+        event.preventDefault();
+        const username = document.getElementById('login-username').value.trim();
+        const password = document.getElementById('login-password').value.trim();
+        const messageElement = document.getElementById('login-message');
+
+        if (!username || !password) {
+            messageElement.textContent = 'กรุณากรอกชื่อผู้ใช้งานและรหัสผ่าน';
+            return;
+        }
+
+        const users = getFromLocalStorage('users');
+        const user = users.find(u => u.username === username && u.password === hashPassword(password));
+
+        if (user) {
+            setLoggedInUser(user);
+            messageElement.textContent = '';
+            document.getElementById('login-form').reset();
+            document.getElementById('welcome-message').textContent = `ยินดีต้อนรับ, ${user.username}!`;
+            updateAdminLinkVisibility();
+            showPage('activity-page');
+        } else {
+            messageElement.textContent = 'ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง';
+        }
+    }
+
+    function handleLogout() {
+        clearLoggedInUser();
+        document.getElementById('auth-section').classList.remove('hidden');
+        document.getElementById('main-header').classList.add('hidden');
+        document.getElementById('activity-page').classList.add('hidden');
+        document.getElementById('activity-types-page').classList.add('hidden');
+        document.getElementById('summary-page').classList.add('hidden');
+        document.getElementById('admin-page').classList.add('hidden');
+        document.getElementById('login-form').reset();
+        document.getElementById('login-message').textContent = '';
+    }
+
+    // ========== Activity Management ==========
+function deleteActivityType(typeId) {
+    const allActivityTypes = getFromLocalStorage('activityTypes');
+    const activities = getFromLocalStorage('activities');
+    const loggedInUser = getLoggedInUser();
+
+    const typeToDelete = allActivityTypes.find(t => t.id === typeId);
+    
+    // ตรวจสอบสิทธิ์การลบ
+    if (typeToDelete && typeToDelete.userId !== loggedInUser.id) {
+        alert('คุณไม่มีสิทธิ์ลบประเภทกิจกรรมนี้');
+        return;
+    }
+
+    // ตรวจสอบว่ามีกิจกรรมใช้ประเภทนี้อยู่หรือไม่
+    const isTypeUsed = activities.some(activity => 
+        activity.activityName === typeToDelete?.name && 
+        activity.userId === loggedInUser.id
+    );
+    
+    if (isTypeUsed) {
+        alert('ไม่สามารถลบประเภทกิจกรรมนี้ได้ เนื่องจากมีกิจกรรมที่ใช้ประเภทนี้อยู่');
+        return;
+    }
+
+    if (!confirm('คุณแน่ใจว่าต้องการลบประเภทกิจกรรมนี้?')) return;
+
+    const updatedTypes = allActivityTypes.filter(t => t.id !== typeId);
+    saveToLocalStorage('activityTypes', updatedTypes);
+    loadActivityTypes();
+    populateActivityTypeDropdowns('activity-name-select');
+    populateActivityTypeDropdowns('filter-activity-type');
+}
+function updateActivityType(typeId) {
+    const name = document.getElementById('activity-type-name').value.trim();
+    if (!name) {
+        document.getElementById('activity-type-message').textContent = 'กรุณากรอกชื่อประเภทกิจกรรม';
+        return;
+    }
+
+    const allActivityTypes = getFromLocalStorage('activityTypes');
+    const loggedInUser = getLoggedInUser();
+    
+    // ตรวจสอบชื่อซ้ำ (เฉพาะของ user นี้)
+    const existingType = allActivityTypes.find(t => 
+        t.name.toLowerCase() === name.toLowerCase() && 
+        t.id !== typeId &&
+        t.userId === loggedInUser.id
+    );
+    
+    if (existingType) {
+        document.getElementById('activity-type-message').textContent = 'มีประเภทกิจกรรมนี้อยู่แล้ว';
+        return;
+    }
+
+    // อัปเดตข้อมูล
+    const typeIndex = allActivityTypes.findIndex(t => t.id === typeId && t.userId === loggedInUser.id);
+    if (typeIndex === -1) return;
+
+    allActivityTypes[typeIndex].name = name;
+    saveToLocalStorage('activityTypes', allActivityTypes);
+    
+    document.getElementById('activity-type-form').reset();
+    document.getElementById('activity-type-message').textContent = 'อัปเดตประเภทกิจกรรมเรียบร้อยแล้ว';
+    document.getElementById('save-activity-type-button').classList.remove('hidden');
+    document.getElementById('update-activity-type-button').classList.add('hidden');
+    document.getElementById('cancel-activity-type-edit-button').classList.add('hidden');
+
+    loadActivityTypes();
+    populateActivityTypeDropdowns('activity-name-select');
+    populateActivityTypeDropdowns('filter-activity-type');
+}
+function editActivityType(typeId) {
+    const allActivityTypes = getFromLocalStorage('activityTypes');
+    const loggedInUser = getLoggedInUser();
+    
+    // ค้นหาประเภทกิจกรรมเฉพาะของ user นี้
+    const type = allActivityTypes.find(t => t.id === typeId && t.userId === loggedInUser.id);
+    
+    if (!type) {
+        alert('ไม่พบประเภทกิจกรรมนี้หรือคุณไม่มีสิทธิ์แก้ไข');
+        return;
+    }
+
+    // แสดงฟอร์มแก้ไข
+    document.getElementById('activity-type-name').value = type.name;
+    
+    document.getElementById('save-activity-type-button').classList.add('hidden');
+    document.getElementById('update-activity-type-button').classList.remove('hidden');
+    document.getElementById('cancel-activity-type-edit-button').classList.remove('hidden');
+
+    document.getElementById('update-activity-type-button').onclick = function() {
+        updateActivityType(typeId);
+    };
+
+    document.getElementById('cancel-activity-type-edit-button').onclick = function() {
+        document.getElementById('activity-type-form').reset();
+        document.getElementById('save-activity-type-button').classList.remove('hidden');
+        document.getElementById('update-activity-type-button').classList.add('hidden');
+        document.getElementById('cancel-activity-type-edit-button').classList.add('hidden');
+        document.getElementById('activity-type-message').textContent = '';
+    };
+}
+function attachActivityTypeEventListeners() {
+    document.querySelectorAll('.edit-activity-type').forEach(button => {
+        button.addEventListener('click', function() {
+            const typeId = this.getAttribute('data-id');
+            editActivityType(typeId);
+        });
+    });
+
+    document.querySelectorAll('.delete-activity-type').forEach(button => {
+        button.addEventListener('click', function() {
+            const typeId = this.getAttribute('data-id');
+            deleteActivityType(typeId);
+        });
+    });
+}
+    function loadUserActivities() {
+        const loggedInUser = getLoggedInUser();
+        if (!loggedInUser) return;
+
+        const allActivities = getFromLocalStorage('activities');
+        const userActivities = allActivities.filter(activity => activity.userId === loggedInUser.id);
+        const tableBody = document.querySelector('#activity-list-table tbody');
+        tableBody.innerHTML = '';
+
+        userActivities.forEach(activity => {
+            const row = document.createElement('tr');
+            const duration = calculateDuration(activity.startTime, activity.endTime);
+            row.innerHTML = `
+                <td>${activity.activityName}</td>
+                <td>${formatDate(activity.date)}</td>
+                <td>${activity.startTime}</td>
+                <td>${activity.endTime}</td>
+                <td>${formatDuration(duration)}</td>
+                <td>${activity.details || '-'}</td>
+                <td class="action-buttons">
+                    <button class="edit-activity" data-id="${activity.id}">แก้ไข</button>
+                    <button class="delete-activity delete-button" data-id="${activity.id}">ลบ</button>
+                </td>
+            `;
+            tableBody.appendChild(row);
+        });
+
+        attachActivityEventListeners();
+    }
+
+    function attachActivityEventListeners() {
+        document.querySelectorAll('.edit-activity').forEach(button => {
+            button.addEventListener('click', function() {
+                const activityId = this.getAttribute('data-id');
+                editActivity(activityId);
+            });
+        });
+
+        document.querySelectorAll('.delete-activity').forEach(button => {
+            button.addEventListener('click', function() {
+                const activityId = this.getAttribute('data-id');
+                deleteActivity(activityId);
+            });
+        });
+    }
+
+    function editActivity(activityId) {
+        const allActivities = getFromLocalStorage('activities');
+        const activity = allActivities.find(a => a.id === activityId);
+        if (!activity) return;
+
+        document.getElementById('activity-name-select').value = activity.activityName;
+        document.getElementById('activity-date').value = activity.date;
+        document.getElementById('start-time').value = activity.startTime;
+        document.getElementById('end-time').value = activity.endTime;
+        document.getElementById('activity-details').value = activity.details || '';
+
+        document.getElementById('save-activity-button').classList.add('hidden');
+        document.getElementById('update-activity-button').classList.remove('hidden');
+        document.getElementById('cancel-edit-activity-button').classList.remove('hidden');
+
+        document.getElementById('update-activity-button').onclick = function() {
+            updateActivity(activityId);
+        };
+
+        document.getElementById('cancel-edit-activity-button').onclick = function() {
+            document.getElementById('activity-form').reset();
+            document.getElementById('save-activity-button').classList.remove('hidden');
+            document.getElementById('update-activity-button').classList.add('hidden');
+            document.getElementById('cancel-edit-activity-button').classList.add('hidden');
+        };
+    }
+
+    function updateActivity(activityId) {
+        const activityName = document.getElementById('activity-name-select').value;
+        const date = document.getElementById('activity-date').value;
+        const startTime = document.getElementById('start-time').value;
+        const endTime = document.getElementById('end-time').value;
+        const details = document.getElementById('activity-details').value.trim();
+
+        if (!activityName || !date || !startTime || !endTime) {
+            document.getElementById('activity-message').textContent = 'กรุณากรอกข้อมูลให้ครบถ้วน';
+            return;
+        }
+
+        const duration = calculateDuration(startTime, endTime);
+        if (duration <= 0) {
+            document.getElementById('activity-message').textContent = 'เวลาไม่ถูกต้อง กรุณาตรวจสอบเวลาเริ่มต้นและสิ้นสุด';
+            return;
+        }
+
+        const allActivities = getFromLocalStorage('activities');
+        const activityIndex = allActivities.findIndex(a => a.id === activityId);
+        if (activityIndex === -1) return;
+
+        allActivities[activityIndex] = {
+            ...allActivities[activityIndex],
+            activityName,
+            date,
+            startTime,
+            endTime,
+            details
+        };
+
+        saveToLocalStorage('activities', allActivities);
+        document.getElementById('activity-form').reset();
+        document.getElementById('activity-message').textContent = 'อัปเดตกิจกรรมเรียบร้อยแล้ว';
+        document.getElementById('save-activity-button').classList.remove('hidden');
+        document.getElementById('update-activity-button').classList.add('hidden');
+        document.getElementById('cancel-edit-activity-button').classList.add('hidden');
+
+        loadUserActivities();
+    }
+
+    function deleteActivity(activityId) {
+        if (!confirm('คุณแน่ใจว่าต้องการลบกิจกรรมนี้?')) return;
+
+        const allActivities = getFromLocalStorage('activities');
+        const updatedActivities = allActivities.filter(a => a.id !== activityId);
+        saveToLocalStorage('activities', updatedActivities);
+        loadUserActivities();
+    }
+
+function handleActivityFormSubmit(event) {
+    event.preventDefault();
+    const loggedInUser = getLoggedInUser();
+    if (!loggedInUser) return;
+
+    // ตรวจสอบว่ามีประเภทกิจกรรมเดียวและถูกซ่อนอยู่หรือไม่
+    const allActivityTypes = getFromLocalStorage('activityTypes');
+    const userActivityTypes = allActivityTypes.filter(type => type.userId === loggedInUser.id);
+    
+    let activityName;
+    if (userActivityTypes.length === 1 && document.getElementById('activity-name-select').style.display === 'none') {
+        // ถ้ามีกิจกรรมเดียวและ dropdown ถูกซ่อนอยู่ ให้ใช้ชื่อกิจกรรมนั้น
+        activityName = userActivityTypes[0].name;
+    } else {
+        // มิฉะนั้นใช้ค่าจาก dropdown
+        activityName = document.getElementById('activity-name-select').value;
+    }
+
+    const date = document.getElementById('activity-date').value;
+    const startTime = document.getElementById('start-time').value;
+    const endTime = document.getElementById('end-time').value;
+    const details = document.getElementById('activity-details').value.trim();
+
+        if (!activityName || !date || !startTime || !endTime) {
+            document.getElementById('activity-message').textContent = 'กรุณากรอกข้อมูลให้ครบถ้วน';
+            return;
+        }
+
+        const duration = calculateDuration(startTime, endTime);
+        if (duration <= 0) {
+            document.getElementById('activity-message').textContent = 'เวลาไม่ถูกต้อง กรุณาตรวจสอบเวลาเริ่มต้นและสิ้นสุด';
+            return;
+        }
+
+        const allActivities = getFromLocalStorage('activities');
+        const newActivity = {
+            id: Date.now().toString(),
+            userId: loggedInUser.id,
+            activityName,
+            date,
+            startTime,
+            endTime,
+            details,
+            createdAt: new Date().toISOString()
+        };
+
+        allActivities.push(newActivity);
+        saveToLocalStorage('activities', allActivities);
+        document.getElementById('activity-form').reset();
+        document.getElementById('activity-message').textContent = 'บันทึกกิจกรรมเรียบร้อยแล้ว';
+
+        loadUserActivities();
+    }
+
+    // ========== Activity Types Management ==========
+function loadActivityTypes() {
+    const loggedInUser = getLoggedInUser();
+    if (!loggedInUser) return;
+
+    const allActivityTypes = getFromLocalStorage('activityTypes');
+    const userActivityTypes = allActivityTypes.filter(type => type.userId === loggedInUser.id);
+    
+    const tableBody = document.querySelector('#activity-types-table tbody');
+    tableBody.innerHTML = '';
+
+    userActivityTypes.forEach(type => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${type.id}</td>
+            <td>${type.name}</td>
+            <td class="action-buttons">
+                <button class="edit-activity-type" data-id="${type.id}">แก้ไข</button>
+                <button class="delete-activity-type delete-button" data-id="${type.id}">ลบ</button>
+            </td>
+        `;
+        tableBody.appendChild(row);
+    });
+
+    // เรียกฟังก์ชันนี้เพื่อตั้งค่า event listeners
+    attachActivityTypeEventListeners();
+    
+    // อัพเดท dropdown เมื่อมีการเปลี่ยนแปลงประเภทกิจกรรม
+    populateActivityTypeDropdowns('activity-name-select');
+}
+
+function handleActivityTypeFormSubmit(event) {
+    event.preventDefault();
+    const loggedInUser = getLoggedInUser();
+    if (!loggedInUser) return;
+
+    const name = document.getElementById('activity-type-name').value.trim();
+    if (!name) {
+        document.getElementById('activity-type-message').textContent = 'กรุณากรอกชื่อประเภทกิจกรรม';
+        return;
+    }
+
+    const allActivityTypes = getFromLocalStorage('activityTypes');
+    
+    // ตรวจสอบเฉพาะประเภทกิจกรรมของ user นี้
+    const existingType = allActivityTypes.find(t => 
+        t.name.toLowerCase() === name.toLowerCase() && 
+        t.userId === loggedInUser.id
+    );
+    
+    if (existingType) {
+        document.getElementById('activity-type-message').textContent = 'มีประเภทกิจกรรมนี้อยู่แล้ว';
+        return;
+    }
+
+    const newType = {
+        id: Date.now().toString(),
+        name,
+        userId: loggedInUser.id
+    };
+
+    allActivityTypes.push(newType);
+    saveToLocalStorage('activityTypes', allActivityTypes);
+    document.getElementById('activity-type-form').reset();
+    document.getElementById('activity-type-message').textContent = 'เพิ่มประเภทกิจกรรมเรียบร้อยแล้ว';
+
+    loadActivityTypes();
+    populateActivityTypeDropdowns('activity-name-select'); // อัพเดท dropdown
+    populateActivityTypeDropdowns('filter-activity-type');
+}
+
+function populateActivityTypeDropdowns(dropdownId) {
+    const dropdown = document.getElementById(dropdownId);
+    if (!dropdown) return;
+
+    const loggedInUser = getLoggedInUser();
+    if (!loggedInUser) return;
+
+    const allActivityTypes = getFromLocalStorage('activityTypes');
+    // กรองเฉพาะประเภทกิจกรรมของ user นี้
+    const userActivityTypes = allActivityTypes.filter(type => type.userId === loggedInUser.id);
+    
+    const selectedValue = dropdown.value;
+
+    dropdown.innerHTML = '<option value="">-- เลือกประเภทกิจกรรม --</option>';
+    if (dropdownId === 'filter-activity-type' || dropdownId === 'admin-filter-activity-type') {
+        dropdown.innerHTML = '<option value="">-- กรองตามประเภท --</option>';
+    }
+
+    userActivityTypes.forEach(type => {
+        const option = document.createElement('option');
+        option.value = type.name;
+        option.textContent = type.name;
+        dropdown.appendChild(option);
+    });
+    dropdown.value = selectedValue;
+}
+
+function deleteActivityType(typeId) {
+    const allActivityTypes = getFromLocalStorage('activityTypes');
+    const activities = getFromLocalStorage('activities');
+    const loggedInUser = getLoggedInUser();
+
+    const typeToDelete = allActivityTypes.find(t => t.id === typeId);
+    
+    // ตรวจสอบว่าเป็นประเภทกิจกรรมของ user นี้เท่านั้น
+    if (typeToDelete && typeToDelete.userId !== loggedInUser.id) {
+        alert('คุณไม่มีสิทธิ์ลบประเภทกิจกรรมนี้');
+        return;
+    }
+
+    const isTypeUsed = activities.some(activity => 
+        activity.activityName === typeToDelete?.name && 
+        activity.userId === loggedInUser.id
+    );
+    
+    if (isTypeUsed) {
+        alert('ไม่สามารถลบประเภทกิจกรรมนี้ได้ เนื่องจากมีกิจกรรมที่ใช้ประเภทนี้อยู่');
+        return;
+    }
+
+    if (!confirm('คุณแน่ใจว่าต้องการลบประเภทกิจกรรมนี้?')) return;
+
+    const updatedTypes = allActivityTypes.filter(t => t.id !== typeId);
+    saveToLocalStorage('activityTypes', updatedTypes);
+    loadActivityTypes();
+    populateActivityTypeDropdowns('activity-name-select'); // อัพเดท dropdown
+    populateActivityTypeDropdowns('filter-activity-type');
+}
+
+// ========== Admin Functionality - แสดงประเภทกิจกรรมทั้งหมด ==========
+function loadAllActivityTypesAdmin() {
+    const allActivityTypes = getFromLocalStorage('activityTypes');
+    const allUsers = getFromLocalStorage('users');
+    
+    const tableBody = document.querySelector('#all-activity-types-table tbody'); // ต้องเพิ่มตารางนี้ใน HTML
+    if (!tableBody) return;
+    
+    tableBody.innerHTML = '';
+
+    allActivityTypes.forEach(type => {
+        const user = allUsers.find(u => u.id === type.userId);
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${type.id}</td>
+            <td>${type.name}</td>
+            <td>${user ? user.username : 'Unknown'}</td>
+            <td class="action-buttons">
+                <button class="delete-activity-type-admin delete-button" data-id="${type.id}">ลบ</button>
+            </td>
+        `;
+        tableBody.appendChild(row);
+    });
+
+    attachAdminActivityTypeEventListeners();
+}
+
+    // ========== Summary Functionality ==========
+    function loadSummaryData() {
+        const summaryType = document.getElementById('summary-type-select').value;
+        const datePicker = document.getElementById('summary-date-picker');
+        const startDatePicker = document.getElementById('summary-start-date');
+        const endDatePicker = document.getElementById('summary-end-date');
+        const labelDatePicker = document.getElementById('label-summary-date-picker');
+        const labelStartDate = document.getElementById('label-summary-start-date');
+        const labelEndDate = document.getElementById('label-summary-end-date');
+
+        datePicker.classList.add('hidden');
+        startDatePicker.classList.add('hidden');
+        endDatePicker.classList.add('hidden');
+        labelDatePicker.classList.add('hidden');
+        labelStartDate.classList.add('hidden');
+        labelEndDate.classList.add('hidden');
+
+        switch(summaryType) {
+            case 'single-day':
+                datePicker.classList.remove('hidden');
+                labelDatePicker.classList.remove('hidden');
+                break;
+            case 'date-range':
+                startDatePicker.classList.remove('hidden');
+                endDatePicker.classList.remove('hidden');
+                labelStartDate.classList.remove('hidden');
+                labelEndDate.classList.remove('hidden');
+                break;
+        }
+    }
+
+    function viewSummary() {
+        const summaryType = document.getElementById('summary-type-select').value;
+        const datePicker = document.getElementById('summary-date-picker');
+        const startDatePicker = document.getElementById('summary-start-date');
+        const endDatePicker = document.getElementById('summary-end-date');
+
+        let startDate, endDate;
+        switch(summaryType) {
+            case 'single-day':
+                if (!datePicker.value) {
+                    alert('กรุณาเลือกวันที่');
+                    return;
+                }
+                startDate = endDate = datePicker.value;
+                break;
+            case 'date-range':
+                if (!startDatePicker.value || !endDatePicker.value) {
+                    alert('กรุณาเลือกช่วงวันที่ให้ครบถ้วน');
+                    return;
+                }
+                startDate = startDatePicker.value;
+                endDate = endDatePicker.value;
+                break;
+            case 'all-time':
+                startDate = null;
+                endDate = null;
+                break;
+            default:
+                return;
+        }
+
+        generateSummary(startDate, endDate);
+    }
+
+function generateSummary(startDate, endDate) {
+    const loggedInUser = getLoggedInUser();
+    if (!loggedInUser) return;
+
+    const allActivities = getFromLocalStorage('activities');
+    let userActivities = allActivities.filter(activity => activity.userId === loggedInUser.id);
+
+    // กรองกิจกรรมตามช่วงวันที่ที่เลือก
+    if (startDate && endDate) {
+        userActivities = userActivities.filter(activity => {
+            const activityDate = activity.date;
+            return activityDate >= startDate && activityDate <= endDate;
+        });
+    } else if (startDate) { // กรณี single-day (ถ้า startDate มีค่าแต่ endDate ไม่มี)
+        userActivities = userActivities.filter(activity => activity.date === startDate);
+    }
+    // หาก startDate และ endDate เป็น null ทั้งคู่ (โหมด all-time) ไม่ต้องกรอง
+
+    const activityTypes = getFromLocalStorage('activityTypes');
+    const typeTotals = {};
+    let totalDurationAll = 0;
+    
+    // เก็บวันที่ที่มีกิจกรรม
+    const activityDates = new Set();
+    
+    userActivities.forEach(activity => {
+        const duration = calculateDuration(activity.startTime, activity.endTime);
+        if (duration > 0) {
+            if (!typeTotals[activity.activityName]) {
+                typeTotals[activity.activityName] = 0;
+            }
+            typeTotals[activity.activityName] += duration;
+            totalDurationAll += duration;
+            activityDates.add(activity.date); // เพิ่มวันที่ลงใน Set
+        }
+    });
+    
+    // คำนวณข้อมูลวันที่สำหรับสรุป (ปรับปรุงส่วนนี้)
+    let totalDays = 0;
+    let daysWithActivities = 0;
+    let daysWithoutActivities = 0;
+    
+    // หากมีช่วงวันที่ที่กำหนด (single-day หรือ date-range)
+    if (startDate && endDate) {
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        totalDays = Math.floor((end - start) / (1000 * 60 * 60 * 24)) + 1; // นับรวมวันสิ้นสุด
+        daysWithActivities = activityDates.size;
+        daysWithoutActivities = totalDays - daysWithActivities;
+    } else if (startDate) { // กรณีเลือกแค่วันเดียว
+        totalDays = 1;
+        daysWithActivities = activityDates.size;
+        daysWithoutActivities = totalDays - daysWithActivities;
+    } else { // กรณี All-Time (ไม่มีการกรองวันที่)
+        // ค้นหาวันที่แรกและวันสุดท้ายจากกิจกรรมทั้งหมด
+        const allActivityDates = Array.from(new Set(userActivities.map(activity => activity.date))).sort();
+        if (allActivityDates.length > 0) {
+            const firstDate = new Date(allActivityDates[0]);
+            const lastDate = new Date(allActivityDates[allActivityDates.length - 1]);
+            totalDays = Math.floor((lastDate - firstDate) / (1000 * 60 * 60 * 24)) + 1;
+        } else {
+            totalDays = 0; // ไม่มีกิจกรรมเลย
+        }
+        daysWithActivities = activityDates.size;
+        daysWithoutActivities = totalDays - daysWithActivities;
+    }
+
+    // เก็บข้อมูลสรุปสำหรับการส่งออก
+    summaryContext = {
+        userActivities,
+        typeTotals,
+        totalDurationAll,
+        startDate,
+        endDate,
+        activityTypes,
+        totalDays,             // เพิ่มเข้ามา
+        daysWithActivities,    // เพิ่มเข้ามา
+        daysWithoutActivities, // เพิ่มเข้ามา
+        loggedInUser
+    };
+
+    // แสดง modal เลือกรูปแบบการแสดงผล
+    document.getElementById('summaryOutputModal').style.display = 'flex';
+}
+
+    // ========== Admin Functionality ==========
+    function loadAllUsers() {
+        const users = getFromLocalStorage('users');
+        const tableBody = document.querySelector('#user-list-table tbody');
+        tableBody.innerHTML = '';
+
+        users.forEach(user => {
+            if (user.username === 'admin') return; // Skip default admin user
+
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${user.id}</td>
+                <td>${user.username}</td>
+                <td>${user.role === 'admin' ? 'Admin' : 'User'}</td>
+                <td class="action-buttons">
+                    <button class="edit-user" data-id="${user.id}">แก้ไข</button>
+                    <button class="delete-user delete-button" data-id="${user.id}">ลบ</button>
+                </td>
+            `;
+            tableBody.appendChild(row);
+        });
+
+        attachUserEventListeners();
+    }
+
+    function attachUserEventListeners() {
+        document.querySelectorAll('.edit-user').forEach(button => {
+            button.addEventListener('click', function() {
+                const userId = this.getAttribute('data-id');
+                editUser(userId);
+            });
+        });
+
+        document.querySelectorAll('.delete-user').forEach(button => {
+            button.addEventListener('click', function() {
+                const userId = this.getAttribute('data-id');
+                deleteUser(userId);
+            });
+        });
+    }
+
+    function editUser(userId) {
+        const users = getFromLocalStorage('users');
+        const user = users.find(u => u.id === userId);
+        if (!user) return;
+
+        document.getElementById('edit-user-id').value = user.id;
+        document.getElementById('edit-user-username').value = user.username;
+        document.getElementById('edit-user-role').value = user.role;
+
+        document.getElementById('edit-user-modal').style.display = 'block';
+    }
+
+    function updateUser(event) {
+        event.preventDefault();
+        const userId = document.getElementById('edit-user-id').value;
+        const username = document.getElementById('edit-user-username').value.trim();
+        const password = document.getElementById('edit-user-password').value;
+        const role = document.getElementById('edit-user-role').value;
+
+        if (!username) {
+            document.getElementById('edit-user-message').textContent = 'กรุณากรอกชื่อผู้ใช้งาน';
+            return;
+        }
+
+        const users = getFromLocalStorage('users');
+        const userIndex = users.findIndex(u => u.id === userId);
+        if (userIndex === -1) return;
+
+        const existingUser = users.find(u => u.username === username && u.id !== userId);
+        if (existingUser) {
+            document.getElementById('edit-user-message').textContent = 'มีชื่อผู้ใช้งานนี้อยู่แล้ว';
+            return;
+        }
+
+        users[userIndex].username = username;
+        users[userIndex].role = role;
+
+        if (password) {
+            users[userIndex].password = hashPassword(password);
+        }
+
+        saveToLocalStorage('users', users);
+        document.getElementById('edit-user-modal').style.display = 'none';
+        document.getElementById('edit-user-form').reset();
+        document.getElementById('edit-user-message').textContent = '';
+
+        loadAllUsers();
+    }
+
+    function deleteUser(userId) {
+        if (!confirm('คุณแน่ใจว่าต้องการลบผู้ใช้งานนี้?')) return;
+
+        const users = getFromLocalStorage('users');
+        const activities = getFromLocalStorage('activities');
+
+        const updatedUsers = users.filter(u => u.id !== userId);
+        const updatedActivities = activities.filter(a => a.userId !== userId);
+
+        saveToLocalStorage('users', updatedUsers);
+        saveToLocalStorage('activities', updatedActivities);
+
+        loadAllUsers();
+        loadAllActivities();
+    }
+
+    function loadAllActivities() {
+        const allActivities = getFromLocalStorage('activities');
+        const allUsers = getFromLocalStorage('users');
+        const tableBody = document.querySelector('#all-activities-table tbody');
+        tableBody.innerHTML = '';
+
+        allActivities.forEach(activity => {
+            const user = allUsers.find(u => u.id === activity.userId);
+            const row = document.createElement('tr');
+            const duration = calculateDuration(activity.startTime, activity.endTime);
+            row.innerHTML = `
+                <td>${user ? user.username : 'Unknown'}</td>
+                <td>${activity.activityName}</td>
+                <td>${formatDate(activity.date)}</td>
+                <td>${activity.startTime}</td>
+                <td>${activity.endTime}</td>
+                <td>${formatDuration(duration)}</td>
+                <td>${activity.details || '-'}</td>
+                <td class="action-buttons">
+                    <button class="edit-activity-admin" data-id="${activity.id}">แก้ไข</button>
+                    <button class="delete-activity-admin delete-button" data-id="${activity.id}">ลบ</button>
+                </td>
+            `;
+            tableBody.appendChild(row);
+        });
+
+        attachAdminActivityEventListeners();
+    }
+
+    function attachAdminActivityEventListeners() {
+        document.querySelectorAll('.edit-activity-admin').forEach(button => {
+            button.addEventListener('click', function() {
+                const activityId = this.getAttribute('data-id');
+                editActivityAdmin(activityId);
+            });
+        });
+
+        document.querySelectorAll('.delete-activity-admin').forEach(button => {
+            button.addEventListener('click', function() {
+                const activityId = this.getAttribute('data-id');
+                deleteActivityAdmin(activityId);
+            });
+        });
+    }
+
+    function editActivityAdmin(activityId) {
+        const allActivities = getFromLocalStorage('activities');
+        const activity = allActivities.find(a => a.id === activityId);
+        if (!activity) return;
+
+        const newActivityName = prompt('แก้ไขชื่อกิจกรรม:', activity.activityName);
+        if (newActivityName === null) return;
+
+        const newDate = prompt('แก้ไขวันที่ (YYYY-MM-DD):', activity.date);
+        if (newDate === null) return;
+
+        const newStartTime = prompt('แก้ไขเวลาเริ่มต้น (HH:MM):', activity.startTime);
+        if (newStartTime === null) return;
+
+        const newEndTime = prompt('แก้ไขเวลาสิ้นสุด (HH:MM):', activity.endTime);
+        if (newEndTime === null) return;
+
+        const newDetails = prompt('แก้ไขรายละเอียด:', activity.details || '');
+
+        activity.activityName = newActivityName.trim();
+        activity.date = newDate;
+        activity.startTime = newStartTime;
+        activity.endTime = newEndTime;
+        activity.details = newDetails ? newDetails.trim() : '';
+
+        saveToLocalStorage('activities', allActivities);
+        loadAllActivities();
+    }
+
+    function deleteActivityAdmin(activityId) {
+        if (!confirm('คุณแน่ใจว่าต้องการลบกิจกรรมนี้?')) return;
+
+        const allActivities = getFromLocalStorage('activities');
+        const updatedActivities = allActivities.filter(a => a.id !== activityId);
+        saveToLocalStorage('activities', updatedActivities);
+        loadAllActivities();
+    }
+
+    function handleAdminAddUser(event) {
+        event.preventDefault();
+        const username = document.getElementById('admin-add-username').value.trim();
+        const password = document.getElementById('admin-add-password').value;
+        const confirmPassword = document.getElementById('admin-add-confirm-password').value;
+        const role = document.getElementById('admin-add-role').value;
+        const messageElement = document.getElementById('admin-add-user-message');
+
+        if (!username || !password) {
+            messageElement.textContent = 'กรุณากรอกชื่อผู้ใช้งานและรหัสผ่าน';
+            return;
+        }
+
+        if (password !== confirmPassword) {
+            messageElement.textContent = 'รหัสผ่านไม่ตรงกัน';
+            return;
+        }
+
+        const users = getFromLocalStorage('users');
+        const existingUser = users.find(u => u.username === username);
+        if (existingUser) {
+            messageElement.textContent = 'มีชื่อผู้ใช้งานนี้อยู่แล้ว';
+            return;
+        }
+
+        const newUser = {
+            id: Date.now().toString(),
+            username,
+            password: hashPassword(password),
+            role
+        };
+
+        users.push(newUser);
+        saveToLocalStorage('users', users);
+        document.getElementById('admin-add-user-form').reset();
+        messageElement.textContent = 'เพิ่มผู้ใช้งานเรียบร้อยแล้ว';
+
+        loadAllUsers();
+    }
+
+    // ========== Filter Functionality ==========
+    function applyFilter() {
+        const loggedInUser = getLoggedInUser();
+        if (!loggedInUser) return;
+
+        const filterDate = document.getElementById('filter-date').value;
+        const filterActivityType = document.getElementById('filter-activity-type').value;
+
+        const allActivities = getFromLocalStorage('activities');
+        let userActivities = allActivities.filter(activity => activity.userId === loggedInUser.id);
+
+        if (filterDate) {
+            userActivities = userActivities.filter(activity => activity.date === filterDate);
+        }
+
+        if (filterActivityType) {
+            userActivities = userActivities.filter(activity => activity.activityName === filterActivityType);
+        }
+
+        const tableBody = document.querySelector('#activity-list-table tbody');
+        tableBody.innerHTML = '';
+
+        userActivities.forEach(activity => {
+            const row = document.createElement('tr');
+            const duration = calculateDuration(activity.startTime, activity.endTime);
+            row.innerHTML = `
+                <td>${activity.activityName}</td>
+                <td>${formatDate(activity.date)}</td>
+                <td>${activity.startTime}</td>
+                <td>${activity.endTime}</td>
+                <td>${formatDuration(duration)}</td>
+                <td>${activity.details || '-'}</td>
+                <td class="action-buttons">
+                    <button class="edit-activity" data-id="${activity.id}">แก้ไข</button>
+                    <button class="delete-activity delete-button" data-id="${activity.id}">ลบ</button>
+                </td>
+            `;
+            tableBody.appendChild(row);
+        });
+
+        attachActivityEventListeners();
+    }
+
+    function resetFilter() {
+        document.getElementById('filter-date').value = '';
+        document.getElementById('filter-activity-type').value = '';
+        loadUserActivities();
+    }
+
+    function applyAdminFilter() {
+        const searchUser = document.getElementById('admin-search-user').value.trim().toLowerCase();
+        const filterDate = document.getElementById('admin-filter-date').value;
+        const filterActivityType = document.getElementById('admin-filter-activity-type').value;
+
+        const allActivities = getFromLocalStorage('activities');
+        const allUsers = getFromLocalStorage('users');
+        let filteredActivities = allActivities;
+
+        if (searchUser) {
+            const filteredUserIds = allUsers
+                .filter(u => u.username.toLowerCase().includes(searchUser))
+                .map(u => u.id);
+            filteredActivities = filteredActivities.filter(activity => 
+                filteredUserIds.includes(activity.userId)
+            );
+        }
+
+        if (filterDate) {
+            filteredActivities = filteredActivities.filter(activity => activity.date === filterDate);
+        }
+
+        if (filterActivityType) {
+            filteredActivities = filteredActivities.filter(activity => activity.activityName === filterActivityType);
+        }
+
+        const tableBody = document.querySelector('#all-activities-table tbody');
+        tableBody.innerHTML = '';
+
+        filteredActivities.forEach(activity => {
+            const user = allUsers.find(u => u.id === activity.userId);
+            const row = document.createElement('tr');
+            const duration = calculateDuration(activity.startTime, activity.endTime);
+            row.innerHTML = `
+                <td>${user ? user.username : 'Unknown'}</td>
+                <td>${activity.activityName}</td>
+                <td>${formatDate(activity.date)}</td>
+                <td>${activity.startTime}</td>
+                <td>${activity.endTime}</td>
+                <td>${formatDuration(duration)}</td>
+                <td>${activity.details || '-'}</td>
+                <td class="action-buttons">
+                    <button class="edit-activity-admin" data-id="${activity.id}">แก้ไข</button>
+                    <button class="delete-activity-admin delete-button" data-id="${activity.id}">ลบ</button>
+                </td>
+            `;
+            tableBody.appendChild(row);
+        });
+
+        attachAdminActivityEventListeners();
+    }
+
+    function resetAdminFilter() {
+        document.getElementById('admin-search-user').value = '';
+        document.getElementById('admin-filter-date').value = '';
+        document.getElementById('admin-filter-activity-type').value = '';
+        loadAllActivities();
+    }
+
+    // ========== Data Import/Export ==========
+    function exportData() {
+        const data = {
+            users: getFromLocalStorage('users'),
+            activities: getFromLocalStorage('activities'),
+            activityTypes: getFromLocalStorage('activityTypes')
+        };
+
+        const dataStr = JSON.stringify(data, null, 2);
+        const dataBlob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(dataBlob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `activity-tracker-backup-${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+
+        document.getElementById('import-export-message').textContent = 'สำรองข้อมูลเรียบร้อยแล้ว';
+    }
+
+    function importData(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const data = JSON.parse(e.target.result);
+                
+                if (data.users && data.activities && data.activityTypes) {
+                    saveToLocalStorage('users', data.users);
+                    saveToLocalStorage('activities', data.activities);
+                    saveToLocalStorage('activityTypes', data.activityTypes);
+                    
+                    document.getElementById('import-export-message').textContent = 'โหลดข้อมูลเรียบร้อยแล้ว';
+                    loadAllUsers();
+                    loadAllActivities();
+                } else {
+                    document.getElementById('import-export-message').textContent = 'รูปแบบไฟล์ไม่ถูกต้อง';
+                }
+            } catch (error) {
+                document.getElementById('import-export-message').textContent = 'เกิดข้อผิดพลาดในการโหลดข้อมูล';
+                console.error('Import error:', error);
+            }
+        };
+        reader.readAsText(file);
+        event.target.value = '';
+    }
+
+    function showImportDialog() {
+        document.getElementById('import-data-input').click();
+    }
+function showRestoreDialog() {
+    document.getElementById('restore-data-input').click();
+}
+// ========== Backup and Restore ==========
+function backupData() {
+    const loggedInUser = getLoggedInUser();
+    if (!loggedInUser) return;
+
+    const password = prompt('กรุณากรอกรหัสผ่านสำหรับการสำรองข้อมูล:');
+    if (!password) {
+        document.getElementById('backup-restore-message').textContent = 'ยกเลิกการสำรองข้อมูล';
+        return;
+    }
+
+    if (password.length < 4) {
+        document.getElementById('backup-restore-message').textContent = 'รหัสผ่านต้องมีความยาวอย่างน้อย 4 ตัวอักษร';
+        return;
+    }
+
+    try {
+        const allActivities = getFromLocalStorage('activities');
+        const userActivities = allActivities.filter(activity => activity.userId === loggedInUser.id);
+        
+        const data = {
+            activities: userActivities,
+            activityTypes: getFromLocalStorage('activityTypes'),
+            exportedAt: new Date().toISOString(),
+            exportedBy: loggedInUser.username
+        };
+
+        // เข้ารหัสข้อมูล
+        const encryptedData = encryptData(data, password);
+
+        const dataBlob = new Blob([encryptedData], { type: 'application/json' });
+        const url = URL.createObjectURL(dataBlob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `my-activities-backup-${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+
+        document.getElementById('backup-restore-message').textContent = 'สำรองข้อมูลเรียบร้อยแล้ว (มีการเข้ารหัส)';
+    } catch (error) {
+        document.getElementById('backup-restore-message').textContent = 'เกิดข้อผิดพลาดในการสำรองข้อมูล: ' + error.message;
+    }
+}
+
+function restoreData(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const password = prompt('กรุณากรอกรหัสผ่านสำหรับกู้คืนข้อมูล:');
+    if (!password) {
+        document.getElementById('backup-restore-message').textContent = 'ยกเลิกการกู้คืนข้อมูล';
+        event.target.value = '';
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const encryptedData = e.target.result;
+            const data = decryptData(encryptedData, password);
+            
+            const loggedInUser = getLoggedInUser();
+            if (!loggedInUser) return;
+
+            if (data.activities && Array.isArray(data.activities)) {
+                const allActivities = getFromLocalStorage('activities');
+                const otherUsersActivities = allActivities.filter(activity => activity.userId !== loggedInUser.id);
+                
+                const restoredActivities = data.activities.map(activity => ({
+                    ...activity,
+                    userId: loggedInUser.id
+                }));
+
+                const updatedActivities = [...otherUsersActivities, ...restoredActivities];
+                saveToLocalStorage('activities', updatedActivities);
+
+                if (data.activityTypes && Array.isArray(data.activityTypes)) {
+                    const existingTypes = getFromLocalStorage('activityTypes');
+                    const newTypes = data.activityTypes.filter(newType => 
+                        !existingTypes.some(existingType => existingType.name === newType.name)
+                    );
+                    if (newTypes.length > 0) {
+                        saveToLocalStorage('activityTypes', [...existingTypes, ...newTypes]);
+                    }
+                }
+
+                document.getElementById('backup-restore-message').textContent = 'กู้คืนข้อมูลเรียบร้อยแล้ว';
+                loadUserActivities();
+                populateActivityTypeDropdowns('activity-name-select');
+                populateActivityTypeDropdowns('filter-activity-type');
+            } else {
+                document.getElementById('backup-restore-message').textContent = 'รูปแบบไฟล์ไม่ถูกต้อง';
+            }
+        } catch (error) {
+            document.getElementById('backup-restore-message').textContent = 'เกิดข้อผิดพลาดในการกู้คืนข้อมูล: ' + error.message;
+            console.error('Restore error:', error);
+        }
+    };
+    reader.onerror = function() {
+        document.getElementById('backup-restore-message').textContent = 'เกิดข้อผิดพลาดในการอ่านไฟล์';
+    };
+    reader.readAsText(file);
+    event.target.value = '';
+}
+
+function showRestoreDialog() {
+    document.getElementById('restore-data-input').click();
+}
+    // ========== Modal Management ==========
+    function setupModals() {
+        const editUserModal = document.getElementById('edit-user-modal');
+        const closeModalButtons = document.querySelectorAll('.close-modal, .modal');
+
+        closeModalButtons.forEach(button => {
+            button.addEventListener('click', function(e) {
+                if (e.target === this || e.target.classList.contains('close-modal')) {
+                    editUserModal.style.display = 'none';
+                }
+            });
+        });
+    }
+
+    // ========== Summary Output Functions ==========
+    function handleSummaryOutput(outputType) {
+        closeSummaryOutputModal();
+        
+        switch(outputType) {
+            case 'display':
+                displaySummaryOnScreen();
+                break;
+            case 'xlsx':
+                exportSummaryToXLSX();
+                break;
+            case 'pdf':
+                exportSummaryToPDF();
+                break;
+        }
+    }
+
+    function closeSummaryOutputModal() {
+        document.getElementById('summaryOutputModal').style.display = 'none';
+    }
+
+function displaySummaryOnScreen() {
+    const { 
+        userActivities, 
+        typeTotals, 
+        totalDurationAll, 
+        startDate, 
+        endDate,
+        totalDays,          // ดึงเข้ามาใช้
+        daysWithActivities, // ดึงเข้ามาใช้
+        daysWithoutActivities, // ดึงเข้ามาใช้
+        loggedInUser        
+    } = summaryContext;
+    
+    // คำนวณค่าเฉลี่ยต่อวันภายในฟังก์ชันนี้
+    const avgDurationPerDay = daysWithActivities > 0 ? totalDurationAll / daysWithActivities : 0; 
+
+    let summaryHTML = `
+    <div class="summaryResult" style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 10px; border: 1px solid #ddd; border-radius: 10px; background-color: #FAFAD2; text-align: center;">
+        <h2 style="color: #0056b3; margin-bottom: 10px; font-size: clamp(1.2rem, 3.5vw, 2em);">สรุปกิจกรรม</h2>
+        <h3 style="color: #333; margin-bottom: 10px; font-size: clamp(1rem, 3vw, 1.5em);">ผู้ใช้งาน: ${loggedInUser.username}</h3>
+        <h3 style="color: #333; margin-bottom: 20px; font-size: clamp(0.9rem, 2.8vw, 1.3em);">
+`;
+
+if (startDate && endDate && startDate !== endDate) {
+    summaryHTML += `
+        <div style="text-align: center; margin-bottom: 2px;">
+            <h3 style="font-size: clamp(0.8rem, 2.5vw, 1rem); line-height: 1.0; margin: 0;">
+                ช่วงวันที่ ${formatDate(startDate)} ถึง ${formatDate(endDate)}
+            </h3>
+        </div>`;
+} else if (startDate) {
+    summaryHTML += `
+        <div style="text-align: center; margin-bottom: 2px;">
+            <h3 style="font-size: clamp(0.8rem, 2.5vw, 1rem); line-height: 1.0; margin: 0;">
+                วันที่ ${formatDate(startDate)}
+            </h3>
+        </div>`;
+} else {
+    // กรณี All-Time หรือไม่มีการเลือกวันที่
+    const allActivityDates = Array.from(new Set(userActivities.map(activity => activity.date))).sort();
+    if (allActivityDates.length > 0) {
+        summaryHTML += `
+            <div style="text-align: center; margin-bottom: 2px;">
+                <h3 style="font-size: clamp(0.8rem, 2.5vw, 1rem); line-height: 1.0; margin: 0;">
+                    จากวันที่ ${formatDate(allActivityDates[0])} ถึง ${formatDate(allActivityDates[allActivityDates.length - 1])}
+                </h3>
+            </div>`;
+    } else {
+        summaryHTML += `
+            <div style="text-align: center; margin-bottom: 2px;">
+                <h3 style="font-size: clamp(0.8rem, 2.5vw, 1rem); line-height: 1.0; margin: 0;">
+                    ไม่มีกิจกรรมในช่วงที่เลือก
+                </h3>
+            </div>`;
+    }
+}
+
+    
+    // เพิ่มข้อมูลสรุปจำนวนวัน (จากโค้ดตัวอย่างด้านบน)
+    // ส่วนนี้จะแสดงเสมอไม่ว่าจะเลือก summaryType แบบไหน
+summaryHTML += `
+<div style="background-color: #FAFAD2; padding: 5px; margin-bottom: 2px; text-align: center; color: blue;">
+    <h4 style="margin-top: 0; font-size: clamp(0.7rem, 2vw, 1.0rem); line-height: 1;">สรุปจำนวนวัน</h4>
+    <p style="margin: 5px 0; font-size: clamp(0.6rem, 1.8vw, 1rem); line-height: 1;">• จำนวนวันทั้งหมด: ${totalDays} วัน</p>
+    <p style="margin: 5px 0; font-size: clamp(0.6rem, 1.8vw, 1rem); line-height: 1;">• มีกิจกรรม: ${daysWithActivities} วัน</p>
+    <p style="margin: 5px 0; font-size: clamp(0.6rem, 1.8vw, 1rem); line-height: 1;">• ไม่มีกิจกรรม: ${daysWithoutActivities} วัน</p>
+    <p style="margin: 5px 0; font-size: clamp(0.6rem, 1.8vw, 1rem); line-height: 1;">• เวลารวมทั้งหมด: ${formatDuration(totalDurationAll)}</p>
+    <p style="margin: 5px 0; font-size: clamp(0.6rem, 1.8vw, 1rem); line-height: 1;">• เวลาเฉลี่ยต่อวัน (เฉพาะวันที่มีกิจกรรม): ${formatDuration(avgDurationPerDay)}</p>
+</div>
+`;
+    
+    summaryHTML += `
+            <h4 style="color: #0056b3; margin-top: 2px; font-size: clamp(0.9rem, 2.8vw, 1.0em);">
+                สรุปตามประเภทกิจกรรม
+            </h4>
+            <table style="width: 100%; border-collapse: collapse; margin: 15px 0; font-size: clamp(0.75rem, 2vw, 1em);">
+                <thead>
+                    <tr style="background-color: #007bff; color: white;">
+                        <th style="padding: 10px; border: 1px solid #ddd;">ประเภทกิจกรรม</th>
+                        <th style="padding: 10px; border: 1px solid #ddd;">ระยะเวลารวม</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+
+    Object.entries(typeTotals).forEach(([type, duration]) => {
+        summaryHTML += `
+            <tr>
+                <td style="padding: 8px; border: 1px solid #ddd;">${type}</td>
+                <td style="padding: 8px; border: 1px solid #ddd;">${formatDuration(duration)}</td>
+            </tr>
+        `;
+    });
+    
+    summaryHTML += `
+                </tbody>
+            </table>
+<p style="font-size: clamp(0.8rem, 2.5vw, 1.0em); margin-top: 15px; background-color: blue; color: white; padding: 5px; border-radius: 15px;">
+    <strong>ระยะเวลารวมทั้งหมด: ${formatDuration(totalDurationAll)}</strong>
+</p>
+            
+            <h4 style="color: #0056b3; margin-top: 2px; font-size: clamp(0.9rem, 2.8vw, 1.0em);">
+                รายการกิจกรรมทั้งหมด
+            </h4>
+            <table style="width: 100%; border-collapse: collapse; margin: 15px 0; font-size: clamp(0.75rem, 2vw, 1em);">
+                <thead>
+                    <tr style="background-color: #007bff; color: white;">
+                        <th style="padding: 10px; border: 1px solid #ddd;">กิจกรรม</th>
+                        <th style="padding: 10px; border: 1px solid #ddd;">วันที่</th>
+                        <th style="padding: 10px; border: 1px solid #ddd;">เริ่มเวลา</th>
+                        <th style="padding: 10px; border: 1px solid #ddd;">จบเวลา</th>
+                        <th style="padding: 10px; border: 1px solid #ddd;">ระยะเวลา</th>
+                        <th style="padding: 10px; border: 1px solid #ddd;">รายละเอียด</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;     
+
+    userActivities.forEach(activity => {
+        const duration = calculateDuration(activity.startTime, activity.endTime);
+        summaryHTML += `
+            <tr>
+                <td style="padding: 8px; border: 1px solid #ddd;">${activity.activityName}</td>
+                <td style="padding: 8px; border: 1px solid #ddd;">${formatDate(activity.date)}</td>
+                <td style="padding: 8px; border: 1px solid #ddd;">${activity.startTime}</td>
+                <td style="padding: 8px; border: 1px solid #ddd;">${activity.endTime}</td>
+                <td style="padding: 8px; border: 1px solid #ddd;">${formatDuration(duration)}</td>
+                <td style="padding: 8px; border: 1px solid #ddd;">${activity.details || '-'}</td>
+            </tr>
+        `;
+    });
+    
+    summaryHTML += `
+                </tbody>
+            </table>
+        </div>
+    `;
+    
+    document.getElementById('modalBodyContent').innerHTML = summaryHTML;
+    document.getElementById('summaryModal').style.display = 'flex';
+    
+    // ตั้งค่าค่าเริ่มต้นสำหรับ sliders
+    document.getElementById('summaryFontSizeSlider').value = 1.0;
+    document.getElementById('summaryLineHeightSlider').value = 0.5;
+    document.getElementById('summaryFontSizeValue').textContent = 'ขนาด: 100%';
+    document.getElementById('summaryLineHeightValue').textContent = 'ความสูงของบรรทัด: 0.5';
+    
+    // เรียกใช้การปรับขนาดเริ่มต้น (ยังคงเก็บฟังก์ชันนี้ไว้เผื่อมีการใช้งานในอนาคต)
+    adjustSummaryFontSize();
+    adjustSummaryLineHeight();
+}
+
+function closeSummaryModal() {
+    document.getElementById('summaryModal').style.display = 'none';
+}
+
+function adjustSummaryFontSize() {
+    const scale = parseFloat(document.getElementById('summaryFontSizeSlider').value);
+    document.getElementById('summaryFontSizeValue').textContent = `ขนาด: ${Math.round(scale * 100)}%`;
+    
+    const content = document.getElementById('modalBodyContent');
+    
+    // สำหรับการปรับขนาดโดยรวมของเนื้อหา (ถ้าจำเป็น)
+    // การใช้ transform จะปรับขนาดทั้ง block รวมถึง padding/margin
+    // และไม่ไป override font-size ที่กำหนดด้วย clamp() โดยตรง
+    content.style.transform = `scale(${scale})`;
+    content.style.transformOrigin = 'top center';
+    // ไม่จำเป็นต้องปรับ font-size ตรงนี้แล้ว เพราะเราใช้ clamp() กำหนดไว้ใน HTML แล้ว
+    // หากต้องการให้ slider มีผลต่อ clamp() ต้องใช้ CSS custom properties (variable)
+    // แต่สำหรับการปรับขนาดโดยรวม transform ก็เพียงพอแล้ว
+}
+
+function adjustSummaryLineHeight() {
+    const lineHeight = parseFloat(document.getElementById('summaryLineHeightSlider').value);
+    document.getElementById('summaryLineHeightValue').textContent = `ความสูงของบรรทัด: ${lineHeight}`;
+    
+    const content = document.getElementById('modalBodyContent');
+    const paragraphs = content.querySelectorAll('p');
+    const tableCells = content.querySelectorAll('td, th');
+    
+    paragraphs.forEach(p => {
+        p.style.marginBottom = `${lineHeight}em`;
+    });
+    
+    tableCells.forEach(cell => {
+        cell.style.paddingTop = `${lineHeight * 0.5}em`;
+        cell.style.paddingBottom = `${lineHeight * 0.5}em`;
+    });
+}
+
+function saveSummaryAsImage() {
+    const summaryContent = document.getElementById('modalBodyContent');
+    
+    html2canvas(summaryContent, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#FAFAD2'
+    }).then(canvas => {
+        const link = document.createElement('a');
+        link.download = `สรุปกิจกรรม-${new Date().toISOString().split('T')[0]}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+    });
+}
+function exportSummaryToXLSX() {
+    const { 
+        userActivities, 
+        typeTotals, 
+        totalDurationAll, 
+        startDate, 
+        endDate,
+        totalDays,
+        daysWithActivities,
+        daysWithoutActivities,
+        loggedInUser
+    } = summaryContext;
+    
+    // คำนวณค่าเฉลี่ยต่อวัน
+    const avgDurationPerDay = daysWithActivities > 0 ? totalDurationAll / daysWithActivities : 0;
+    
+    const workbook = XLSX.utils.book_new();
+    
+    // === ข้อมูลทั้งหมดในชีทเดียว ===
+    const allData = [];
+    
+    // หัวเรื่องหลัก
+    allData.push(['สรุปกิจกรรม']);
+    allData.push(['ผู้ใช้งาน:', loggedInUser.username]);
+    
+    // ช่วงวันที่
+    if (startDate && endDate && startDate !== endDate) {
+        allData.push(['ช่วงวันที่:', `${formatDate(startDate)} ถึง ${formatDate(endDate)}`]);
+    } else if (startDate) {
+        allData.push(['วันที่:', formatDate(startDate)]);
+    } else {
+        const allActivityDates = Array.from(new Set(userActivities.map(activity => activity.date))).sort();
+        if (allActivityDates.length > 0) {
+            allData.push(['ช่วงวันที่:', `${formatDate(allActivityDates[0])} ถึง ${formatDate(allActivityDates[allActivityDates.length - 1])}`]);
+        } else {
+            allData.push(['ช่วงวันที่:', 'ไม่มีกิจกรรมในช่วงที่เลือก']);
+        }
+    }
+    
+    allData.push([]); // เว้นบรรทัด
+    
+    // === ส่วนที่ 1: สรุปจำนวนวัน ===
+    allData.push(['สรุปจำนวนวัน']);
+    allData.push(['จำนวนวันทั้งหมด', `${totalDays} วัน`]);
+    allData.push(['วันที่มีกิจกรรม', `${daysWithActivities} วัน`]);
+    allData.push(['วันที่ไม่มีกิจกรรม', `${daysWithoutActivities} วัน`]);
+    allData.push(['เวลารวมทั้งหมด', formatDuration(totalDurationAll)]);
+    allData.push(['เวลาเฉลี่ยต่อวัน (เฉพาะวันที่มีกิจกรรม)', formatDuration(avgDurationPerDay)]);
+    
+    allData.push([]); // เว้นบรรทัด
+    
+    // === ส่วนที่ 2: สรุปตามประเภทกิจกรรม ===
+    allData.push(['สรุปตามประเภทกิจกรรม']);
+    allData.push(['ประเภทกิจกรรม', 'ระยะเวลารวม']);
+    
+    Object.entries(typeTotals).forEach(([type, duration]) => {
+        allData.push([type, formatDuration(duration)]);
+    });
+    
+    allData.push(['ทั้งหมด', formatDuration(totalDurationAll)]);
+    
+    allData.push([]); // เว้นบรรทัด
+    
+    // === ส่วนที่ 3: รายการกิจกรรมทั้งหมด ===
+    allData.push(['รายการกิจกรรมทั้งหมด']);
+    allData.push(['จำนวนกิจกรรม:', `${userActivities.length} รายการ`]);
+    
+    // หัวข้อตารางกิจกรรม
+    allData.push([
+        'ชื่อกิจกรรม', 
+        'วันที่', 
+        'เริ่มเวลา', 
+        'จบเวลา', 
+        'ระยะเวลา', 
+        'รายละเอียด'
+    ]);
+    
+    // ข้อมูลกิจกรรม
+    userActivities.forEach(activity => {
+        const duration = calculateDuration(activity.startTime, activity.endTime);
+        allData.push([
+            activity.activityName,
+            formatDate(activity.date),
+            activity.startTime,
+            activity.endTime,
+            formatDuration(duration),
+            activity.details || '-'
+        ]);
+    });
+    
+    allData.push([]); // เว้นบรรทัด
+    allData.push(['สร้างเมื่อ:', new Date().toLocaleDateString('th-TH')]);
+    allData.push(['ระบบบันทึกกิจกรรม']);
+    
+    // สร้างชีทเดียว
+    const summarySheet = XLSX.utils.aoa_to_sheet(allData);
+    XLSX.utils.book_append_sheet(workbook, summarySheet, 'สรุปกิจกรรม');
+    
+    // บันทึกไฟล์
+    const fileName = `สรุปกิจกรรม-${startDate || 'ทั้งหมด'}-${endDate && endDate !== startDate ? `ถึง-${endDate}` : ''}-${new Date().toISOString().split('T')[0]}.xlsx`;
+    XLSX.writeFile(workbook, fileName);
+}
+
+function exportSummaryToPDF() {
+    const { 
+        userActivities, 
+        typeTotals, 
+        totalDurationAll, 
+        startDate, 
+        endDate,
+        totalDays,
+        daysWithActivities,
+        daysWithoutActivities,
+        loggedInUser
+    } = summaryContext;
+    
+    // คำนวณค่าเฉลี่ยต่อวัน
+    const avgDurationPerDay = daysWithActivities > 0 ? totalDurationAll / daysWithActivities : 0;
+
+    // สร้าง iframe สำหรับพิมพ์
+    const printFrame = document.createElement('iframe');
+    printFrame.style.position = 'fixed';
+    printFrame.style.right = '0';
+    printFrame.style.bottom = '0';
+    printFrame.style.width = '0';
+    printFrame.style.height = '0';
+    printFrame.style.border = 'none';
+    document.body.appendChild(printFrame);
+
+    const printDocument = printFrame.contentDocument || printFrame.contentWindow.document;
+    
+    let printHTML = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>สรุปกิจกรรม - ${loggedInUser.username}</title>
+            <style>
+                body { 
+                    font-family: Arial, sans-serif; 
+                    margin: 15mm 5mm 10mm 10mm; 
+                    padding: 0;
+                    color: #000;
+                    line-height: 1.4;
+                    font-size: 12px;
+                }
+                
+                .header { 
+                    text-align: center; 
+                    margin-bottom: 20px;
+                    border-bottom: 2px solid #000;
+                    padding-bottom: 10px;
+                }
+                .header h1 { 
+                    margin: 0 0 5px 0; 
+                    font-size: 18px;
+                }
+                .header h2 { 
+                    margin: 0 0 5px 0; 
+                    font-size: 14px;
+                    font-weight: normal;
+                }
+                .date-range { 
+                    font-size: 12px;
+                    margin-top: 5px;
+                }
+                
+                .summary-section {
+                    margin: 15px 0;
+                }
+                .summary-section h3 { 
+                    margin: 0 0 10px 0;
+                    font-size: 14px;
+                    background-color: #f0f0f0;
+                    padding: 5px 10px;
+                }
+                
+                /* การตั้งค่าตารางทั้งหมดเหมือนกัน */
+                table { 
+                    width: 100%; 
+                    border-collapse: collapse; 
+                    margin: 10px 0;
+                    font-size: 11px;
+                    table-layout: auto;
+                    word-wrap: break-word;
+                }
+                th { 
+                    background-color: #ddd; 
+                    padding: 6px 4px;
+                    border: 1px solid #000;
+                    text-align: left;
+                    white-space: nowrap;
+                }
+                td { 
+                    padding: 5px 4px;
+                    border: 1px solid #000;
+                    word-break: break-word;
+                    vertical-align: top;
+                }
+                
+                /* คอลัมน์สำหรับตารางสรุปจำนวนวัน */
+                .col-label { width: 60%; }
+                .col-value { width: 40%; }
+                
+                /* คอลัมน์สำหรับตารางสรุปประเภทกิจกรรม */
+                .col-activity { width: 70%; }
+                .col-duration { width: 30%; }
+                
+                /* คอลัมน์สำหรับตารางรายการกิจกรรม - ปรับอัตโนมัติ */
+                .col-act-name { width: auto; min-width: 100px; }
+                .col-date { width: auto; min-width: 80px; }
+                .col-time { width: auto; min-width: 60px; }
+                .col-duration-small { width: auto; min-width: 70px; }
+                .col-details { width: auto; min-width: 120px; }
+                
+                .total-row {
+                    background-color: #f0f0f0;
+                    font-weight: bold;
+                }
+                
+                .page-info {
+                    text-align: center;
+                    margin-top: 20px;
+                    font-size: 10px;
+                    color: #666;
+                }
+                
+                @media print {
+                    @page {
+                        margin: 15mm 10mm 20mm 10mm;
+                        @bottom-center {
+                            content: "หน้า " counter(page);
+                            font-size: 10px;
+                        }
+                    }
+                    
+                    table { 
+                        page-break-inside: auto;
+                    }
+                    tr { 
+                        page-break-inside: avoid;
+                        page-break-after: auto;
+                    }
+                }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <h1>สรุปกิจกรรม</h1>
+                <h2>ผู้ใช้งาน: ${loggedInUser.username}</h2>
+    `;
+    
+    // ส่วนหัวเรื่องวันที่
+    if (startDate && endDate && startDate !== endDate) {
+        printHTML += `<div class="date-range">ช่วงวันที่ ${formatDate(startDate)} ถึง ${formatDate(endDate)}</div>`;
+    } else if (startDate) {
+        printHTML += `<div class="date-range">วันที่ ${formatDate(startDate)}</div>`;
+    } else {
+        const allActivityDates = Array.from(new Set(userActivities.map(activity => activity.date))).sort();
+        if (allActivityDates.length > 0) {
+            printHTML += `<div class="date-range">จากวันที่ ${formatDate(allActivityDates[0])} ถึง ${formatDate(allActivityDates[allActivityDates.length - 1])}</div>`;
+        } else {
+            printHTML += `<div class="date-range">ไม่มีกิจกรรมในช่วงที่เลือก</div>`;
+        }
+    }
+    
+    printHTML += `
+            </div>
+            
+            <!-- ส่วนสรุปจำนวนวัน -->
+            <div class="summary-section">
+                <h3>สรุปจำนวนวัน</h3>
+                <table>
+                    <tr>
+                        <td class="col-label">จำนวนวันทั้งหมด</td>
+                        <td class="col-value">${totalDays} วัน</td>
+                    </tr>
+                    <tr>
+                        <td class="col-label">วันที่มีกิจกรรม</td>
+                        <td class="col-value">${daysWithActivities} วัน</td>
+                    </tr>
+                    <tr>
+                        <td class="col-label">วันที่ไม่มีกิจกรรม</td>
+                        <td class="col-value">${daysWithoutActivities} วัน</td>
+                    </tr>
+                    <tr>
+                        <td class="col-label">เวลารวมทั้งหมด</td>
+                        <td class="col-value">${formatDuration(totalDurationAll)}</td>
+                    </tr>
+                    <tr>
+                        <td class="col-label">เวลาเฉลี่ยต่อวัน (เฉพาะวันที่มีกิจกรรม)</td>
+                        <td class="col-value">${formatDuration(avgDurationPerDay)}</td>
+                    </tr>
+                </table>
+            </div>
+            
+            <!-- ตารางสรุปตามประเภทกิจกรรม -->
+            <div class="summary-section">
+                <h3>สรุปตามประเภทกิจกรรม</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th class="col-activity">ประเภทกิจกรรม</th>
+                            <th class="col-duration">ระยะเวลารวม</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+    `;
+    
+    Object.entries(typeTotals).forEach(([type, duration]) => {
+        printHTML += `
+            <tr>
+                <td class="col-activity">${type}</td>
+                <td class="col-duration">${formatDuration(duration)}</td>
+            </tr>
+        `;
+    });
+    
+    printHTML += `
+                    </tbody>
+                    <tfoot>
+                        <tr class="total-row">
+                            <td class="col-activity">รวมทั้งหมด</td>
+                            <td class="col-duration">${formatDuration(totalDurationAll)}</td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+    `;
+    
+    // ตารางรายการกิจกรรมทั้งหมด (ถ้ามีกิจกรรม)
+    if (userActivities.length > 0) {
+        printHTML += `
+            <div class="summary-section">
+                <h3>รายการกิจกรรมทั้งหมด (${userActivities.length} รายการ)</h3>
+                <table style="table-layout: fixed;"> <!-- เปลี่ยนเป็น fixed layout -->
+                    <colgroup>
+                        <col class="col-act-name">
+                        <col class="col-date">
+                        <col class="col-time">
+                        <col class="col-time">
+                        <col class="col-duration-small">
+                        <col class="col-details">
+                    </colgroup>
+                    <thead>
+                        <tr>
+                            <th>ชื่อกิจกรรม</th>
+                            <th>วันที่</th>
+                            <th>เริ่มต้น</th>
+                            <th>สิ้นสุด</th>
+                            <th>ระยะเวลา</th>
+                            <th>รายละเอียด</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+        
+        userActivities.forEach(activity => {
+            const duration = calculateDuration(activity.startTime, activity.endTime);
+            printHTML += `
+                <tr>
+                    <td>${activity.activityName}</td>
+                    <td>${formatDate(activity.date)}</td>
+                    <td>${activity.startTime}</td>
+                    <td>${activity.endTime}</td>
+                    <td>${formatDuration(duration)}</td>
+                    <td>${activity.details || '-'}</td>
+                </tr>
+            `;
+        });
+        
+        printHTML += `
+                    </tbody>
+                </table>
+            </div>
+        `;
+    }
+    
+    printHTML += `
+            <div class="page-info">
+                สร้างเมื่อ: ${new Date().toLocaleDateString('th-TH')} - ระบบบันทึกกิจกรรม
+            </div>
+        </body>
+        </html>
+    `;
+    
+    // เขียน HTML ไปยัง iframe และพิมพ์
+    printDocument.open();
+    printDocument.write(printHTML);
+    printDocument.close();
+    
+    // พิมพ์หลังจากโหลดเนื้อหาเสร็จ
+    printFrame.onload = function() {
+        setTimeout(() => {
+            printFrame.contentWindow.focus();
+            printFrame.contentWindow.print();
+            
+            // ลบ iframe หลังจากพิมพ์เสร็จ
+            setTimeout(() => {
+                document.body.removeChild(printFrame);
+            }, 1000);
+        }, 500);
+    };
+}
+    // ========== Event Listeners Setup ==========
+    function setupEventListeners() {
+        // Login
+        document.getElementById('login-form').addEventListener('submit', handleLogin);
+        document.getElementById('logout-button').addEventListener('click', handleLogout);
+
+        // Navigation
+        document.querySelectorAll('nav a').forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const page = this.getAttribute('data-page');
+                showPage(`${page}-page`);
+            });
+        });
+
+        // Activity Management
+        document.getElementById('activity-form').addEventListener('submit', handleActivityFormSubmit);
+        document.getElementById('activity-type-form').addEventListener('submit', handleActivityTypeFormSubmit);
+
+        // Filters
+        document.getElementById('apply-filter-button').addEventListener('click', applyFilter);
+        document.getElementById('reset-filter-button').addEventListener('click', resetFilter);
+        document.getElementById('admin-apply-filter-button').addEventListener('click', applyAdminFilter);
+        document.getElementById('admin-reset-filter-button').addEventListener('click', resetAdminFilter);
+
+        // Summary
+        document.getElementById('summary-type-select').addEventListener('change', loadSummaryData);
+        document.getElementById('view-summary-button').addEventListener('click', viewSummary);
+
+        // Admin
+        document.getElementById('admin-add-user-form').addEventListener('submit', handleAdminAddUser);
+        document.getElementById('edit-user-form').addEventListener('submit', updateUser);
+
+        // Import/Export
+        document.getElementById('export-data-button').addEventListener('click', exportData);
+        document.getElementById('import-data-input').addEventListener('change', importData);
+        document.getElementById('show-import-button').addEventListener('click', showImportDialog);
+
+        // Backup/Restore
+        document.getElementById('backup-data-button').addEventListener('click', backupData);
+        document.getElementById('restore-data-input').addEventListener('change', restoreData);
+        document.getElementById('show-restore-button').addEventListener('click', showRestoreDialog);
+
+        // Summary Modal Controls
+        document.getElementById('summaryFontSizeSlider').addEventListener('input', adjustSummaryFontSize);
+        document.getElementById('summaryLineHeightSlider').addEventListener('input', adjustSummaryLineHeight);
+        document.getElementById('saveSummaryAsImageBtn').addEventListener('click', saveSummaryAsImage);
+
+        // Password toggles
+        setupPasswordToggles();
+    }
+
+// ========== Initialization ==========
+function initializeApp() {
+    // Initialize default data if not exists
+    const users = getFromLocalStorage('users');
+    if (users.length === 0) {
+        const defaultUsers = [
+            {
+                id: '1',
+                username: 'admin',
+                password: hashPassword('123'),
+                role: 'admin'
+            }
+        ];
+        saveToLocalStorage('users', defaultUsers);
+    }
+
+    const activityTypes = getFromLocalStorage('activityTypes');
+    if (activityTypes.length === 0) {
+        // สร้างประเภทกิจกรรมเริ่มต้นสำหรับ admin
+        const defaultActivityTypes = [
+            { id: '1', name: 'นั่งสมาธิ', userId: '1' },
+            { id: '2', name: 'เดินจงกรม', userId: '1' },
+            { id: '3', name: 'ออกกำลังกาย', userId: '1' },
+            { id: '4', name: 'เรียน/ฝึกอบรม', userId: '1' },
+            { id: '5', name: 'พักผ่อน', userId: '1' }
+        ];
+        saveToLocalStorage('activityTypes', defaultActivityTypes);
+    }
+
+    if (!localStorage.getItem('activities')) {
+        saveToLocalStorage('activities', []);
+    }
+
+        // Check if user is logged in
+        const loggedInUser = getLoggedInUser();
+        if (loggedInUser) {
+            document.getElementById('welcome-message').textContent = `ยินดีต้อนรับ, ${loggedInUser.username}!`;
+            updateAdminLinkVisibility();
+            showPage('activity-page');
+        } else {
+            document.getElementById('auth-section').classList.remove('hidden');
+        }
+
+        // Set current date as default
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('activity-date').value = today;
+        document.getElementById('filter-date').value = today;
+        document.getElementById('summary-date-picker').value = today;
+        document.getElementById('summary-start-date').value = today;
+        document.getElementById('summary-end-date').value = today;
+        document.getElementById('admin-filter-date').value = today;
+
+        // Setup event listeners
+        setupEventListeners();
+        setupModals();
+
+        // Populate activity type dropdowns
+        populateActivityTypeDropdowns('activity-name-select');
+        populateActivityTypeDropdowns('filter-activity-type');
+        populateActivityTypeDropdowns('admin-filter-activity-type');
+        
+        // Backup/Restore สำหรับผู้ดูแลระบบ (เพิ่มจากไฟล์ 94)
+        document.getElementById('backup-data-button').addEventListener('click', backupData);
+        document.getElementById('restore-data-input').addEventListener('change', restoreData);
+        document.getElementById('show-restore-button').addEventListener('click', showRestoreDialog);
+    }
+
+    // Start the application
+    document.addEventListener('DOMContentLoaded', initializeApp);
+</script>
+</body>
+</html>
