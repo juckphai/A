@@ -61,7 +61,7 @@
         display: flex;
         flex-direction: column;
         justify-content: space-between;
-        align-items: flex-start;
+        align-items: center; /* เปลี่ยนจาก flex-start เป็น center */
         margin-bottom: 30px;
         border-bottom: 1px solid #eee;
         padding-bottom: 20px;
@@ -70,26 +70,30 @@
 
     .header-top {
         display: flex;
-        justify-content: space-between;
+         justify-content: center; /* เปลี่ยนจาก space-between เป็น center */
         align-items: center;
         width: 100%;
     }
 
-    header h1, .container h1 {
-        color: #0056b3;
-        margin: 0;
-        font-size: clamp(1.2rem, 4vw, 1.8rem);
-    }
+header h1, .container h1 {
+    color: #0056b3;
+    margin: 0;
+    font-size: clamp(1.2rem, 4vw, 1.8rem);
+    text-align: center; /* เพิ่มบรรทัดนี้ */
+    width: 100%; /* เพิ่มบรรทัดนี้ */
+}
 
-    .menu-toggle {
-        display: none;
-        background: none;
-        border: none;
-        font-size: 1.5rem;
-        cursor: pointer;
-        color: #007bff;
-        padding: 5px 10px;
-    }
+.menu-toggle {
+    display: none;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #007bff;
+    padding: 5px 10px;
+    position: absolute; /* เพิ่มบรรทัดนี้ */
+    right: 0; /* เพิ่มบรรทัดนี้ */
+}
 
     header nav {
         display: flex;
@@ -964,7 +968,7 @@
         <!-- Header for logged in users -->
 <header id="main-header" class="hidden">
     <div class="header-top">
-        <h1 id="welcome-message">ยินดีต้อนรับ, ผู้ใช้งาน!</h1>
+        <h1 id="welcome-message">บันทึกกิจกรรม, ผู้ใช้งาน!</h1>
         <button class="menu-toggle" id="menu-toggle">☰</button>
     </div>
     <nav id="main-nav" class="mobile-hidden">
@@ -1616,7 +1620,7 @@ function decryptData(encryptedData, password) {
             setLoggedInUser(user);
             messageElement.textContent = '';
             document.getElementById('login-form').reset();
-            document.getElementById('welcome-message').textContent = `ยินดีต้อนรับ, ${user.username}!`;
+            document.getElementById('welcome-message').textContent = `บันทึกกิจกรรม, ${user.username}!`;
             updateAdminLinkVisibility();
             showPage('activity-page');
         } else {
@@ -3468,7 +3472,7 @@ function initializeApp() {
         // Check if user is logged in
         const loggedInUser = getLoggedInUser();
         if (loggedInUser) {
-            document.getElementById('welcome-message').textContent = `ยินดีต้อนรับ, ${loggedInUser.username}!`;
+            document.getElementById('welcome-message').textContent = `บันทึกกิจกรรม, ${loggedInUser.username}!`;
             updateAdminLinkVisibility();
             showPage('activity-page');
         } else {
