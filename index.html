@@ -14,8 +14,23 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบบันทึกกิจกรรม</title>
+    <!-- [PWA] Link to Manifest & Theme Color -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#4a90e2">
+    
+    <!-- เพิ่มไลบรารีสำหรับการส่งออก -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+    
 <style>
-    /* CSS styles remain the same */
+    /* ===== BASE STYLES ===== */
     body {
         font-family: Arial, sans-serif;
         margin: 0;
@@ -33,7 +48,31 @@
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     }
 
-    /* ปรับปรุง header สำหรับมือถือ */
+    .hidden {
+        display: none !important;
+    }
+
+    .error-message {
+        color: red;
+        margin-top: 10px;
+        font-weight: bold;
+    }
+
+    .success-message {
+        color: green;
+        margin-top: 10px;
+        font-weight: bold;
+    }
+
+    .info-message {
+        font-size: 0.9rem;
+        color: #6c757d;
+        margin-top: 20px;
+        border-top: 1px solid #eee;
+        padding-top: 10px;
+    }
+
+    /* ===== HEADER & NAVIGATION ===== */
     header {
         display: flex;
         flex-direction: column;
@@ -58,7 +97,6 @@
         font-size: clamp(1.2rem, 4vw, 1.8rem);
     }
 
-    /* ปรับปรุงเมนูสำหรับมือถือ */
     .menu-toggle {
         display: none;
         background: none;
@@ -79,7 +117,10 @@
         transition: all 0.3s ease;
     }
 
-    /* เพิ่มสไตล์สำหรับเมนูแบบ 2 คอลัมน์ */
+    header nav.mobile-hidden {
+        display: none;
+    }
+
     .nav-row {
         display: flex;
         width: 100%;
@@ -89,10 +130,6 @@
     .nav-row a {
         flex: 1;
         text-align: center;
-    }
-
-    header nav.mobile-hidden {
-        display: none;
     }
 
     header nav a {
@@ -116,6 +153,65 @@
         color: white;
     }
 
+    #main-header {
+        background: #f9f9f9;
+        border-bottom: 3px solid #ccc;
+        padding: 10px;
+    }
+
+    #main-nav {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-top: 10px;
+    }
+
+    #main-nav a {
+        flex: 1;
+        text-align: center;
+        padding: 12px;
+        border-radius: 12px;
+        font-weight: bold;
+        text-decoration: none;
+        color: white;
+    }
+
+    #main-nav a[data-page="activity"] {
+        background: #ff6b6b;
+    }
+
+    #main-nav a[data-page="activity-types"] {
+        background: #4ecdc4;
+    }
+
+    #main-nav a[data-page="summary"] {
+        background: #45b7d1;
+    }
+
+    #main-nav a[data-page="admin"] {
+        background: #f7b731;
+        color: #333;
+    }
+
+    #logout-button {
+        margin-top: 20px;
+        align-self: center;
+        background: #2d3436;
+        color: white;
+        border: none;
+        padding: 10px 25px;
+        border-radius: 15px;
+        font-size: 16px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: 0.3s;
+    }
+
+    #logout-button:hover {
+        background: #636e72;
+    }
+
+    /* ===== BUTTONS ===== */
     button, .button-group button {
         background-color: #007bff;
         color: white;
@@ -125,7 +221,7 @@
         cursor: pointer;
         font-size: 1rem;
         transition: background-color 0.3s ease;
-        margin-right: 5px; /* Added for buttons in a group */
+        margin-right: 5px;
     }
     
     .button-group {
@@ -144,6 +240,40 @@
         cursor: not-allowed;
     }
 
+    /* ===== ACTION BUTTONS ===== */
+    .action-buttons {
+        display: flex;
+        flex-direction: row;
+        gap: 5px;
+        align-items: center;
+        justify-content: flex-start;
+    }
+
+    .action-buttons button {
+        background: none;
+        border: none;
+        color: #007bff;
+        cursor: pointer;
+        padding: 5px 8px;
+        font-size: 0.9rem;
+        transition: color 0.3s;
+        text-align: center;
+        white-space: nowrap;
+    }
+
+    .action-buttons button:hover {
+        color: #0056b3;
+        text-decoration: underline;
+    }
+
+    .action-buttons .delete-button {
+        color: #dc3545;
+    }
+    .action-buttons .delete-button:hover {
+        color: #bd2130;
+    }
+
+    /* ===== FORMS ===== */
     .form-section, .data-section {
         background-color: #f9f9f9;
         padding: 20px;
@@ -176,8 +306,8 @@
         border: 1px solid #ccc;
         border-radius: 5px;
         font-size: 1rem;
-        width: calc(100% - 24px); /* Account for padding */
-        box-sizing: border-box; /* Ensures padding doesn't expand width */
+        width: calc(100% - 24px);
+        box-sizing: border-box;
     }
     
     textarea {
@@ -210,6 +340,27 @@
         box-sizing: border-box;
     }
 
+    .password-container {
+        position: relative;
+        width: 100%;
+    }
+    
+    .password-toggle {
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: #666;
+    }
+    
+    .password-toggle:hover {
+        color: #333;
+    }
+
+    /* ===== TABLES ===== */
     table {
         width: 100%;
         border-collapse: collapse;
@@ -238,64 +389,14 @@
         background-color: #e9e9e9;
     }
 
-    .action-buttons {
-        display: flex;
-        flex-direction: column;
-        gap: 5px;
-    }
-
-    .action-buttons button {
-        background: none;
-        border: none;
-        color: #007bff;
-        cursor: pointer;
-        padding: 5px;
-        font-size: 0.9rem;
-        transition: color 0.3s;
-        text-align: left;
-    }
-
-    .action-buttons button:hover {
-        color: #0056b3;
-        text-decoration: underline;
-    }
-
-    .action-buttons .delete-button {
-        color: #dc3545;
-    }
-    .action-buttons .delete-button:hover {
-        color: #bd2130;
-    }
-
-    .hidden {
-        display: none !important;
-    }
-
-    .error-message {
-        color: red;
-        margin-top: 10px;
-        font-weight: bold;
-    }
-
-    .success-message {
-        color: green;
-        margin-top: 10px;
-        font-weight: bold;
-    }
-
-    .info-message {
-        font-size: 0.9rem;
-        color: #6c757d;
+    .table-container {
+        overflow-x: auto;
+        border: 1px solid #ddd;
+        border-radius: 5px;
         margin-top: 20px;
-        border-top: 1px solid #eee;
-        padding-top: 10px;
-    }
-    
-    /* Navigation for logged out state */
-    #main-nav {
-        display: flex;
     }
 
+    /* ===== SUMMARY BLOCKS ===== */
     .summary-block {
         background-color: #eaf6ff;
         border-left: 5px solid #007bff;
@@ -321,29 +422,8 @@
         margin-top: 10px;
         display: block;
     }
-    
-    /* New styles for password toggle */
-    .password-container {
-        position: relative;
-        width: 100%;
-    }
-    
-    .password-toggle {
-        position: absolute;
-        right: 10px;
-        top: 50%;
-        transform: translateY(-50%);
-        background: none;
-        border: none;
-        cursor: pointer;
-        color: #666;
-    }
-    
-    .password-toggle:hover {
-        color: #333;
-    }
-    
-    /* Modal styles for user management */
+
+    /* ===== MODALS ===== */
     .modal {
         display: none;
         position: fixed;
@@ -392,7 +472,6 @@
         color: #333;
     }
 
-    /* เพิ่มสไตล์สำหรับ Modal ใหม่ */
     .modal-overlay { 
         position: fixed; 
         z-index: 1000; 
@@ -463,76 +542,8 @@
     .format-modal-buttons .btn-cancel:hover { 
         background-color: #5a6268; 
     }
-    
-    #main-header {
-        background: #f9f9f9;
-        border-bottom: 3px solid #ccc;
-        padding: 10px;
-    }
 
-    /* จัด layout ของ nav */
-    #main-nav {
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-        margin-top: 10px;
-    }
-
-    /* แถวของเมนู */
-    .nav-row {
-        display: flex;
-        gap: 10px;
-    }
-
-    /* ลิงก์แต่ละหัวข้อ */
-    #main-nav a {
-        flex: 1;
-        text-align: center;
-        padding: 12px;
-        border-radius: 12px;
-        font-weight: bold;
-        text-decoration: none;
-        color: white;
-    }
-
-    /* สีแตกต่างกันแต่ละหัวข้อ */
-    #main-nav a[data-page="activity"] {
-        background: #ff6b6b; /* แดงอ่อน */
-    }
-
-    #main-nav a[data-page="activity-types"] {
-        background: #4ecdc4; /* ฟ้าเขียว */
-    }
-
-    #main-nav a[data-page="summary"] {
-        background: #45b7d1; /* น้ำเงินฟ้า */
-    }
-
-    #main-nav a[data-page="admin"] {
-        background: #f7b731; /* เหลือง */
-        color: #333;
-    }
-
-    /* ปุ่มออกจากระบบ */
-    #logout-button {
-        margin-top: 20px;
-        align-self: center;   /* จัดตรงกลาง */
-        background: #2d3436;
-        color: white;
-        border: none;
-        padding: 10px 25px;
-        border-radius: 15px;
-        font-size: 16px;
-        font-weight: bold;
-        cursor: pointer;
-        transition: 0.3s;
-    }
-
-    #logout-button:hover {
-        background: #636e72;
-    }
-
-    /* === START: CSS ใหม่สำหรับ Modal แสดงสรุป === */
+    /* ===== SUMMARY MODAL ===== */
     .summary-modal-overlay {
         position: fixed;
         z-index: 1000;
@@ -543,7 +554,7 @@
         background-color: rgba(0,0,0,0.6);
         display: none;
         justify-content: center;
-        align-items: flex-start; /* เปลี่ยนจาก center เป็น flex-start */
+        align-items: flex-start;
         padding: 10px;
         overflow-y: auto;
     }
@@ -556,11 +567,10 @@
         display: flex;
         flex-direction: column;
         align-items: center;
-        margin: 20px 0; /* เพิ่ม margin บนล่าง */
+        margin: 20px 0;
         width: 100%;
         max-width: 800px;
-        /* ลบการตั้งค่าความสูงตายตัว */
-        overflow: hidden; /* เพิ่มเพื่อป้องกัน content ล้น */
+        overflow: hidden;
     }
 
     .summary-modal-close-btn {
@@ -620,7 +630,7 @@
         margin: 0 !important;
         box-sizing: border-box;
         overflow-x: hidden;
-        background-color: #FAFAD2 !important; /* เพิ่มบรรทัดนี้ */
+        background-color: #FAFAD2 !important;
     }
 
     .summaryResult table {
@@ -633,102 +643,140 @@
     .summaryResult td {
         padding: 6px 4px !important;
         font-size: 12px !important;
-        word-break: break-word; /* ให้คำยาวๆ ขึ้นบรรทัดใหม่ */
+        word-break: break-word;
     }
 
-    /* เพิ่ม container สำหรับตารางที่มีแถบเลื่อนแนวนอน */
-    .table-container {
-        overflow-x: auto;  /* สร้างแถบเลื่อนแนวนอนเมื่อเนื้อหาล้น */
-        border: 1px solid #ddd;
-        border-radius: 5px;
-        margin-top: 20px;
-    }
-
-    /* === START: USER REQUEST - POPUP TABLE SINGLE-LINE ADJUSTMENT ON MOBILE === */
-    #modalBodyContent table,
-    .summaryResult table {
-        table-layout: auto;
-        width: auto;
-        min-width: 100%;
-    }
-
-    #modalBodyContent table th,
-    #modalBodyContent table td,
-    .summaryResult table th,
-    .summaryResult table td {
-        white-space: nowrap;
-        font-size: 11px;
-        vertical-align: middle;
-        /* ลบ height: 40px; ออก */
-        padding: 6px 4px; /* ปรับ padding ให้พอดี */
-    }
-    /* === END: USER REQUEST - POPUP TABLE SINGLE-LINE ADJUSTMENT ON MOBILE === */
-
-    /* ปรับปรุงตารางกิจกรรมสำหรับมือถือ */
-    #activity-list-table {
-        table-layout: auto;
-        width: auto;
-        min-width: 100%;
-    }
-
-    #activity-list-table th,
-    #activity-list-table td {
-        white-space: nowrap;
-        font-size: 11px;
-        vertical-align: middle;
-        padding: 8px 6px;
-        /* ลบ height: 40px; ออก */
-    }
-
-    /* ปรับปรุงตารางกิจกรรมในหน้า admin สำหรับมือถือ */
-    #all-activities-table {
-        table-layout: auto;
-        width: auto;
-        min-width: 100%;
-    }
-
-    #all-activities-table th,
-    #all-activities-table td {
-        white-space: nowrap;
-        font-size: 11px;
-        vertical-align: middle;
-        padding: 8px 6px;
-        /* ลบ height: 40px; ออก */
-    }
-
-    /* ปรับปรุงตารางทั้งหมดสำหรับมือถือ */
-    #activity-list-table,
-    #activity-types-table,
-    #user-list-table,
-    #all-activities-table,
-    .summaryResult table {
-        table-layout: auto;
-        width: auto;
-        min-width: 100%;
-    }
-
-    #activity-list-table th,
-    #activity-list-table td,
-    #activity-types-table th,
-    #activity-types-table td,
-    #user-list-table th,
-    #user-list-table td,
-    #all-activities-table th,
-    #all-activities-table td,
-    .summaryResult table th,
-    .summaryResult table td {
-        white-space: nowrap;
-        font-size: 11px;
-        vertical-align: middle;
-        padding: 8px 6px;
-        /* ลบ height: 40px; ออก */
-    }
-
-    /* Media Queries สำหรับมือถือ */
-    @media (max-width: 768px) {
-        /* === START: USER REQUEST - POPUP TABLE SINGLE-LINE ADJUSTMENT ON MOBILE === */
-        #modalBodyContent table,
+    /* ===== RESPONSIVE STYLES ===== */
+    
+    /* Desktop Styles */
+    @media (min-width: 769px) {
+        /* Table adjustments for desktop */
+        #activity-list-table,
+        #activity-types-table,
+        #user-list-table,
+        #all-activities-table,
         .summaryResult table {
+            table-layout: fixed;
+            width: 100%;
+            font-size: 14px !important;
+        }
+
+        #activity-list-table th,
+        #activity-list-table td,
+        #activity-types-table th,
+        #activity-types-table td,
+        #user-list-table th,
+        #user-list-table td,
+        #all-activities-table th,
+        #all-activities-table td,
+        .summaryResult table th,
+        .summaryResult table td {
+            white-space: normal;
+            font-size: 14px !important;
+            padding: 12px 8px !important;
+            line-height: 1.0;
+            word-break: break-word;
+            vertical-align: top;
+        }
+
+        #activity-list-table tr,
+        #activity-types-table tr,
+        #user-list-table tr,
+        #all-activities-table tr {
+            height: auto;
+            min-height: 50px;
+        }
+
+        .table-container {
+            max-height: 70vh;
+            overflow: auto;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        #activity-list-table th,
+        #activity-types-table th,
+        #user-list-table th,
+        #all-activities-table th {
+            background-color: #007bff;
+            color: white;
+            font-weight: bold;
+            font-size: 15px;
+            padding: 15px 10px;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        .summaryResult {
+            font-size: 16px !important;
+            line-height: 1.0 !important;
+        }
+
+        .summaryResult table {
+            font-size: 14px !important;
+        }
+
+        .summaryResult th,
+        .summaryResult td {
+            padding: 12px 10px !important;
+            font-size: 14px !important;
+        }
+    }
+
+    /* Large Desktop Styles */
+    @media (min-width: 1200px) {
+        #activity-list-table,
+        #activity-types-table,
+        #user-list-table,
+        #all-activities-table {
+            font-size: 15px !important;
+        }
+
+        #activity-list-table th,
+        #activity-list-table td,
+        #activity-types-table th,
+        #activity-types-table td,
+        #user-list-table th,
+        #user-list-table td,
+        #all-activities-table th,
+        #all-activities-table td {
+            font-size: 15px !important;
+            padding: 14px 12px !important;
+        }
+
+        .table-container {
+            max-height: 75vh;
+        }
+    }
+
+    /* Mobile Styles */
+    @media (max-width: 768px) {
+        .action-buttons {
+            flex-direction: row;
+            gap: 3px;
+        }
+        
+        .action-buttons button {
+            padding: 4px 6px;
+            font-size: 0.8rem;
+        }
+
+        .nav-row {
+            flex-direction: column;
+        }
+
+        .menu-toggle {
+            display: block;
+        }
+
+        /* Table adjustments for mobile */
+        #modalBodyContent table,
+        .summaryResult table,
+        #activity-list-table,
+        #activity-types-table,
+        #user-list-table,
+        #all-activities-table {
             table-layout: auto;
             width: auto;
             min-width: 100%;
@@ -737,45 +785,19 @@
         #modalBodyContent table th,
         #modalBodyContent table td,
         .summaryResult table th,
-        .summaryResult table td {
-            white-space: nowrap;
-            font-size: 11px;
-            vertical-align: middle;
-            padding: 6px 4px; /* ปรับ padding ให้เล็กลงสำหรับมือถือ */
-            /* ลบ height: 40px; ออก */
-        }
-        /* === END: USER REQUEST - POPUP TABLE SINGLE-LINE ADJUSTMENT ON MOBILE === */
-        
-        /* ปรับปรุงตารางกิจกรรมสำหรับมือถือ */
-        #activity-list-table {
-            table-layout: auto;
-            width: auto;
-            min-width: 100%;
-        }
-
+        .summaryResult table td,
         #activity-list-table th,
-        #activity-list-table td {
-            white-space: nowrap;
-            font-size: 11px;
-            vertical-align: middle;
-            padding: 6px 4px; /* ปรับ padding ให้เล็กลง */
-            /* ลบ height: 40px; ออก */
-        }
-        
-        /* ปรับปรุงตารางกิจกรรมในหน้า admin สำหรับมือถือ */
-        #all-activities-table {
-            table-layout: auto;
-            width: auto;
-            min-width: 100%;
-        }
-
+        #activity-list-table td,
+        #activity-types-table th,
+        #activity-types-table td,
+        #user-list-table th,
+        #user-list-table td,
         #all-activities-table th,
         #all-activities-table td {
             white-space: nowrap;
             font-size: 11px;
             vertical-align: middle;
-            padding: 6px 4px; /* ปรับ padding ให้เล็กลง */
-            /* ลบ height: 40px; ออก */
+            padding: 6px 4px;
         }
         
         .summary-modal-overlay {
@@ -791,42 +813,41 @@
         
         .summaryResult {
             padding: 5px !important;
-            transform: none !important; /* ลบ transform บนมือถือ */
+            transform: none !important;
         }
         
-.summaryResult h2 {
-    color: #0056b3;
-    margin-bottom: 8px !important;
-    line-height: 1.0 !important; /* ลดจากค่าเดิม */
-    font-size: clamp(1.2rem, 3.5vw, 2em) !important;
-}
+        .summaryResult h2 {
+            color: #0056b3;
+            margin-bottom: 8px !important;
+            line-height: 1.0 !important;
+            font-size: clamp(1.2rem, 3.5vw, 2em) !important;
+        }
         
-.summaryResult h3 {
-    color: #333;
-    margin-bottom: 8px !important;
-    line-height: 1.0 !important; /* ลดจากค่าเดิม */
-    font-size: clamp(1rem, 3vw, 1.5em) !important;
-}
+        .summaryResult h3 {
+            color: #333;
+            margin-bottom: 8px !important;
+            line-height: 1.0 !important;
+            font-size: clamp(1rem, 3vw, 1.5em) !important;
+        }
         
-.summaryResult h4 {
-    color: #0056b3;
-    margin-top: 15px !important;
-    margin-bottom: 8px !important;
-    line-height: 1.0 !important; /* ลดจากค่าเดิม */
-    font-size: clamp(0.9rem, 2.8vw, 1.0em) !important;
-}
+        .summaryResult h4 {
+            color: #0056b3;
+            margin-top: 15px !important;
+            margin-bottom: 8px !important;
+            line-height: 1.0 !important;
+            font-size: clamp(0.9rem, 2.8vw, 1.0em) !important;
+        }
 
-.summaryResult p {
-    margin: 3px 0 !important; /* ลดจาก 5px 0 */
-    line-height: 1.0 !important; /* ปรับให้เหมาะสม */
-    font-size: clamp(0.6rem, 1.8vw, 1rem) !important;
-}
+        .summaryResult p {
+            margin: 3px 0 !important;
+            line-height: 1.0 !important;
+            font-size: clamp(0.6rem, 1.8vw, 1rem) !important;
+        }
 
-/* ปรับแต่งเฉพาะส่วนสรุปจำนวนวัน */
-.summaryResult > div > div:first-child p {
-    margin: 2px 0 !important; /* ลดระยะห่างให้มากขึ้น */
-    line-height: 1.0 !important;
-}
+        .summaryResult > div > div:first-child p {
+            margin: 2px 0 !important;
+            line-height: 1.0 !important;
+        }
         
         .summaryResult table {
             font-size: 12px !important;
@@ -846,30 +867,9 @@
         .summary-control-group span {
             font-size: 14px;
         }
-        
-        .nav-row {
-            flex-direction: column;
-        }
-
-        /* ปรับปรุงตารางทั้งหมดสำหรับมือถือ */
-        #activity-list-table th,
-        #activity-list-table td,
-        #activity-types-table th,
-        #activity-types-table td,
-        #user-list-table th,
-        #user-list-table td,
-        #all-activities-table th,
-        #all-activities-table td,
-        .summaryResult table th,
-        .summaryResult table td {
-            white-space: nowrap;
-            font-size: 11px;
-            vertical-align: middle;
-            padding: 6px 4px; /* ปรับ padding ให้เล็กลง */
-            /* ลบ height: 40px; ออก */
-        }
     }
 
+    /* Small Mobile Styles */
     @media (max-width: 480px) {
         .summaryResult h3 {
             font-size: 1rem !important;
@@ -889,28 +889,6 @@
             font-size: 10px !important;
         }
         
-        /* ปรับปรุงตารางกิจกรรมสำหรับมือถือขนาดเล็ก */
-        #activity-list-table th,
-        #activity-list-table td {
-            font-size: 10px;
-            padding: 5px 3px; /* ปรับ padding ให้เล็กลงอีก */
-            /* ลบ height: 35px; ออก */
-        }
-        
-        /* ปรับปรุงตารางกิจกรรมในหน้า admin สำหรับมือถือขนาดเล็ก */
-        #all-activities-table th,
-        #all-activities-table td {
-            font-size: 10px;
-            padding: 5px 3px; /* ปรับ padding ให้เล็กลงอีก */
-            /* ลบ height: 35px; ออก */
-        }
-        
-        .summary-modal-close-btn {
-            padding: 10px 20px;
-            font-size: 14px;
-        }
-
-        /* ปรับปรุงตารางทั้งหมดสำหรับมือถือขนาดเล็ก */
         #activity-list-table th,
         #activity-list-table td,
         #activity-types-table th,
@@ -920,11 +898,16 @@
         #all-activities-table th,
         #all-activities-table td {
             font-size: 10px;
-            padding: 5px 3px; /* ปรับ padding ให้เล็กลงอีก */
-            /* ลบ height: 35px; ออก */
+            padding: 5px 3px;
+        }
+        
+        .summary-modal-close-btn {
+            padding: 10px 20px;
+            font-size: 14px;
         }
     }
-</style></head>
+</style>
+</head>
 <body>
     <div class="container">
         <!-- Header for logged in users -->
@@ -3475,3 +3458,4 @@ function initializeApp() {
 </script>
 </body>
 </html>
+
