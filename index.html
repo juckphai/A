@@ -1,19 +1,3 @@
-
-<!DOCTYPE html>
-<html lang="th">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบบันทึกกิจกรรม</title>
-    <!-- [PWA] Link to Manifest & Theme Color -->
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#4a90e2">
-    
-    <!-- เพิ่มไลบรารีสำหรับการส่งออก -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
-    
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -366,13 +350,15 @@
         border-collapse: collapse;
         margin-top: 20px;
         font-size: 0.9rem;
+        text-align: center; /* เพิ่มบรรทัดนี้ */
     }
 
     table th, table td {
         border: 1px solid #ddd;
         padding: 10px;
-        text-align: left;
+        text-align: center; /* เปลี่ยนจาก left เป็น center */
         word-break: break-word;
+        vertical-align: middle; /* เพิ่มเพื่อจัดแนวตั้งกึ่งกลาง */
     }
 
     table th {
@@ -394,6 +380,59 @@
         border: 1px solid #ddd;
         border-radius: 5px;
         margin-top: 20px;
+    }
+
+    /* สำหรับตารางใน summary modal */
+    .summaryResult table th, 
+    .summaryResult table td {
+        text-align: center;
+        vertical-align: middle;
+    }
+
+    /* สำหรับตารางใน admin page */
+    #user-list-table th,
+    #user-list-table td,
+    #all-activities-table th,
+    #all-activities-table td {
+        text-align: center;
+        vertical-align: middle;
+    }
+
+    /* สำหรับตาราง activity */
+    #activity-list-table th,
+    #activity-list-table td,
+    #activity-types-table th,
+    #activity-types-table td {
+        text-align: center;
+        vertical-align: middle;
+    }
+
+    /* ยกเว้นคอลัมน์รายละเอียดให้ชิดซ้าย */
+    td:last-child, 
+    th:last-child {
+        text-align: left;
+    }
+
+    /* หรือระบุเฉพาะคอลัมน์ */
+    .details-column {
+        text-align: left;
+    }
+
+    /* จัดกึ่งกลางตารางทั้งหมด */
+    table th,
+    table td,
+    #activity-list-table th,
+    #activity-list-table td,
+    #activity-types-table th,
+    #activity-types-table td,
+    #user-list-table th,
+    #user-list-table td,
+    #all-activities-table th,
+    #all-activities-table td,
+    .summaryResult table th,
+    .summaryResult table td {
+        text-align: center !important;
+        vertical-align: middle !important;
     }
 
     /* ===== SUMMARY BLOCKS ===== */
@@ -798,6 +837,18 @@
             font-size: 11px;
             vertical-align: middle;
             padding: 6px 4px;
+        }
+
+        table th, table td {
+            text-align: center;
+            vertical-align: middle;
+        }
+        
+        /* สำหรับตารางใน summary บน mobile */
+        .summaryResult table th,
+        .summaryResult table td {
+            text-align: center;
+            vertical-align: middle;
         }
         
         .summary-modal-overlay {
@@ -3073,8 +3124,8 @@ function exportSummaryToPDF() {
                     margin: 15mm 5mm 10mm 10mm; 
                     padding: 0;
                     color: #000;
-                    line-height: 1.4;
-                    font-size: 12px;
+                    line-height: 1.0;
+                    font-size: clamp(10px, 2.5vw, 12px); /* ปรับขนาดฟอนต์ของ body */
                 }
                 
                 .header { 
@@ -3085,15 +3136,15 @@ function exportSummaryToPDF() {
                 }
                 .header h1 { 
                     margin: 0 0 5px 0; 
-                    font-size: 18px;
+                    font-size: clamp(14px, 3.5vw, 18px); /* ปรับขนาดฟอนต์ของ h1 ใน header */
                 }
                 .header h2 { 
                     margin: 0 0 5px 0; 
-                    font-size: 14px;
+                    font-size: clamp(12px, 3vw, 14px); /* ปรับขนาดฟอนต์ของ h2 ใน header */
                     font-weight: normal;
                 }
                 .date-range { 
-                    font-size: 12px;
+                    font-size: clamp(10px, 2.5vw, 12px); /* ปรับขนาดฟอนต์ของ date-range */
                     margin-top: 5px;
                 }
                 
@@ -3102,7 +3153,7 @@ function exportSummaryToPDF() {
                 }
                 .summary-section h3 { 
                     margin: 0 0 10px 0;
-                    font-size: 14px;
+                    font-size: clamp(12px, 3vw, 14px); /* ปรับขนาดฟอนต์ของ h3 ใน summary-section */
                     background-color: #f0f0f0;
                     padding: 5px 10px;
                 }
@@ -3112,19 +3163,19 @@ function exportSummaryToPDF() {
                     width: 100%; 
                     border-collapse: collapse; 
                     margin: 10px 0;
-                    font-size: 11px;
+                    font-size: clamp(9px, 2.2vw, 11px); /* ปรับขนาดฟอนต์ของ table */
                     table-layout: auto;
                     word-wrap: break-word;
                 }
                 th { 
                     background-color: #ddd; 
-                    padding: 6px 4px;
+                    padding: 4px 2px;
                     border: 1px solid #000;
                     text-align: left;
                     white-space: nowrap;
                 }
                 td { 
-                    padding: 5px 4px;
+                    padding: 4px 3px;
                     border: 1px solid #000;
                     word-break: break-word;
                     vertical-align: top;
