@@ -3124,8 +3124,9 @@ function exportSummaryToPDF() {
                     margin: 15mm 5mm 10mm 10mm; 
                     padding: 0;
                     color: #000;
-                    line-height: 1.0;
-                    font-size: clamp(10px, 2.5vw, 12px); /* ปรับขนาดฟอนต์ของ body */
+                    line-height: 1.4;
+                    font-size: clamp(10px, 2.5vw, 12px);
+                    text-align: center;
                 }
                 
                 .header { 
@@ -3136,65 +3137,81 @@ function exportSummaryToPDF() {
                 }
                 .header h1 { 
                     margin: 0 0 5px 0; 
-                    font-size: clamp(14px, 3.5vw, 18px); /* ปรับขนาดฟอนต์ของ h1 ใน header */
+                    font-size: clamp(14px, 3.5vw, 18px);
                 }
                 .header h2 { 
                     margin: 0 0 5px 0; 
-                    font-size: clamp(12px, 3vw, 14px); /* ปรับขนาดฟอนต์ของ h2 ใน header */
+                    font-size: clamp(12px, 3vw, 14px);
                     font-weight: normal;
                 }
                 .date-range { 
-                    font-size: clamp(10px, 2.5vw, 12px); /* ปรับขนาดฟอนต์ของ date-range */
+                    font-size: clamp(10px, 2.5vw, 12px);
                     margin-top: 5px;
                 }
                 
                 .summary-section {
-                    margin: 15px 0;
+                    margin: 20px 0;
+                    text-align: center;
                 }
                 .summary-section h3 { 
-                    margin: 0 0 10px 0;
-                    font-size: clamp(12px, 3vw, 14px); /* ปรับขนาดฟอนต์ของ h3 ใน summary-section */
+                    margin: 0 0 15px 0;
+                    font-size: clamp(12px, 3vw, 14px);
                     background-color: #f0f0f0;
-                    padding: 5px 10px;
+                    padding: 8px 10px;
+                    text-align: center;
                 }
                 
-                /* การตั้งค่าตารางทั้งหมดเหมือนกัน */
+                /* สไตล์ใหม่สำหรับเนื้อหาสรุป - จัดกึ่งกลางทั้งหมด */
+                .summary-content {
+                    text-align: center;
+                    margin: 0 auto;
+                    max-width: 600px;
+                    line-height: 1.8;
+                }
+                .summary-line {
+                    margin: 10px 0;
+                    padding: 8px 0;
+                    border-bottom: 1px dashed #ddd;
+                    text-align: center;
+                }
+                .summary-text {
+                    display: inline;
+                    white-space: normal;
+                    word-wrap: break-word;
+                    text-align: center;
+                }
+                
+                /* สไตล์สำหรับตารางรายการกิจกรรม */
                 table { 
                     width: 100%; 
                     border-collapse: collapse; 
-                    margin: 10px 0;
-                    font-size: clamp(9px, 2.2vw, 11px); /* ปรับขนาดฟอนต์ของ table */
-                    table-layout: auto;
+                    margin: 10px auto;
+                    font-size: clamp(9px, 2.2vw, 11px);
+                    table-layout: fixed;
                     word-wrap: break-word;
                 }
                 th { 
                     background-color: #ddd; 
                     padding: 4px 2px;
                     border: 1px solid #000;
-                    text-align: left;
+                    text-align: center;
                     white-space: nowrap;
                 }
                 td { 
                     padding: 4px 3px;
                     border: 1px solid #000;
                     word-break: break-word;
-                    vertical-align: top;
+                    vertical-align: middle;
+                    text-align: center;
                 }
                 
-                /* คอลัมน์สำหรับตารางสรุปจำนวนวัน */
-                .col-label { width: 60%; }
-                .col-value { width: 40%; }
-                
-                /* คอลัมน์สำหรับตารางสรุปประเภทกิจกรรม */
-                .col-activity { width: 70%; }
-                .col-duration { width: 30%; }
-                
-                /* คอลัมน์สำหรับตารางรายการกิจกรรม - ปรับอัตโนมัติ */
-                .col-act-name { width: auto; min-width: 100px; }
-                .col-date { width: auto; min-width: 80px; }
-                .col-time { width: auto; min-width: 60px; }
-                .col-duration-small { width: auto; min-width: 70px; }
-                .col-details { width: auto; min-width: 120px; }
+                /* ปรับความกว้างคอลัมน์ใหม่ */
+                .col-act-name { width: 18%; }
+                .col-date { width: 12%; }
+                .col-time-start { width: 8%; }   /* แคบลงสำหรับเริ่มต้น */
+                .col-time-end { width: 8%; }     /* แคบลงสำหรับสิ้นสุด */
+                .col-duration-small { width: 20%; }
+                .col-details { width: 34%; }     /* ขยายช่องรายละเอียดให้กว้างขึ้น */
                 
                 .total-row {
                     background-color: #f0f0f0;
@@ -3250,78 +3267,56 @@ function exportSummaryToPDF() {
     printHTML += `
             </div>
             
-            <!-- ส่วนสรุปจำนวนวัน -->
+            <!-- ส่วนสรุปจำนวนวัน (รูปแบบใหม่ - เนื้อหาต่อเนื่องในบรรทัดเดียวกันและจัดกึ่งกลาง) -->
             <div class="summary-section">
                 <h3>สรุปจำนวนวัน</h3>
-                <table>
-                    <tr>
-                        <td class="col-label">จำนวนวันทั้งหมด</td>
-                        <td class="col-value">${totalDays} วัน</td>
-                    </tr>
-                    <tr>
-                        <td class="col-label">วันที่มีกิจกรรม</td>
-                        <td class="col-value">${daysWithActivities} วัน</td>
-                    </tr>
-                    <tr>
-                        <td class="col-label">วันที่ไม่มีกิจกรรม</td>
-                        <td class="col-value">${daysWithoutActivities} วัน</td>
-                    </tr>
-                    <tr>
-                        <td class="col-label">เวลารวมทั้งหมด</td>
-                        <td class="col-value">${formatDuration(totalDurationAll)}</td>
-                    </tr>
-                    <tr>
-                        <td class="col-label">เวลาเฉลี่ยต่อวัน (เฉพาะวันที่มีกิจกรรม)</td>
-                        <td class="col-value">${formatDuration(avgDurationPerDay)}</td>
-                    </tr>
-                </table>
+                <div class="summary-content">
+                    <div class="summary-line">
+                        <span class="summary-text">จำนวนวันทั้งหมด: ${totalDays} วัน | วันที่มีกิจกรรม: ${daysWithActivities} วัน | วันที่ไม่มีกิจกรรม: ${daysWithoutActivities} วัน</span>
+                    </div>
+                    <div class="summary-line">
+                        <span class="summary-text">เวลารวมทั้งหมด: ${formatDuration(totalDurationAll)} | เวลาเฉลี่ยต่อวัน (เฉพาะวันที่มีกิจกรรม): ${formatDuration(avgDurationPerDay)}</span>
+                    </div>
+                </div>
             </div>
             
-            <!-- ตารางสรุปตามประเภทกิจกรรม -->
+            <!-- ส่วนสรุปตามประเภทกิจกรรม (รูปแบบใหม่ - เนื้อหาต่อเนื่องในบรรทัดเดียวกันและจัดกึ่งกลาง) -->
             <div class="summary-section">
                 <h3>สรุปตามประเภทกิจกรรม</h3>
-                <table>
-                    <thead>
-                        <tr>
-                            <th class="col-activity">ประเภทกิจกรรม</th>
-                            <th class="col-duration">ระยะเวลารวม</th>
-                        </tr>
-                    </thead>
-                    <tbody>
+                <div class="summary-content">
     `;
     
-    Object.entries(typeTotals).forEach(([type, duration]) => {
-        printHTML += `
-            <tr>
-                <td class="col-activity">${type}</td>
-                <td class="col-duration">${formatDuration(duration)}</td>
-            </tr>
-        `;
+    // สร้างข้อความสรุปประเภทกิจกรรมในบรรทัดเดียวกัน
+    let typeSummaryText = '';
+    Object.entries(typeTotals).forEach(([type, duration], index) => {
+        if (index > 0) {
+            typeSummaryText += ' | ';
+        }
+        typeSummaryText += `${type}: ${formatDuration(duration)}`;
     });
     
+    // เพิ่มบรรทัดรวมทั้งหมด
+    typeSummaryText += ` | รวมทั้งหมด: ${formatDuration(totalDurationAll)}`;
+    
     printHTML += `
-                    </tbody>
-                    <tfoot>
-                        <tr class="total-row">
-                            <td class="col-activity">รวมทั้งหมด</td>
-                            <td class="col-duration">${formatDuration(totalDurationAll)}</td>
-                        </tr>
-                    </tfoot>
-                </table>
+                    <div class="summary-line">
+                        <span class="summary-text">${typeSummaryText}</span>
+                    </div>
+                </div>
             </div>
     `;
     
-    // ตารางรายการกิจกรรมทั้งหมด (ถ้ามีกิจกรรม)
+    // ตารางรายการกิจกรรมทั้งหมด (ยังคงใช้ตารางตามที่ร้องขอ)
     if (userActivities.length > 0) {
         printHTML += `
             <div class="summary-section">
                 <h3>รายการกิจกรรมทั้งหมด (${userActivities.length} รายการ)</h3>
-                <table style="table-layout: fixed;"> <!-- เปลี่ยนเป็น fixed layout -->
+                <table>
                     <colgroup>
                         <col class="col-act-name">
                         <col class="col-date">
-                        <col class="col-time">
-                        <col class="col-time">
+                        <col class="col-time-start">
+                        <col class="col-time-end">
                         <col class="col-duration-small">
                         <col class="col-details">
                     </colgroup>
