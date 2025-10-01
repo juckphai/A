@@ -2743,7 +2743,7 @@ function displaySummaryOnScreen() {
     const avgDurationPerDay = daysWithActivities > 0 ? totalDurationAll / daysWithActivities : 0; 
 
     let summaryHTML = `
-    <div class="summaryResult" style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 10px; border: 1px solid #ddd; border-radius: 10px; background-color: #FAFAD2; text-align: center;">
+    <div class="summaryResult" style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 10px; border: 1.5px solid #F660EB; border-radius: 15px; background-color: #FAFAD2; text-align: center;">
         <h2 style="color: #0056b3; margin-bottom: 10px; font-size: clamp(1.2rem, 3.5vw, 2em);">สรุปกิจกรรม</h2>
         <h3 style="color: #333; margin-bottom: 10px; font-size: clamp(1rem, 3vw, 1.5em);">ผู้ใช้งาน: ${loggedInUser.username}</h3>
         <h3 style="color: #333; margin-bottom: 20px; font-size: clamp(0.9rem, 2.8vw, 1.3em);">
