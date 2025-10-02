@@ -882,6 +882,8 @@ header h1, .container h1 {
         flex: 0 0 48%;
         text-align: center;
         margin-bottom: 10px;
+        padding: 12px 8px;
+        font-size: 0.9rem;
     }
     
     #logout-button {
@@ -889,6 +891,55 @@ header h1, .container h1 {
         max-width: 200px;
         margin: 10px auto 0;
         display: block;
+    }
+    
+    /* ปรับปรุงส่วนกรอกเวลาให้เล็กลงและอยู่ในแถวเดียวกัน */
+    .time-inputs-container {
+        flex-direction: row;
+        justify-content: space-between;
+        gap: 5px;
+    }
+    
+    .time-input-group {
+        min-width: 45%;
+        flex: 1;
+    }
+    
+    .time-input-group input[type="time"] {
+        padding: 10px;
+        font-size: 0.9rem;
+    }
+    
+    .time-label {
+        font-size: 0.8rem;
+    }
+    
+    .time-separator {
+        align-self: center;
+        margin: 0 5px;
+        font-size: 0.9rem;
+    }
+}
+
+/* สำหรับหน้าจอขนาดเล็กมาก (เช่น iPhone SE) */
+@media (max-width: 375px) {
+    .nav-row a {
+        flex: 0 0 48%;
+        font-size: 0.85rem;
+        padding: 10px 6px;
+    }
+    
+    .time-inputs-container {
+        gap: 3px;
+    }
+    
+    .time-input-group input[type="time"] {
+        padding: 8px;
+        font-size: 0.85rem;
+    }
+    
+    .time-label {
+        font-size: 0.75rem;
     }
 }
     /* Mobile Styles */
