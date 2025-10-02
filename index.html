@@ -816,7 +816,81 @@ header h1, .container h1 {
             max-height: 75vh;
         }
     }
-
+    /* สไตล์สำหรับส่วนกรอกเวลา */
+    .time-inputs-container {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 15px;
+        flex-wrap: wrap;
+    }
+    
+    .time-input-group {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        flex: 1;
+        min-width: 120px;
+    }
+    
+    .time-input-group input[type="time"] {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        font-size: 1rem;
+        box-sizing: border-box;
+    }
+    
+    .time-label {
+        margin-top: 5px;
+        font-size: 0.85rem;
+        color: #666;
+    }
+    
+    .time-separator {
+        font-weight: bold;
+        color: #333;
+        margin: 0 5px;
+    }
+    
+    /* สำหรับมือถือ */
+    @media (max-width: 480px) {
+        .time-inputs-container {
+            flex-direction: row;
+            justify-content: space-between;
+        }
+        
+        .time-input-group {
+            min-width: 45%;
+        }
+        
+        .time-separator {
+            align-self: center;
+            margin: 10px 0;
+        }
+    }
+/* เพิ่ม CSS สำหรับการปรับเมนูในมือถือ */
+@media (max-width: 768px) {
+    .nav-row {
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: space-between;
+    }
+    
+    .nav-row a {
+        flex: 0 0 48%;
+        text-align: center;
+        margin-bottom: 10px;
+    }
+    
+    #logout-button {
+        width: 100%;
+        max-width: 200px;
+        margin: 10px auto 0;
+        display: block;
+    }
+}
     /* Mobile Styles */
     @media (max-width: 768px) {
         .action-buttons {
@@ -1038,27 +1112,38 @@ header h1, .container h1 {
         <!-- ส่วนที่เหลือของโค้ด HTML ยังคงเหมือนเดิมทุกประการ -->
         <!-- Activity Page Content -->
         <div id="activity-page" class="hidden">
-            <section class="form-section">
-                <h2>บันทึกกิจกรรมใหม่</h2>
-                <form id="activity-form">
-                    <label for="activity-name-select">เลือกกิจกรรม:</label>
-                    <select id="activity-name-select" required>
-                        <option value="">-- เลือกประเภทกิจกรรม --</option>
-                        <!-- Options will be loaded here by JavaScript -->
-                    </select>
-                    <input type="date" id="activity-date" required>
-                    <label for="start-time">เวลาเริ่มต้น:</label>
-                    <input type="time" id="start-time" required>
-                    <label for="end-time">เวลาสิ้นสุด:</label>
-                    <input type="time" id="end-time" required>
-                    <label for="activity-details">รายละเอียดกิจกรรม (ไม่บังคับ):</label>
-                    <textarea id="activity-details" placeholder="เช่น การประชุมกับทีม, อ่านหนังสือบทที่ 5"></textarea>
-                    <button type="submit" id="save-activity-button">บันทึกกิจกรรม</button>
-                    <button type="button" id="update-activity-button" class="hidden">อัปเดตกิจกรรม</button>
-                    <button type="button" id="cancel-edit-activity-button" class="hidden">ยกเลิก</button>
-                    <p id="activity-message" class="error-message"></p>
-                </form>
-            </section>
+<section class="form-section">
+    <h2>บันทึกกิจกรรมใหม่</h2>
+    <form id="activity-form">
+        <label for="activity-name-select">เลือกกิจกรรม:</label>
+        <select id="activity-name-select" required>
+            <option value="">-- เลือกประเภทกิจกรรม --</option>
+            <!-- Options will be loaded here by JavaScript -->
+        </select>
+        <input type="date" id="activity-date" required>
+        
+        <!-- ปรับปรุงส่วนกรอกเวลาให้อยู่ในแถวเดียวกัน -->
+        <label for="start-time">เวลาเริ่มต้นและสิ้นสุด:</label>
+        <div class="time-inputs-container">
+            <div class="time-input-group">
+                <input type="time" id="start-time" required>
+                <span class="time-label">เริ่ม</span>
+            </div>
+            <span class="time-separator">ถึง</span>
+            <div class="time-input-group">
+                <input type="time" id="end-time" required>
+                <span class="time-label">สิ้นสุด</span>
+            </div>
+        </div>
+        
+        <label for="activity-details">รายละเอียดกิจกรรม (ไม่บังคับ):</label>
+        <textarea id="activity-details" placeholder="เช่น การประชุมกับทีม, อ่านหนังสือบทที่ 5"></textarea>
+        <button type="submit" id="save-activity-button">บันทึกกิจกรรม</button>
+        <button type="button" id="update-activity-button" class="hidden">อัปเดตกิจกรรม</button>
+        <button type="button" id="cancel-edit-activity-button" class="hidden">ยกเลิก</button>
+        <p id="activity-message" class="error-message"></p>
+    </form>
+</section>
 
             <section class="data-section">
                 <h2>รายการกิจกรรมของคุณ</h2>
@@ -1320,7 +1405,7 @@ header h1, .container h1 {
     // ตัวแปรเก็บข้อมูลสรุปสำหรับการส่งออก
     let summaryContext = {};
 
-    // ========== Common Functions ==========
+// ========== Common Functions ==========
     function getFromLocalStorage(key, defaultValue = []) {
         const data = localStorage.getItem(key);
         try {
@@ -1335,18 +1420,115 @@ header h1, .container h1 {
         localStorage.setItem(key, JSON.stringify(data));
     }
 
-    function getLoggedInUser() {
-        const user = sessionStorage.getItem('loggedInUser');
-        return user ? JSON.parse(user) : null;
+    /* --- ฟังก์ชันช่วยสำหรับ session --- */
+// ========== Session Management ==========
+function getLoggedInUser() {
+    const userJson = sessionStorage.getItem('loggedInUser');
+    return userJson ? JSON.parse(userJson) : null;
+}
+
+function setLoggedInUser(user) {
+    if (!user) return;
+    sessionStorage.setItem('loggedInUser', JSON.stringify(user));
+}
+
+function clearLoggedInUser() {
+    sessionStorage.removeItem('loggedInUser');
+}
+
+// ========== Remember Me Functions ==========
+const REMEMBER_KEY = 'posCurrentUser';
+
+function checkRememberedLogin() {
+    try {
+        const remembered = localStorage.getItem(REMEMBER_KEY);
+        if (!remembered) return null;
+        
+        const userData = JSON.parse(remembered);
+        const users = getFromLocalStorage('users');
+        const user = users.find(u => u.id === userData.id);
+        
+        if (user) {
+            setLoggedInUser(user);
+            return user;
+        }
+    } catch (error) {
+        console.error('Error checking remembered login:', error);
+    }
+    return null;
+}
+
+function saveRememberedUser(user) {
+    const toSave = { 
+        id: user.id, 
+        username: user.username, 
+        role: user.role, 
+        savedAt: new Date().toISOString() 
+    };
+    localStorage.setItem(REMEMBER_KEY, JSON.stringify(toSave));
+}
+
+function clearRememberedUser() {
+    localStorage.removeItem(REMEMBER_KEY);
+}
+
+// ========== Login Function ==========
+function handleLogin(event) {
+    event.preventDefault();
+    const username = document.getElementById('login-username').value.trim();
+    const password = document.getElementById('login-password').value.trim();
+    const rememberMe = document.getElementById('remember-me').checked;
+    const messageElement = document.getElementById('login-message');
+
+    if (!username || !password) {
+        messageElement.textContent = 'กรุณากรอกชื่อผู้ใช้งานและรหัสผ่าน';
+        return;
     }
 
-    function setLoggedInUser(user) {
-        sessionStorage.setItem('loggedInUser', JSON.stringify(user));
-    }
+    const users = getFromLocalStorage('users');
+    const user = users.find(u => u.username === username && u.password === hashPassword(password));
 
-    function clearLoggedInUser() {
-        sessionStorage.removeItem('loggedInUser');
+    if (user) {
+        // ✅ ตั้งค่า session
+        setLoggedInUser(user);
+        
+        // ✅ ใช้ระบบ remember-me
+        if (rememberMe) {
+            saveRememberedUser(user);
+        } else {
+            clearRememberedUser();
+        }
+
+        messageElement.textContent = '';
+        document.getElementById('login-form').reset();
+        document.getElementById('welcome-message').textContent = `บันทึกกิจกรรม, ${user.username}!`;
+        updateAdminLinkVisibility();
+        showPage('activity-page');
+    } else {
+        messageElement.textContent = 'ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง';
+        // ล้าง checkbox remember me ถ้าล็อกอินไม่สำเร็จ
+        document.getElementById('remember-me').checked = false;
     }
+}
+
+// ========== Logout Function ==========
+function handleLogout() {
+    clearRememberedUser(); // ลบการจำเมื่อ logout
+    clearLoggedInUser();
+    document.getElementById('auth-section').classList.remove('hidden');
+    const header = document.getElementById('main-header');
+    if (header) header.classList.add('hidden');
+
+    ['activity-page', 'activity-types-page', 'summary-page', 'admin-page'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.add('hidden');
+    });
+
+    const loginForm = document.getElementById('login-form');
+    if (loginForm) loginForm.reset();
+    const msg = document.getElementById('login-message');
+    if (msg) msg.textContent = '';
+}
 
     function checkAdminAccess() {
         const user = getLoggedInUser();
@@ -1390,18 +1572,18 @@ header h1, .container h1 {
         return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
     }
 
-function formatDate(dateString) {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return dateString;
-    
-    // แปลงเป็นรูปแบบ 29/09/2568
-    const day = date.getDate().toString().padStart(2, '0');
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const year = date.getFullYear() + 543; // แปลงเป็นพ.ศ.
-    
-    return `${day}/${month}/${year}`;
-}
+    function formatDate(dateString) {
+        if (!dateString) return '';
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) return dateString;
+        
+        // แปลงเป็นรูปแบบ 29/09/2568
+        const day = date.getDate().toString().padStart(2, '0');
+        const month = (date.getMonth() + 1).toString().padStart(2, '0');
+        const year = date.getFullYear() + 543; // แปลงเป็นพ.ศ.
+        
+        return `${day}/${month}/${year}`;
+    }
 
     function calculateDuration(start, end) {
         const startDate = new Date(`2000-01-01T${start}`);
@@ -1523,110 +1705,6 @@ function decryptData(encryptedData, password) {
         throw new Error('รหัสผ่านไม่ถูกต้องหรือข้อมูลเสียหาย');
     }
 }
-// ฟังก์ชันตรวจสอบข้อมูลการเข้าสู่ระบบที่บันทึกไว้
-function checkSavedLogin() {
-    const savedLogin = localStorage.getItem('savedLogin');
-    if (savedLogin) {
-        try {
-            const loginData = JSON.parse(savedLogin);
-            document.getElementById('login-username').value = loginData.username;
-            
-            // ถอดรหัสรหัสผ่าน
-            if (loginData.password) {
-                const decryptedPassword = atob(loginData.password); // Base64 decoding
-                document.getElementById('login-password').value = decryptedPassword;
-            }
-            
-            document.getElementById('remember-me').checked = true;
-        } catch (e) {
-            console.error('Error loading saved login:', e);
-            localStorage.removeItem('savedLogin');
-        }
-    }
-}
-function isLocalStorageSecure() {
-    // ตรวจสอบว่า localStorage พร้อมใช้งาน
-    try {
-        const test = 'test';
-        localStorage.setItem(test, test);
-        localStorage.removeItem(test);
-        return true;
-    } catch (e) {
-        console.error('LocalStorage is not available:', e);
-        return false;
-    }
-}
-
-function clearSavedLoginAfterPeriod() {
-    // ลบข้อมูลการเข้าสู่ระบบอัตโนมัติหลังจากระยะเวลาหนึ่ง (เช่น 30 วัน)
-    const savedLogin = localStorage.getItem('savedLogin');
-    if (savedLogin) {
-        try {
-            const loginData = JSON.parse(savedLogin);
-            const savedTime = new Date(loginData.savedAt);
-            const currentTime = new Date();
-            const daysDiff = (currentTime - savedTime) / (1000 * 60 * 60 * 24);
-            
-            if (daysDiff > 30) { // ลบหลังจาก 30 วัน
-                clearSavedLogin();
-            }
-        } catch (e) {
-            clearSavedLogin();
-        }
-    }
-}
-// ฟังก์ชันบันทึกข้อมูลการเข้าสู่ระบบ
-function saveLoginData(username, password) {
-    // เข้ารหัสรหัสผ่านเบื้องต้น (ไม่ใช่การเข้ารหัสที่แข็งแกร่ง แต่ดีกว่า plain text)
-    const simpleEncryptedPassword = btoa(password); // Base64 encoding
-    
-    const loginData = {
-        username: username,
-        password: simpleEncryptedPassword, // รหัสผ่านที่เข้ารหัสแล้ว
-        savedAt: new Date().toISOString()
-    };
-    localStorage.setItem('savedLogin', JSON.stringify(loginData));
-}
-
-// ฟังก์ชันลบข้อมูลการเข้าสู่ระบบที่บันทึกไว้
-function clearSavedLogin() {
-    localStorage.removeItem('savedLogin');
-}
-
-// ปรับปรุงฟังก์ชัน handleLogin
-function handleLogin(event) {
-    event.preventDefault();
-    const username = document.getElementById('login-username').value.trim();
-    const password = document.getElementById('login-password').value.trim();
-    const rememberMe = document.getElementById('remember-me').checked;
-    const messageElement = document.getElementById('login-message');
-
-    if (!username || !password) {
-        messageElement.textContent = 'กรุณากรอกชื่อผู้ใช้งานและรหัสผ่าน';
-        return;
-    }
-
-    const users = getFromLocalStorage('users');
-    const user = users.find(u => u.username === username && u.password === hashPassword(password));
-
-    if (user) {
-        // บันทึกข้อมูลการเข้าสู่ระบบหากเลือก "จำรหัสผ่าน"
-        if (rememberMe) {
-            saveLoginData(username, password);
-        } else {
-            clearSavedLogin();
-        }
-
-        setLoggedInUser(user);
-        messageElement.textContent = '';
-        document.getElementById('login-form').reset();
-        document.getElementById('welcome-message').textContent = `บันทึกกิจกรรม, ${user.username}!`;
-        updateAdminLinkVisibility();
-        showPage('activity-page');
-    } else {
-        messageElement.textContent = 'ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง';
-    }
-}
 
     // ========== Password Toggle Functionality ==========
     function setupPasswordToggles() {
@@ -1732,45 +1810,6 @@ function handleLogin(event) {
         }
     }
 
-    // ========== Login/Logout Functionality ==========
-    function handleLogin(event) {
-        event.preventDefault();
-        const username = document.getElementById('login-username').value.trim();
-        const password = document.getElementById('login-password').value.trim();
-        const messageElement = document.getElementById('login-message');
-
-        if (!username || !password) {
-            messageElement.textContent = 'กรุณากรอกชื่อผู้ใช้งานและรหัสผ่าน';
-            return;
-        }
-
-        const users = getFromLocalStorage('users');
-        const user = users.find(u => u.username === username && u.password === hashPassword(password));
-
-        if (user) {
-            setLoggedInUser(user);
-            messageElement.textContent = '';
-            document.getElementById('login-form').reset();
-            document.getElementById('welcome-message').textContent = `บันทึกกิจกรรม, ${user.username}!`;
-            updateAdminLinkVisibility();
-            showPage('activity-page');
-        } else {
-            messageElement.textContent = 'ชื่อผู้ใช้งานหรือรหัสผ่านไม่ถูกต้อง';
-        }
-    }
-
-    function handleLogout() {
-        clearLoggedInUser();
-        document.getElementById('auth-section').classList.remove('hidden');
-        document.getElementById('main-header').classList.add('hidden');
-        document.getElementById('activity-page').classList.add('hidden');
-        document.getElementById('activity-types-page').classList.add('hidden');
-        document.getElementById('summary-page').classList.add('hidden');
-        document.getElementById('admin-page').classList.add('hidden');
-        document.getElementById('login-form').reset();
-        document.getElementById('login-message').textContent = '';
-    }
-
     // ========== Activity Management ==========
 function deleteActivityType(typeId) {
     const allActivityTypes = getFromLocalStorage('activityTypes');
@@ -1826,15 +1865,40 @@ function updateActivityType(typeId) {
         return;
     }
 
-    // อัปเดตข้อมูล
+    // ค้นหาประเภทกิจกรรมเดิมก่อนอัปเดต
+    const oldType = allActivityTypes.find(t => t.id === typeId && t.userId === loggedInUser.id);
+    if (!oldType) return;
+
+    const oldName = oldType.name;
+
+    // อัปเดตข้อมูลประเภทกิจกรรม
     const typeIndex = allActivityTypes.findIndex(t => t.id === typeId && t.userId === loggedInUser.id);
     if (typeIndex === -1) return;
 
     allActivityTypes[typeIndex].name = name;
     saveToLocalStorage('activityTypes', allActivityTypes);
     
+    // 🔥 อัปเดตกิจกรรมทั้งหมดที่ใช้ชื่อประเภทกิจกรรมเดิม
+    const allActivities = getFromLocalStorage('activities');
+    let updatedActivitiesCount = 0;
+    
+    const updatedActivities = allActivities.map(activity => {
+        if (activity.activityName === oldName && activity.userId === loggedInUser.id) {
+            updatedActivitiesCount++;
+            return {
+                ...activity,
+                activityName: name // เปลี่ยนเป็นชื่อใหม่
+            };
+        }
+        return activity;
+    });
+    
+    saveToLocalStorage('activities', updatedActivities);
+    
     document.getElementById('activity-type-form').reset();
-    document.getElementById('activity-type-message').textContent = 'อัปเดตประเภทกิจกรรมเรียบร้อยแล้ว';
+    document.getElementById('activity-type-message').textContent = 
+        `อัปเดตประเภทกิจกรรมเรียบร้อยแล้ว${updatedActivitiesCount > 0 ? ' และอัปเดตกิจกรรมที่เกี่ยวข้อง ' + updatedActivitiesCount + ' รายการ' : ''}`;
+    
     document.getElementById('save-activity-type-button').classList.remove('hidden');
     document.getElementById('update-activity-type-button').classList.add('hidden');
     document.getElementById('cancel-activity-type-edit-button').classList.add('hidden');
@@ -1842,6 +1906,11 @@ function updateActivityType(typeId) {
     loadActivityTypes();
     populateActivityTypeDropdowns('activity-name-select');
     populateActivityTypeDropdowns('filter-activity-type');
+    
+    // โหลดกิจกรรมใหม่เพื่อแสดงข้อมูลที่อัปเดต
+    if (updatedActivitiesCount > 0) {
+        loadUserActivities();
+    }
 }
 function editActivityType(typeId) {
     const allActivityTypes = getFromLocalStorage('activityTypes');
@@ -2089,7 +2158,19 @@ function loadActivityTypes() {
         `;
         tableBody.appendChild(row);
     });
+// เพิ่มฟังก์ชันสำหรับการแสดง/ซ่อนเมนูในมือถือ
+function toggleMobileMenu() {
+    const nav = document.getElementById('main-nav');
+    nav.classList.toggle('mobile-hidden');
+}
 
+// เพิ่ม event listener สำหรับปุ่มเมนูในมือถือ
+document.addEventListener('DOMContentLoaded', function() {
+    const menuToggle = document.getElementById('menu-toggle');
+    if (menuToggle) {
+        menuToggle.addEventListener('click', toggleMobileMenu);
+    }
+});
     // เรียกฟังก์ชันนี้เพื่อตั้งค่า event listeners
     attachActivityTypeEventListeners();
     
@@ -3592,7 +3673,6 @@ function initializeApp() {
 
     const activityTypes = getFromLocalStorage('activityTypes');
     if (activityTypes.length === 0) {
-        // สร้างประเภทกิจกรรมเริ่มต้นสำหรับ admin
         const defaultActivityTypes = [
             { id: '1', name: 'นั่งสมาธิ', userId: '1' },
             { id: '2', name: 'เดินจงกรม', userId: '1' },
@@ -3607,20 +3687,30 @@ function initializeApp() {
         saveToLocalStorage('activities', []);
     }
 
-    // ✅ ตรวจสอบและโหลดข้อมูลการเข้าสู่ระบบที่บันทึกไว้
-    if (isLocalStorageSecure()) {
-        checkSavedLogin();
-        clearSavedLoginAfterPeriod(); // ล้างข้อมูลเก่า
-    }
-
-    // Check if user is logged in
-    const loggedInUser = getLoggedInUser();
-    if (loggedInUser) {
+    // ✅ แก้ไขส่วนตรวจสอบการล็อกอินอัตโนมัติ - เวอร์ชันที่ถูกต้อง
+    const loggedInUser = getLoggedInUser(); // ตรวจสอบจาก session ก่อน
+    
+    if (!loggedInUser) {
+        // ถ้าไม่มีใน session ให้ตรวจสอบ remember me
+        const rememberedUser = checkRememberedLogin();
+        if (rememberedUser) {
+            // ✅ ตั้งค่า session จาก remembered user
+            setLoggedInUser(rememberedUser);
+            document.getElementById('welcome-message').textContent = `บันทึกกิจกรรม, ${rememberedUser.username}!`;
+            updateAdminLinkVisibility();
+            showPage('activity-page');
+            
+            // ✅ ตั้งค่า checkbox remember me ให้ถูกต้อง
+            document.getElementById('remember-me').checked = true;
+        } else {
+            // ไม่มีทั้ง session และ remember me
+            document.getElementById('auth-section').classList.remove('hidden');
+        }
+    } else {
+        // มี session อยู่แล้ว (ล็อกอินอยู่)
         document.getElementById('welcome-message').textContent = `บันทึกกิจกรรม, ${loggedInUser.username}!`;
         updateAdminLinkVisibility();
         showPage('activity-page');
-    } else {
-        document.getElementById('auth-section').classList.remove('hidden');
     }
 
     // Set current date as default
@@ -3645,9 +3735,10 @@ function initializeApp() {
     document.getElementById('backup-data-button').addEventListener('click', backupData);
     document.getElementById('restore-data-input').addEventListener('change', restoreData);
     document.getElementById('show-restore-button').addEventListener('click', showRestoreDialog);
-}
-    // Start the application
-    document.addEventListener('DOMContentLoaded', initializeApp);
+} // ✅ เพิ่มวงเล็บปิดที่นี่
+
+// Start the application
+document.addEventListener('DOMContentLoaded', initializeApp);
 </script>
 </body>
 </html>
