@@ -237,7 +237,55 @@ button:disabled, .button-group button:disabled {
     background-color: #cccccc;
     cursor: not-allowed;
 }
+/* ===== BUTTONS ===== */
+button, .button-group button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: background-color 0.3s ease;
+    margin-right: 5px;
+}
 
+.button-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+/* เพิ่มคลาสสำหรับจัดปุ่มในแนวนอน */
+.button-group.horizontal {
+    flex-direction: row;
+    justify-content: flex-start;
+    align-items: center;
+}
+
+/* สำหรับหน้าจอขนาดเล็ก ให้ปุ่มเรียงในแนวตั้ง */
+@media (max-width: 768px) {
+    .button-group.horizontal {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .button-group.horizontal button {
+        margin-right: 0;
+        margin-bottom: 10px;
+        width: 100%;
+    }
+}
+
+button:hover, .button-group button:hover {
+    background-color: #0056b3;
+}
+
+button:disabled, .button-group button:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+}
 /* ===== ACTION BUTTONS ===== */
 .action-buttons {
     display: flex;
@@ -1301,28 +1349,27 @@ table td,
         <!-- ส่วนที่เหลือของโค้ด HTML ยังคงเหมือนเดิมทุกประการ -->
         <!-- Admin Page Content -->
 <div id="admin-page" class="hidden">
-    <!-- ส่วนนำเข้า/ส่งออกข้อมูล -->
-    <section class="data-section">
-        <h2>นำเข้า/ส่งออกข้อมูล</h2>
-        <div class="button-group">
-            <button id="export-data-button">บันทึกข้อมูล (JSON)</button>
-            <input type="file" id="import-data-input" accept=".json" class="hidden">
-            <button id="show-import-button">โหลดข้อมูล (JSON)</button>
-        </div>
-        <p id="import-export-message" class="info-message"></p>
-        
-        <!-- เพิ่มส่วนสำรองข้อมูลและกู้คืนสำหรับผู้ดูแลระบบ -->
-        <div class="button-group">
-            <button id="backup-data-button">สำรองข้อมูล (มีรหัสผ่าน)</button>
-            <input type="file" id="restore-data-input" accept=".json" class="hidden">
-            <button id="show-restore-button">กู้คืนข้อมูล (ต้องใช้รหัสผ่าน)</button>
-        </div>
-        <p id="backup-restore-message" class="info-message"></p>
-        <p class="info-message" style="font-size: 0.8rem; margin-top: -10px;">
-            หมายเหตุ: การสำรองข้อมูลจะถูกเข้ารหัสด้วยรหัสผ่านที่คุณกำหนด<br>
-            คุณจะต้องใช้รหัสผ่านเดียวกันนี้ในการกู้คืนข้อมูล
-        </p>
-    </section>
+<section class="data-section">
+    <h2>นำเข้า/ส่งออกข้อมูล</h2>
+    <div class="button-group horizontal">
+        <button id="export-data-button">บันทึกข้อมูล (JSON)</button>
+        <input type="file" id="import-data-input" accept=".json" class="hidden">
+        <button id="show-import-button">โหลดข้อมูล (JSON)</button>
+    </div>
+    <p id="import-export-message" class="info-message"></p>
+    
+    <!-- เพิ่มส่วนสำรองข้อมูลและกู้คืนสำหรับผู้ดูแลระบบ -->
+    <div class="button-group horizontal">
+        <button id="backup-data-button">บันทึกข้อมูล (มีรหัสผ่าน)</button>
+        <input type="file" id="restore-data-input" accept=".json" class="hidden">
+        <button id="show-restore-button">โหลดข้อมูล (ใช้รหัสผ่าน)</button>
+    </div>
+    <p id="backup-restore-message" class="info-message"></p>
+    <p class="info-message" style="font-size: 0.8rem; margin-top: -10px;">
+        หมายเหตุ: การสำรองข้อมูลจะถูกเข้ารหัสด้วยรหัสผ่านที่คุณกำหนด<br>
+        คุณจะต้องใช้รหัสผ่านเดียวกันนี้ในการกู้คืนข้อมูล
+    </p>
+</section>
 
             <!-- User Management Section -->
             <section class="form-section">
@@ -3405,59 +3452,60 @@ function exportSummaryToPDF() {
         <html>
         <head>
             <title>สรุปกิจกรรม - ${loggedInUser.username}</title>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <style>
                 body { 
-                    font-family: Arial, sans-serif; 
-                    margin: 15mm 5mm 10mm 10mm; 
+                    font-family: 'Sarabun', Arial, sans-serif; 
+                    margin: 10mm 5mm;
                     padding: 0;
                     color: #000;
                     line-height: 1.4;
-                    font-size: clamp(10px, 2.5vw, 12px);
+                    font-size: 12px;
                     text-align: center;
                 }
                 
                 .header { 
                     text-align: center; 
-                    margin-bottom: 20px;
+                    margin-bottom: 15px;
                     border-bottom: 2px solid #000;
-                    padding-bottom: 10px;
+                    padding-bottom: 8px;
                 }
                 .header h1 { 
                     margin: 0 0 5px 0; 
-                    font-size: clamp(14px, 3.5vw, 18px);
+                    font-size: 16px;
                 }
                 .header h2 { 
                     margin: 0 0 5px 0; 
-                    font-size: clamp(12px, 3vw, 14px);
+                    font-size: 14px;
                     font-weight: normal;
                 }
                 .date-range { 
-                    font-size: clamp(10px, 2.5vw, 12px);
+                    font-size: 12px;
                     margin-top: 5px;
                 }
                 
                 .summary-section {
-                    margin: 20px 0;
+                    margin: 15px 0;
                     text-align: center;
+                    page-break-inside: avoid;
                 }
                 .summary-section h3 { 
-                    margin: 0 0 15px 0;
-                    font-size: clamp(12px, 3vw, 14px);
+                    margin: 0 0 10px 0;
+                    font-size: 14px;
                     background-color: #f0f0f0;
-                    padding: 8px 10px;
+                    padding: 6px 8px;
                     text-align: center;
                 }
                 
-                /* สไตล์ใหม่สำหรับเนื้อหาสรุป - จัดกึ่งกลางทั้งหมด */
                 .summary-content {
                     text-align: center;
                     margin: 0 auto;
-                    max-width: 600px;
-                    line-height: 1.8;
+                    line-height: 1.6;
                 }
                 .summary-line {
-                    margin: 10px 0;
-                    padding: 8px 0;
+                    margin: 8px 0;
+                    padding: 6px 0;
                     border-bottom: 1px dashed #ddd;
                     text-align: center;
                 }
@@ -3472,10 +3520,11 @@ function exportSummaryToPDF() {
                 table { 
                     width: 100%; 
                     border-collapse: collapse; 
-                    margin: 10px auto;
-                    font-size: clamp(9px, 2.2vw, 11px);
+                    margin: 8px auto;
+                    font-size: 10px;
                     table-layout: fixed;
                     word-wrap: break-word;
+                    page-break-inside: auto;
                 }
                 th { 
                     background-color: #ddd; 
@@ -3483,50 +3532,63 @@ function exportSummaryToPDF() {
                     border: 1px solid #000;
                     text-align: center;
                     white-space: nowrap;
+                    font-size: 10px;
                 }
                 td { 
-                    padding: 4px 3px;
+                    padding: 4px 2px;
                     border: 1px solid #000;
                     word-break: break-word;
                     vertical-align: middle;
                     text-align: center;
+                    font-size: 9px;
                 }
                 
-                /* ปรับความกว้างคอลัมน์ใหม่ */
-                .col-act-name { width: 18%; }
+                /* ปรับความกว้างคอลัมน์สำหรับมือถือ */
+                .col-act-name { width: 20%; }
                 .col-date { width: 12%; }
-                .col-time-start { width: 8%; }   /* แคบลงสำหรับเริ่มต้น */
-                .col-time-end { width: 8%; }     /* แคบลงสำหรับสิ้นสุด */
-                .col-duration-small { width: 20%; }
-                .col-details { width: 34%; }     /* ขยายช่องรายละเอียดให้กว้างขึ้น */
-                
-                .total-row {
-                    background-color: #f0f0f0;
-                    font-weight: bold;
-                }
+                .col-time-start { width: 10%; }
+                .col-time-end { width: 10%; }
+                .col-duration-small { width: 18%; }
+                .col-details { width: 30%; }
                 
                 .page-info {
                     text-align: center;
-                    margin-top: 20px;
-                    font-size: 10px;
+                    margin-top: 15px;
+                    font-size: 9px;
                     color: #666;
                 }
                 
                 @media print {
-                    @page {
-                        margin: 15mm 10mm 20mm 10mm;
-                        @bottom-center {
-                            content: "หน้า " counter(page);
-                            font-size: 10px;
-                        }
+                    body {
+                        margin: 10mm 5mm;
+                        font-size: 10px;
                     }
                     
-                    table { 
+                    .header h1 { font-size: 14px; }
+                    .header h2 { font-size: 12px; }
+                    .summary-section h3 { font-size: 12px; }
+                    
+                    table { font-size: 8px; }
+                    th, td { font-size: 8px; padding: 3px 1px; }
+                    
+                    .summary-section {
+                        page-break-inside: avoid;
+                    }
+                    
+                    table {
                         page-break-inside: auto;
                     }
-                    tr { 
+                    tr {
                         page-break-inside: avoid;
                         page-break-after: auto;
+                    }
+                }
+                
+                /* สำหรับมือถือ */
+                @media screen and (max-width: 768px) {
+                    body {
+                        margin: 5mm;
+                        font-size: 10px;
                     }
                 }
             </style>
@@ -3554,7 +3616,7 @@ function exportSummaryToPDF() {
     printHTML += `
             </div>
             
-            <!-- ส่วนสรุปจำนวนวัน (รูปแบบใหม่ - เนื้อหาต่อเนื่องในบรรทัดเดียวกันและจัดกึ่งกลาง) -->
+            <!-- ส่วนสรุปจำนวนวัน -->
             <div class="summary-section">
                 <h3>สรุปจำนวนวัน</h3>
                 <div class="summary-content">
@@ -3567,7 +3629,7 @@ function exportSummaryToPDF() {
                 </div>
             </div>
             
-            <!-- ส่วนสรุปตามประเภทกิจกรรม (รูปแบบใหม่ - เนื้อหาต่อเนื่องในบรรทัดเดียวกันและจัดกึ่งกลาง) -->
+            <!-- ส่วนสรุปตามประเภทกิจกรรม -->
             <div class="summary-section">
                 <h3>สรุปตามประเภทกิจกรรม</h3>
                 <div class="summary-content">
@@ -3593,7 +3655,7 @@ function exportSummaryToPDF() {
             </div>
     `;
     
-    // ตารางรายการกิจกรรมทั้งหมด (ยังคงใช้ตารางตามที่ร้องขอ)
+    // ตารางรายการกิจกรรมทั้งหมด
     if (userActivities.length > 0) {
         printHTML += `
             <div class="summary-section">
@@ -3649,23 +3711,42 @@ function exportSummaryToPDF() {
         </html>
     `;
     
-    // เขียน HTML ไปยัง iframe และพิมพ์
+    // เขียน HTML ไปยัง iframe
     printDocument.open();
     printDocument.write(printHTML);
     printDocument.close();
     
-    // พิมพ์หลังจากโหลดเนื้อหาเสร็จ
-    printFrame.onload = function() {
+    // ใช้ Promise เพื่อจัดการการโหลดให้ดีขึ้น
+    const waitForLoad = new Promise((resolve) => {
+        if (printDocument.readyState === 'complete') {
+            resolve();
+        } else {
+            printFrame.onload = resolve;
+        }
+    });
+    
+    waitForLoad.then(() => {
+        // รอให้เนื้อหาเรนเดอร์เสร็จ
         setTimeout(() => {
-            printFrame.contentWindow.focus();
-            printFrame.contentWindow.print();
+            try {
+                printFrame.contentWindow.focus();
+                printFrame.contentWindow.print();
+            } catch (error) {
+                console.error('Print error:', error);
+                alert('ไม่สามารถพิมพ์ได้: ' + error.message);
+            }
             
-            // ลบ iframe หลังจากพิมพ์เสร็จ
+            // ลบ iframe หลังจากพิมพ์เสร็จ (เพิ่มเวลาให้มากขึ้นบนมือถือ)
             setTimeout(() => {
-                document.body.removeChild(printFrame);
-            }, 1000);
-        }, 500);
-    };
+                if (document.body.contains(printFrame)) {
+                    document.body.removeChild(printFrame);
+                }
+            }, 3000); // เพิ่มเวลาเป็น 3 วินาทีสำหรับมือถือ
+        }, 1000); // เพิ่มเวลาเป็น 1 วินาทีสำหรับการเรนเดอร์
+    }).catch(error => {
+        console.error('Frame load error:', error);
+        alert('เกิดข้อผิดพลาดในการโหลดหน้าต่างพิมพ์');
+    });
 }
     // ========== Event Listeners Setup ==========
     function setupEventListeners() {
