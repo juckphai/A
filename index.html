@@ -263,7 +263,77 @@ button, .button-group button {
     justify-content: flex-start;
     align-items: center;
 }
+/* ===== PRINT STYLES ===== */
+@media print {
+    /* ซ่อนองค์ประกอบที่ไม่จำเป็น */
+    .modal-overlay, .summary-modal-overlay, .summary-modal-controls,
+    button, .modal-close-btn, .menu-toggle, #logout-button,
+    .filter-controls, .form-actions, .action-buttons {
+        display: none !important;
+    }
+    
+    /* สไตล์เฉพาะสำหรับการพิมพ์ */
+    body, html { 
+        background: #fff !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    
+    .container {
+        box-shadow: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        max-width: none !important;
+    }
+    
+    #print-container, #print-container * {
+        visibility: visible !important;
+        color: #000 !important;
+        background: transparent !important;
+    }
+    
+    /* ควบคุมการแบ่งหน้า */
+    tr { 
+        page-break-inside: avoid !important; 
+        page-break-after: auto !important;
+    }
+    
+    h2, h3, h4 { 
+        page-break-after: avoid !important; 
+    }
+    
+    .summary-section {
+        page-break-inside: avoid !important;
+    }
+    
+    /* ปรับปรุงการแสดงผลตารางเมื่อพิมพ์ */
+    table {
+        page-break-inside: auto !important;
+    }
+    
+    /* ตรวจสอบให้แน่ใจว่าสีพื้นหลังพิมพ์ออกมา */
+    th {
+        background-color: #e0e0e0 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+}
 
+/* Container สำหรับพิมพ์ (ซ่อนไว้เมื่อไม่พิมพ์) */
+#print-container {
+    display: none;
+}
+
+@media print {
+    #print-container {
+        display: block !important;
+        position: static !important;
+        width: 100% !important;
+        height: auto !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+}
 /* สำหรับหน้าจอขนาดเล็ก ให้ปุ่มเรียงในแนวตั้ง */
 @media (max-width: 768px) {
     .button-group.horizontal {
@@ -3435,77 +3505,66 @@ function exportSummaryToPDF() {
     // คำนวณค่าเฉลี่ยต่อวัน
     const avgDurationPerDay = daysWithActivities > 0 ? totalDurationAll / daysWithActivities : 0;
 
-    // สร้าง iframe สำหรับพิมพ์
-    const printFrame = document.createElement('iframe');
-    printFrame.style.position = 'fixed';
-    printFrame.style.right = '0';
-    printFrame.style.bottom = '0';
-    printFrame.style.width = '0';
-    printFrame.style.height = '0';
-    printFrame.style.border = 'none';
-    document.body.appendChild(printFrame);
-
-    const printDocument = printFrame.contentDocument || printFrame.contentWindow.document;
-    
+    // สร้าง HTML สำหรับพิมพ์
     let printHTML = `
         <!DOCTYPE html>
         <html>
         <head>
             <title>สรุปกิจกรรม - ${loggedInUser.username}</title>
             <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <style>
                 body { 
-                    font-family: 'Sarabun', Arial, sans-serif; 
-                    margin: 10mm 5mm;
+                    font-family: Arial, sans-serif; 
+                    margin: 15mm 5mm 10mm 10mm; 
                     padding: 0;
                     color: #000;
                     line-height: 1.4;
-                    font-size: 12px;
+                    font-size: clamp(10px, 2.5vw, 12px);
                     text-align: center;
                 }
                 
                 .header { 
                     text-align: center; 
-                    margin-bottom: 15px;
+                    margin-bottom: 20px;
                     border-bottom: 2px solid #000;
-                    padding-bottom: 8px;
+                    padding-bottom: 10px;
                 }
                 .header h1 { 
                     margin: 0 0 5px 0; 
-                    font-size: 16px;
+                    font-size: clamp(14px, 3.5vw, 18px);
                 }
                 .header h2 { 
                     margin: 0 0 5px 0; 
-                    font-size: 14px;
+                    font-size: clamp(12px, 3vw, 14px);
                     font-weight: normal;
                 }
                 .date-range { 
-                    font-size: 12px;
+                    font-size: clamp(10px, 2.5vw, 12px);
                     margin-top: 5px;
                 }
                 
                 .summary-section {
-                    margin: 15px 0;
+                    margin: 20px 0;
                     text-align: center;
-                    page-break-inside: avoid;
                 }
                 .summary-section h3 { 
-                    margin: 0 0 10px 0;
-                    font-size: 14px;
+                    margin: 0 0 15px 0;
+                    font-size: clamp(12px, 3vw, 14px);
                     background-color: #f0f0f0;
-                    padding: 6px 8px;
+                    padding: 8px 10px;
                     text-align: center;
                 }
                 
+                /* สไตล์ใหม่สำหรับเนื้อหาสรุป - จัดกึ่งกลางทั้งหมด */
                 .summary-content {
                     text-align: center;
                     margin: 0 auto;
-                    line-height: 1.6;
+                    max-width: 600px;
+                    line-height: 1.8;
                 }
                 .summary-line {
-                    margin: 8px 0;
-                    padding: 6px 0;
+                    margin: 10px 0;
+                    padding: 8px 0;
                     border-bottom: 1px dashed #ddd;
                     text-align: center;
                 }
@@ -3520,11 +3579,10 @@ function exportSummaryToPDF() {
                 table { 
                     width: 100%; 
                     border-collapse: collapse; 
-                    margin: 8px auto;
-                    font-size: 10px;
+                    margin: 10px auto;
+                    font-size: clamp(9px, 2.2vw, 11px);
                     table-layout: fixed;
                     word-wrap: break-word;
-                    page-break-inside: auto;
                 }
                 th { 
                     background-color: #ddd; 
@@ -3532,44 +3590,42 @@ function exportSummaryToPDF() {
                     border: 1px solid #000;
                     text-align: center;
                     white-space: nowrap;
-                    font-size: 10px;
                 }
                 td { 
-                    padding: 4px 2px;
+                    padding: 4px 3px;
                     border: 1px solid #000;
                     word-break: break-word;
                     vertical-align: middle;
                     text-align: center;
-                    font-size: 9px;
                 }
                 
-                /* ปรับความกว้างคอลัมน์สำหรับมือถือ */
-                .col-act-name { width: 20%; }
+                /* ปรับความกว้างคอลัมน์ใหม่ */
+                .col-act-name { width: 18%; }
                 .col-date { width: 12%; }
-                .col-time-start { width: 10%; }
-                .col-time-end { width: 10%; }
-                .col-duration-small { width: 18%; }
-                .col-details { width: 30%; }
+                .col-time-start { width: 8%; }   /* แคบลงสำหรับเริ่มต้น */
+                .col-time-end { width: 8%; }     /* แคบลงสำหรับสิ้นสุด */
+                .col-duration-small { width: 20%; }
+                .col-details { width: 34%; }     /* ขยายช่องรายละเอียดให้กว้างขึ้น */
+                
+                .total-row {
+                    background-color: #f0f0f0;
+                    font-weight: bold;
+                }
                 
                 .page-info {
                     text-align: center;
-                    margin-top: 15px;
-                    font-size: 9px;
+                    margin-top: 20px;
+                    font-size: 10px;
                     color: #666;
                 }
                 
+                /* ปรับปรุงการแบ่งหน้า - นำมาจากไฟล์ใหม่ */
                 @media print {
                     body {
-                        margin: 10mm 5mm;
-                        font-size: 10px;
+                        margin: 15mm 5mm 10mm 10mm;
+                        font-size: clamp(10px, 2.5vw, 12px);
+                        line-height: 1.3;
                     }
-                    
-                    .header h1 { font-size: 14px; }
-                    .header h2 { font-size: 12px; }
-                    .summary-section h3 { font-size: 12px; }
-                    
-                    table { font-size: 8px; }
-                    th, td { font-size: 8px; padding: 3px 1px; }
                     
                     .summary-section {
                         page-break-inside: avoid;
@@ -3578,17 +3634,13 @@ function exportSummaryToPDF() {
                     table {
                         page-break-inside: auto;
                     }
+                    
                     tr {
                         page-break-inside: avoid;
-                        page-break-after: auto;
                     }
-                }
-                
-                /* สำหรับมือถือ */
-                @media screen and (max-width: 768px) {
-                    body {
-                        margin: 5mm;
-                        font-size: 10px;
+                    
+                    thead {
+                        display: table-header-group;
                     }
                 }
             </style>
@@ -3616,7 +3668,7 @@ function exportSummaryToPDF() {
     printHTML += `
             </div>
             
-            <!-- ส่วนสรุปจำนวนวัน -->
+            <!-- ส่วนสรุปจำนวนวัน (รูปแบบใหม่ - เนื้อหาต่อเนื่องในบรรทัดเดียวกันและจัดกึ่งกลาง) -->
             <div class="summary-section">
                 <h3>สรุปจำนวนวัน</h3>
                 <div class="summary-content">
@@ -3629,7 +3681,7 @@ function exportSummaryToPDF() {
                 </div>
             </div>
             
-            <!-- ส่วนสรุปตามประเภทกิจกรรม -->
+            <!-- ส่วนสรุปตามประเภทกิจกรรม (รูปแบบใหม่ - เนื้อหาต่อเนื่องในบรรทัดเดียวกันและจัดกึ่งกลาง) -->
             <div class="summary-section">
                 <h3>สรุปตามประเภทกิจกรรม</h3>
                 <div class="summary-content">
@@ -3655,7 +3707,7 @@ function exportSummaryToPDF() {
             </div>
     `;
     
-    // ตารางรายการกิจกรรมทั้งหมด
+    // ตารางรายการกิจกรรมทั้งหมด (ยังคงใช้ตารางตามที่ร้องขอ)
     if (userActivities.length > 0) {
         printHTML += `
             <div class="summary-section">
@@ -3701,6 +3753,13 @@ function exportSummaryToPDF() {
                 </table>
             </div>
         `;
+    } else {
+        printHTML += `
+            <div class="summary-section">
+                <h3>รายการกิจกรรมทั้งหมด</h3>
+                <p>ไม่มีกิจกรรมในช่วงที่เลือก</p>
+            </div>
+        `;
     }
     
     printHTML += `
@@ -3711,42 +3770,24 @@ function exportSummaryToPDF() {
         </html>
     `;
     
-    // เขียน HTML ไปยัง iframe
-    printDocument.open();
-    printDocument.write(printHTML);
-    printDocument.close();
+    // สร้างหน้าต่างใหม่สำหรับพิมพ์ (รูปแบบใหม่จากไฟล์ new.txt)
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+        alert('กรุณาอนุญาตป๊อปอัพสำหรับการพิมพ์ PDF');
+        return;
+    }
     
-    // ใช้ Promise เพื่อจัดการการโหลดให้ดีขึ้น
-    const waitForLoad = new Promise((resolve) => {
-        if (printDocument.readyState === 'complete') {
-            resolve();
-        } else {
-            printFrame.onload = resolve;
-        }
-    });
+    // เขียน HTML ไปยังหน้าต่างใหม่
+    printWindow.document.open();
+    printWindow.document.write(printHTML);
+    printWindow.document.close();
     
-    waitForLoad.then(() => {
-        // รอให้เนื้อหาเรนเดอร์เสร็จ
-        setTimeout(() => {
-            try {
-                printFrame.contentWindow.focus();
-                printFrame.contentWindow.print();
-            } catch (error) {
-                console.error('Print error:', error);
-                alert('ไม่สามารถพิมพ์ได้: ' + error.message);
-            }
-            
-            // ลบ iframe หลังจากพิมพ์เสร็จ (เพิ่มเวลาให้มากขึ้นบนมือถือ)
-            setTimeout(() => {
-                if (document.body.contains(printFrame)) {
-                    document.body.removeChild(printFrame);
-                }
-            }, 3000); // เพิ่มเวลาเป็น 3 วินาทีสำหรับมือถือ
-        }, 1000); // เพิ่มเวลาเป็น 1 วินาทีสำหรับการเรนเดอร์
-    }).catch(error => {
-        console.error('Frame load error:', error);
-        alert('เกิดข้อผิดพลาดในการโหลดหน้าต่างพิมพ์');
-    });
+    // พิมพ์อัตโนมัติเมื่อโหลดหน้าเสร็จ
+    printWindow.onload = function() {
+        setTimeout(function() {
+            printWindow.print();
+        }, 500);
+    };
 }
     // ========== Event Listeners Setup ==========
     function setupEventListeners() {
