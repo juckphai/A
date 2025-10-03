@@ -229,124 +229,11 @@ button, .button-group button {
     margin-bottom: 15px;
 }
 
-button:hover, .button-group button:hover {
-    background-color: #0056b3;
-}
-
-button:disabled, .button-group button:disabled {
-    background-color: #cccccc;
-    cursor: not-allowed;
-}
-/* ===== BUTTONS ===== */
-button, .button-group button {
-    background-color: #007bff;
-    color: white;
-    border: none;
-    padding: 10px 15px;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 1rem;
-    transition: background-color 0.3s ease;
-    margin-right: 5px;
-}
-
-.button-group {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-bottom: 15px;
-}
-
-/* เพิ่มคลาสสำหรับจัดปุ่มในแนวนอน */
 .button-group.horizontal {
     flex-direction: row;
     justify-content: flex-start;
     align-items: center;
 }
-/* ===== PRINT STYLES ===== */
-@media print {
-    /* ซ่อนองค์ประกอบที่ไม่จำเป็น */
-    .modal-overlay, .summary-modal-overlay, .summary-modal-controls,
-    button, .modal-close-btn, .menu-toggle, #logout-button,
-    .filter-controls, .form-actions, .action-buttons {
-        display: none !important;
-    }
-    
-    /* สไตล์เฉพาะสำหรับการพิมพ์ */
-    body, html { 
-        background: #fff !important;
-        margin: 0 !important;
-        padding: 0 !important;
-    }
-    
-    .container {
-        box-shadow: none !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        max-width: none !important;
-    }
-    
-    #print-container, #print-container * {
-        visibility: visible !important;
-        color: #000 !important;
-        background: transparent !important;
-    }
-    
-    /* ควบคุมการแบ่งหน้า */
-    tr { 
-        page-break-inside: avoid !important; 
-        page-break-after: auto !important;
-    }
-    
-    h2, h3, h4 { 
-        page-break-after: avoid !important; 
-    }
-    
-    .summary-section {
-        page-break-inside: avoid !important;
-    }
-    
-    /* ปรับปรุงการแสดงผลตารางเมื่อพิมพ์ */
-    table {
-        page-break-inside: auto !important;
-    }
-    
-    /* ตรวจสอบให้แน่ใจว่าสีพื้นหลังพิมพ์ออกมา */
-    th {
-        background-color: #e0e0e0 !important;
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-    }
-}
-
-/* Container สำหรับพิมพ์ (ซ่อนไว้เมื่อไม่พิมพ์) */
-#print-container {
-    display: none;
-}
-
-@media print {
-    #print-container {
-        display: block !important;
-        position: static !important;
-        width: 100% !important;
-        height: auto !important;
-        margin: 0 !important;
-        padding: 0 !important;
-    }
-}
-/* สำหรับหน้าจอขนาดเล็ก ให้ปุ่มเรียงในแนวตั้ง */
-@media (max-width: 768px) {
-    .button-group.horizontal {
-        flex-direction: column;
-        align-items: stretch;
-    }
-    
-    .button-group.horizontal button {
-        margin-right: 0;
-        margin-bottom: 10px;
-        width: 100%;
-    }
-}
 
 button:hover, .button-group button:hover {
     background-color: #0056b3;
@@ -356,6 +243,7 @@ button:disabled, .button-group button:disabled {
     background-color: #cccccc;
     cursor: not-allowed;
 }
+
 /* ===== ACTION BUTTONS ===== */
 .action-buttons {
     display: flex;
@@ -861,11 +749,76 @@ table td,
     word-break: break-word;
 }
 
+/* ===== PRINT STYLES ===== */
+@media print {
+    .modal-overlay, .summary-modal-overlay, .summary-modal-controls,
+    button, .modal-close-btn, .menu-toggle, #logout-button,
+    .filter-controls, .form-actions, .action-buttons {
+        display: none !important;
+    }
+    
+    body, html { 
+        background: #fff !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    
+    .container {
+        box-shadow: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        max-width: none !important;
+    }
+    
+    #print-container, #print-container * {
+        visibility: visible !important;
+        color: #000 !important;
+        background: transparent !important;
+    }
+    
+    tr { 
+        page-break-inside: avoid !important; 
+        page-break-after: auto !important;
+    }
+    
+    h2, h3, h4 { 
+        page-break-after: avoid !important; 
+    }
+    
+    .summary-section {
+        page-break-inside: avoid !important;
+    }
+    
+    table {
+        page-break-inside: auto !important;
+    }
+    
+    th {
+        background-color: #e0e0e0 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+}
+
+#print-container {
+    display: none;
+}
+
+@media print {
+    #print-container {
+        display: block !important;
+        position: static !important;
+        width: 100% !important;
+        height: auto !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+}
+
 /* ===== RESPONSIVE STYLES ===== */
 
 /* Desktop Styles */
 @media (min-width: 769px) {
-    /* Table adjustments for desktop */
     #activity-list-table,
     #activity-types-table,
     #user-list-table,
@@ -1153,6 +1106,48 @@ table td,
     #activity-name-display {
         display: none !important;
     }
+
+    /* Button group adjustments */
+    .button-group.horizontal {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .button-group.horizontal button {
+        margin-right: 0;
+        margin-bottom: 10px;
+        width: 100%;
+    }
+
+    /* Admin page button adjustments */
+    #admin-page .button-group.horizontal {
+        flex-direction: row;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        overflow-y: hidden;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 10px;
+        gap: 8px;
+        justify-content: flex-start;
+    }
+    
+    #admin-page .button-group.horizontal button {
+        flex: 0 0 auto;
+        margin-right: 0;
+        margin-bottom: 0;
+        width: auto;
+        min-width: 140px;
+        white-space: nowrap;
+    }
+    
+    #admin-page .button-group.horizontal::-webkit-scrollbar {
+        height: 4px;
+    }
+    
+    #admin-page .button-group.horizontal::-webkit-scrollbar-thumb {
+        background-color: rgba(0, 0, 0, 0.2);
+        border-radius: 2px;
+    }
 }
 
 /* สำหรับมือถือ - ตรวจสอบให้แน่ใจว่า dropdown แสดงปกติ */
@@ -1189,7 +1184,7 @@ table td,
     }
 }
 
-/* สำหรับมือถือ */
+/* สำหรับมือถือขนาดเล็ก */
 @media (max-width: 480px) {
     .time-inputs-container {
         flex-direction: row;
@@ -1419,27 +1414,27 @@ table td,
         <!-- ส่วนที่เหลือของโค้ด HTML ยังคงเหมือนเดิมทุกประการ -->
         <!-- Admin Page Content -->
 <div id="admin-page" class="hidden">
-<section class="data-section">
-    <h2>นำเข้า/ส่งออกข้อมูล</h2>
-    <div class="button-group horizontal">
-        <button id="export-data-button">บันทึกข้อมูล (JSON)</button>
-        <input type="file" id="import-data-input" accept=".json" class="hidden">
-        <button id="show-import-button">โหลดข้อมูล (JSON)</button>
-    </div>
-    <p id="import-export-message" class="info-message"></p>
-    
-    <!-- เพิ่มส่วนสำรองข้อมูลและกู้คืนสำหรับผู้ดูแลระบบ -->
-    <div class="button-group horizontal">
-        <button id="backup-data-button">บันทึกข้อมูล (มีรหัสผ่าน)</button>
-        <input type="file" id="restore-data-input" accept=".json" class="hidden">
-        <button id="show-restore-button">โหลดข้อมูล (ใช้รหัสผ่าน)</button>
-    </div>
-    <p id="backup-restore-message" class="info-message"></p>
-    <p class="info-message" style="font-size: 0.8rem; margin-top: -10px;">
-        หมายเหตุ: การสำรองข้อมูลจะถูกเข้ารหัสด้วยรหัสผ่านที่คุณกำหนด<br>
-        คุณจะต้องใช้รหัสผ่านเดียวกันนี้ในการกู้คืนข้อมูล
-    </p>
-</section>
+    <section class="data-section">
+        <h2>นำเข้า/ส่งออกข้อมูล</h2>
+        <div class="button-group horizontal admin-button-group">
+            <button id="export-data-button">บันทึกข้อมูล (JSON)</button>
+            <input type="file" id="import-data-input" accept=".json" class="hidden">
+            <button id="show-import-button">โหลดข้อมูล (JSON)</button>
+        </div>
+        <p id="import-export-message" class="info-message"></p>
+        
+        <!-- เพิ่มส่วนสำรองข้อมูลและกู้คืนสำหรับผู้ดูแลระบบ -->
+        <div class="button-group horizontal admin-button-group">
+            <button id="backup-data-button">บันทึกข้อมูล (มีรหัสผ่าน)</button>
+            <input type="file" id="restore-data-input" accept=".json" class="hidden">
+            <button id="show-restore-button">โหลดข้อมูล (ใช้รหัสผ่าน)</button>
+        </div>
+        <p id="backup-restore-message" class="info-message"></p>
+        <p class="info-message" style="font-size: 0.8rem; margin-top: -10px;">
+            หมายเหตุ: การสำรองข้อมูลจะถูกเข้ารหัสด้วยรหัสผ่านที่คุณกำหนด<br>
+            คุณจะต้องใช้รหัสผ่านเดียวกันนี้ในการกู้คืนข้อมูล
+        </p>
+    </section>
 
             <!-- User Management Section -->
             <section class="form-section">
