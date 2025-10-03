@@ -54,6 +54,27 @@ h2 {
     font-size: clamp(1.1rem, 3.5vw, 1.5rem);
 }
 
+h3 {
+    color: #333;
+    margin-bottom: 8px;
+    line-height: 1.0;
+    font-size: clamp(1rem, 3vw, 1.5em);
+}
+
+h4 {
+    color: #0056b3;
+    margin-top: 15px;
+    margin-bottom: 8px;
+    line-height: 1.0;
+    font-size: clamp(0.9rem, 2.8vw, 1.0em);
+}
+
+p {
+    margin: 3px 0;
+    line-height: 1.0;
+    font-size: clamp(0.6rem, 1.8vw, 1rem);
+}
+
 .error-message {
     color: red;
     margin-top: 10px;
@@ -84,6 +105,9 @@ header {
     border-bottom: 1px solid #eee;
     padding-bottom: 20px;
     position: relative;
+    background: #f9f9f9;
+    border-bottom: 3px solid #ccc;
+    padding: 10px;
 }
 
 .header-top {
@@ -151,12 +175,6 @@ header nav a.active {
     color: white;
 }
 
-#main-header {
-    background: #f9f9f9;
-    border-bottom: 3px solid #ccc;
-    padding: 10px;
-}
-
 #main-nav {
     display: flex;
     flex-direction: column;
@@ -174,22 +192,10 @@ header nav a.active {
     color: white;
 }
 
-#main-nav a[data-page="activity"] {
-    background: #ff6b6b;
-}
-
-#main-nav a[data-page="activity-types"] {
-    background: #4ecdc4;
-}
-
-#main-nav a[data-page="summary"] {
-    background: #45b7d1;
-}
-
-#main-nav a[data-page="admin"] {
-    background: #f7b731;
-    color: #333;
-}
+#main-nav a[data-page="activity"] { background: #ff6b6b; }
+#main-nav a[data-page="activity-types"] { background: #4ecdc4; }
+#main-nav a[data-page="summary"] { background: #45b7d1; }
+#main-nav a[data-page="admin"] { background: #f7b731; color: #333; }
 
 #logout-button {
     margin-top: 20px;
@@ -209,7 +215,7 @@ header nav a.active {
     background: #636e72;
 }
 
-/* ===== BUTTONS ===== */
+/* ===== BUTTONS & ACTIONS ===== */
 button, .button-group button {
     background-color: #007bff;
     color: white;
@@ -220,6 +226,15 @@ button, .button-group button {
     font-size: 1rem;
     transition: background-color 0.3s ease;
     margin-right: 5px;
+}
+
+button:hover, .button-group button:hover {
+    background-color: #0056b3;
+}
+
+button:disabled, .button-group button:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
 }
 
 .button-group {
@@ -235,16 +250,6 @@ button, .button-group button {
     align-items: center;
 }
 
-button:hover, .button-group button:hover {
-    background-color: #0056b3;
-}
-
-button:disabled, .button-group button:disabled {
-    background-color: #cccccc;
-    cursor: not-allowed;
-}
-
-/* ===== ACTION BUTTONS ===== */
 .action-buttons {
     display: flex;
     flex-direction: row;
@@ -278,7 +283,7 @@ button:disabled, .button-group button:disabled {
     color: #bd2130;
 }
 
-/* ===== FORMS ===== */
+/* ===== FORMS & INPUTS ===== */
 .form-section, .data-section {
     background-color: #f9f9f9;
     padding: 20px;
@@ -297,15 +302,7 @@ input[type="text"],
 input[type="password"],
 input[type="date"],
 input[type="time"],
-select {
-    padding: 12px;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-    font-size: 1rem;
-    width: calc(100% - 24px);
-    box-sizing: border-box;
-}
-
+select,
 textarea {
     padding: 12px;
     border: 1px solid #ccc;
@@ -471,18 +468,12 @@ table tr:hover {
 }
 
 /* Table alignment overrides */
-table th,
-table td,
-#activity-list-table th,
-#activity-list-table td,
-#activity-types-table th,
-#activity-types-table td,
-#user-list-table th,
-#user-list-table td,
-#all-activities-table th,
-#all-activities-table td,
-.summaryResult table th,
-.summaryResult table td {
+table th, table td,
+#activity-list-table th, #activity-list-table td,
+#activity-types-table th, #activity-types-table td,
+#user-list-table th, #user-list-table td,
+#all-activities-table th, #all-activities-table td,
+.summaryResult table th, .summaryResult table td {
     text-align: center !important;
     vertical-align: middle !important;
 }
@@ -613,38 +604,14 @@ table td,
     transition: background-color 0.3s;
 }
 
-.format-modal-buttons .btn-display {
-    background-color: #007bff;
-}
-
-.format-modal-buttons .btn-display:hover {
-    background-color: #0056b3;
-}
-
-.format-modal-buttons .btn-xlsx {
-    background-color: #107C41;
-}
-
-.format-modal-buttons .btn-xlsx:hover {
-    background-color: #0E6A37;
-}
-
-.format-modal-buttons .btn-pdf {
-    background-color: #e64a19;
-}
-
-.format-modal-buttons .btn-pdf:hover {
-    background-color: #bf360c;
-}
-
-.format-modal-buttons .btn-cancel {
-    background-color: #6c757d;
-    margin-top: 10px;
-}
-
-.format-modal-buttons .btn-cancel:hover {
-    background-color: #5a6268;
-}
+.format-modal-buttons .btn-display { background-color: #007bff; }
+.format-modal-buttons .btn-display:hover { background-color: #0056b3; }
+.format-modal-buttons .btn-xlsx { background-color: #107C41; }
+.format-modal-buttons .btn-xlsx:hover { background-color: #0E6A37; }
+.format-modal-buttons .btn-pdf { background-color: #e64a19; }
+.format-modal-buttons .btn-pdf:hover { background-color: #bf360c; }
+.format-modal-buttons .btn-cancel { background-color: #6c757d; margin-top: 10px; }
+.format-modal-buttons .btn-cancel:hover { background-color: #5a6268; }
 
 /* ===== SUMMARY MODAL ===== */
 .summary-modal-overlay {
@@ -742,8 +709,7 @@ table td,
     font-size: 14px !important;
 }
 
-.summaryResult th,
-.summaryResult td {
+.summaryResult th, .summaryResult td {
     padding: 6px 4px !important;
     font-size: 12px !important;
     word-break: break-word;
@@ -751,12 +717,14 @@ table td,
 
 /* ===== PRINT STYLES ===== */
 @media print {
+    /* Hide unnecessary elements */
     .modal-overlay, .summary-modal-overlay, .summary-modal-controls,
     button, .modal-close-btn, .menu-toggle, #logout-button,
     .filter-controls, .form-actions, .action-buttons {
         display: none !important;
     }
     
+    /* Specific styles for printing */
     body, html { 
         background: #fff !important;
         margin: 0 !important;
@@ -776,6 +744,7 @@ table td,
         background: transparent !important;
     }
     
+    /* Page break control */
     tr { 
         page-break-inside: avoid !important; 
         page-break-after: auto !important;
@@ -789,22 +758,19 @@ table td,
         page-break-inside: avoid !important;
     }
     
+    /* Improve table display when printing */
     table {
         page-break-inside: auto !important;
     }
     
+    /* Ensure background colors are printed */
     th {
         background-color: #e0e0e0 !important;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
     }
-}
 
-#print-container {
-    display: none;
-}
-
-@media print {
+    /* Print container visibility */
     #print-container {
         display: block !important;
         position: static !important;
@@ -815,10 +781,16 @@ table td,
     }
 }
 
+/* Container for printing (hidden when not printing) */
+#print-container {
+    display: none;
+}
+
 /* ===== RESPONSIVE STYLES ===== */
 
 /* Desktop Styles */
 @media (min-width: 769px) {
+    /* Table adjustments for desktop */
     #activity-list-table,
     #activity-types-table,
     #user-list-table,
@@ -829,16 +801,11 @@ table td,
         font-size: 14px !important;
     }
 
-    #activity-list-table th,
-    #activity-list-table td,
-    #activity-types-table th,
-    #activity-types-table td,
-    #user-list-table th,
-    #user-list-table td,
-    #all-activities-table th,
-    #all-activities-table td,
-    .summaryResult table th,
-    .summaryResult table td {
+    #activity-list-table th, #activity-list-table td,
+    #activity-types-table th, #activity-types-table td,
+    #user-list-table th, #user-list-table td,
+    #all-activities-table th, #all-activities-table td,
+    .summaryResult table th, .summaryResult table td {
         white-space: normal;
         font-size: 14px !important;
         padding: 5px 5px !important;
@@ -885,8 +852,7 @@ table td,
         font-size: 14px !important;
     }
 
-    .summaryResult th,
-    .summaryResult td {
+    .summaryResult th, .summaryResult td {
         padding: 12px 10px !important;
         font-size: 14px !important;
     }
@@ -901,14 +867,10 @@ table td,
         font-size: 15px !important;
     }
 
-    #activity-list-table th,
-    #activity-list-table td,
-    #activity-types-table th,
-    #activity-types-table td,
-    #user-list-table th,
-    #user-list-table td,
-    #all-activities-table th,
-    #all-activities-table td {
+    #activity-list-table th, #activity-list-table td,
+    #activity-types-table th, #activity-types-table td,
+    #user-list-table th, #user-list-table td,
+    #all-activities-table th, #all-activities-table td {
         font-size: 15px !important;
         padding: 14px 12px !important;
     }
@@ -931,7 +893,17 @@ table td,
     }
 
     .nav-row {
-        flex-direction: column;
+        flex-direction: row; /* Keep as row for wrap */
+        flex-wrap: wrap;
+        justify-content: space-between;
+    }
+
+    .nav-row a {
+        flex: 0 0 48%; /* Two columns */
+        text-align: center;
+        margin-bottom: 10px;
+        padding: 12px 8px;
+        font-size: 0.9rem;
     }
 
     .menu-toggle {
@@ -950,18 +922,12 @@ table td,
         min-width: 100%;
     }
 
-    #modalBodyContent table th,
-    #modalBodyContent table td,
-    .summaryResult table th,
-    .summaryResult table td,
-    #activity-list-table th,
-    #activity-list-table td,
-    #activity-types-table th,
-    #activity-types-table td,
-    #user-list-table th,
-    #user-list-table td,
-    #all-activities-table th,
-    #all-activities-table td {
+    #modalBodyContent table th, #modalBodyContent table td,
+    .summaryResult table th, .summaryResult table td,
+    #activity-list-table th, #activity-list-table td,
+    #activity-types-table th, #activity-types-table td,
+    #user-list-table th, #user-list-table td,
+    #all-activities-table th, #all-activities-table td {
         white-space: nowrap;
         font-size: 11px;
         vertical-align: middle;
@@ -973,9 +939,8 @@ table td,
         vertical-align: middle;
     }
 
-    /* สำหรับตารางใน summary บน mobile */
-    .summaryResult table th,
-    .summaryResult table td {
+    /* For summary tables on mobile */
+    .summaryResult table th, .summaryResult table td {
         text-align: center;
         vertical-align: middle;
     }
@@ -1033,8 +998,7 @@ table td,
         font-size: 12px !important;
     }
 
-    .summaryResult th,
-    .summaryResult td {
+    .summaryResult th, .summaryResult td {
         padding: 4px 3px !important;
         font-size: 11px !important;
     }
@@ -1046,21 +1010,6 @@ table td,
     .summary-control-group label,
     .summary-control-group span {
         font-size: 14px;
-    }
-
-    /* Mobile navigation adjustments */
-    .nav-row {
-        flex-direction: row;
-        flex-wrap: wrap;
-        justify-content: space-between;
-    }
-
-    .nav-row a {
-        flex: 0 0 48%;
-        text-align: center;
-        margin-bottom: 10px;
-        padding: 12px 8px;
-        font-size: 0.9rem;
     }
 
     #logout-button {
@@ -1107,19 +1056,7 @@ table td,
         display: none !important;
     }
 
-    /* Button group adjustments */
-    .button-group.horizontal {
-        flex-direction: column;
-        align-items: stretch;
-    }
-    
-    .button-group.horizontal button {
-        margin-right: 0;
-        margin-bottom: 10px;
-        width: 100%;
-    }
-
-    /* Admin page button adjustments */
+    /* Mobile - Admin page buttons */
     #admin-page .button-group.horizontal {
         flex-direction: row;
         flex-wrap: nowrap;
@@ -1147,92 +1084,6 @@ table td,
     #admin-page .button-group.horizontal::-webkit-scrollbar-thumb {
         background-color: rgba(0, 0, 0, 0.2);
         border-radius: 2px;
-    }
-}
-
-/* สำหรับมือถือ - ตรวจสอบให้แน่ใจว่า dropdown แสดงปกติ */
-@media (max-width: 768px) {
-    #activity-name-select {
-        display: block !important;
-        width: 100%;
-    }
-
-    #activity-name-display {
-        display: none !important;
-    }
-}
-
-/* สำหรับหน้าจอขนาดเล็กมาก (เช่น iPhone SE) */
-@media (max-width: 375px) {
-    .nav-row a {
-        flex: 0 0 48%;
-        font-size: 0.85rem;
-        padding: 10px 6px;
-    }
-
-    .time-inputs-container {
-        gap: 3px;
-    }
-
-    .time-input-group input[type="time"] {
-        padding: 8px;
-        font-size: 0.85rem;
-    }
-
-    .time-label {
-        font-size: 0.75rem;
-    }
-}
-
-/* สำหรับมือถือขนาดเล็ก */
-@media (max-width: 480px) {
-    .time-inputs-container {
-        flex-direction: row;
-        justify-content: space-between;
-    }
-
-    .time-input-group {
-        min-width: 45%;
-    }
-
-    .time-separator {
-        align-self: center;
-        margin: 10px 0;
-    }
-
-    .summaryResult h3 {
-        font-size: 1rem !important;
-    }
-
-    .summaryResult h4 {
-        font-size: 0.9rem !important;
-    }
-
-    .summaryResult table {
-        font-size: 11px !important;
-    }
-
-    .summaryResult th,
-    .summaryResult td {
-        padding: 3px 2px !important;
-        font-size: 10px !important;
-    }
-
-    #activity-list-table th,
-    #activity-list-table td,
-    #activity-types-table th,
-    #activity-types-table td,
-    #user-list-table th,
-    #user-list-table td,
-    #all-activities-table th,
-    #all-activities-table td {
-        font-size: 10px;
-        padding: 5px 3px;
-    }
-
-    .summary-modal-close-btn {
-        padding: 10px 20px;
-        font-size: 14px;
     }
 }
 </style>
@@ -3497,6 +3348,11 @@ function exportSummaryToPDF() {
         loggedInUser
     } = summaryContext;
     
+    // ตั้งชื่อไฟล์ PDF ให้มีเวลาพ่วงท้าย
+    const now = new Date();
+    const timestamp = now.toISOString().slice(0, 19).replace(/:/g, '-');
+    const fileName = `สรุปกิจกรรม-${timestamp}.pdf`;
+
     // คำนวณค่าเฉลี่ยต่อวัน
     const avgDurationPerDay = daysWithActivities > 0 ? totalDurationAll / daysWithActivities : 0;
 
@@ -3765,12 +3621,15 @@ function exportSummaryToPDF() {
         </html>
     `;
     
-    // สร้างหน้าต่างใหม่สำหรับพิมพ์ (รูปแบบใหม่จากไฟล์ new.txt)
+    // สร้างหน้าต่างใหม่สำหรับพิมพ์
     const printWindow = window.open('', '_blank');
     if (!printWindow) {
         alert('กรุณาอนุญาตป๊อปอัพสำหรับการพิมพ์ PDF');
         return;
     }
+    
+    // ตั้งชื่อ title ให้กับหน้าต่าง (ช่วยในการตั้งชื่อไฟล์เมื่อบันทึก)
+    printWindow.document.title = fileName;
     
     // เขียน HTML ไปยังหน้าต่างใหม่
     printWindow.document.open();
@@ -3783,8 +3642,7 @@ function exportSummaryToPDF() {
             printWindow.print();
         }, 500);
     };
-}
-    // ========== Event Listeners Setup ==========
+}    // ========== Event Listeners Setup ==========
     function setupEventListeners() {
         // Login
         document.getElementById('login-form').addEventListener('submit', handleLogin);
