@@ -1432,6 +1432,18 @@ table th, table td,
     let summaryContext = {};
 
 // ========== Common Functions ==========
+function mergeData(existingData, newData, keyField) {
+    const existingMap = new Map();
+    existingData.forEach(item => {
+        existingMap.set(item[keyField], item);
+    });
+    
+    newData.forEach(newItem => {
+        existingMap.set(newItem[keyField], newItem);
+    });
+    
+    return Array.from(existingMap.values());
+}
     function getFromLocalStorage(key, defaultValue = []) {
         const data = localStorage.getItem(key);
         try {
@@ -2840,34 +2852,59 @@ function generateSummary(startDate, endDate) {
         document.getElementById('import-export-message').textContent = 'สำรองข้อมูลเรียบร้อยแล้ว';
     }
 
-    function importData(event) {
-        const file = event.target.files[0];
-        if (!file) return;
+function importData(event) {
+    const file = event.target.files[0];
+    if (!file) return;
 
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            try {
-                const data = JSON.parse(e.target.result);
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        try {
+            const importedData = JSON.parse(e.target.result);
+            
+            if (importedData.users && importedData.activities && importedData.activityTypes) {
+                // อัปเดทข้อมูลผู้ใช้
+                const existingUsers = getFromLocalStorage('users');
+                const updatedUsers = mergeData(existingUsers, importedData.users, 'id');
+                saveToLocalStorage('users', updatedUsers);
                 
-                if (data.users && data.activities && data.activityTypes) {
-                    saveToLocalStorage('users', data.users);
-                    saveToLocalStorage('activities', data.activities);
-                    saveToLocalStorage('activityTypes', data.activityTypes);
-                    
-                    document.getElementById('import-export-message').textContent = 'โหลดข้อมูลเรียบร้อยแล้ว';
-                    loadAllUsers();
-                    loadAllActivities();
-                } else {
-                    document.getElementById('import-export-message').textContent = 'รูปแบบไฟล์ไม่ถูกต้อง';
-                }
-            } catch (error) {
-                document.getElementById('import-export-message').textContent = 'เกิดข้อผิดพลาดในการโหลดข้อมูล';
-                console.error('Import error:', error);
+                // อัปเดทข้อมูลกิจกรรม
+                const existingActivities = getFromLocalStorage('activities');
+                const updatedActivities = mergeData(existingActivities, importedData.activities, 'id');
+                saveToLocalStorage('activities', updatedActivities);
+                
+                // อัปเดทข้อมูลประเภทกิจกรรม
+                const existingActivityTypes = getFromLocalStorage('activityTypes');
+                const updatedActivityTypes = mergeData(existingActivityTypes, importedData.activityTypes, 'id');
+                saveToLocalStorage('activityTypes', updatedActivityTypes);
+                
+                document.getElementById('import-export-message').textContent = 'โหลดและอัปเดทข้อมูลเรียบร้อยแล้ว';
+                
+                // โหลดข้อมูลใหม่
+                loadAllUsers();
+                loadAllActivities();
+                
+                // ล้างข้อความหลังจาก 3 วินาที
+                setTimeout(() => {
+                    document.getElementById('import-export-message').textContent = '';
+                }, 3000);
+                
+            } else {
+                document.getElementById('import-export-message').textContent = 'รูปแบบไฟล์ไม่ถูกต้อง';
             }
-        };
-        reader.readAsText(file);
+        } catch (error) {
+            document.getElementById('import-export-message').textContent = 'เกิดข้อผิดพลาดในการโหลดข้อมูล: ' + error.message;
+            console.error('Import error:', error);
+        }
         event.target.value = '';
-    }
+    };
+    
+    reader.onerror = function() {
+        document.getElementById('import-export-message').textContent = 'เกิดข้อผิดพลาดในการอ่านไฟล์';
+        event.target.value = '';
+    };
+    
+    reader.readAsText(file);
+}
 
     function showImportDialog() {
         document.getElementById('import-data-input').click();
@@ -2939,34 +2976,65 @@ function restoreData(event) {
             const data = decryptData(encryptedData, password);
             
             const loggedInUser = getLoggedInUser();
-            if (!loggedInUser) return;
+            if (!loggedInUser) {
+                document.getElementById('backup-restore-message').textContent = 'กรุณาเข้าสู่ระบบก่อนกู้คืนข้อมูล';
+                return;
+            }
 
             if (data.activities && Array.isArray(data.activities)) {
+                // อัปเดทข้อมูลกิจกรรมของผู้ใช้ปัจจุบันเท่านั้น
                 const allActivities = getFromLocalStorage('activities');
                 const otherUsersActivities = allActivities.filter(activity => activity.userId !== loggedInUser.id);
                 
+                // เปลี่ยน userId ให้เป็นของผู้ใช้ปัจจุบันก่อนทำการอัปเดท
                 const restoredActivities = data.activities.map(activity => ({
                     ...activity,
                     userId: loggedInUser.id
                 }));
-
-                const updatedActivities = [...otherUsersActivities, ...restoredActivities];
+                
+                // ผสานข้อมูลกิจกรรม
+                const updatedUserActivities = mergeData(
+                    allActivities.filter(activity => activity.userId === loggedInUser.id),
+                    restoredActivities,
+                    'id'
+                );
+                
+                const updatedActivities = [...otherUsersActivities, ...updatedUserActivities];
                 saveToLocalStorage('activities', updatedActivities);
 
+                // อัปเดทข้อมูลประเภทกิจกรรม
                 if (data.activityTypes && Array.isArray(data.activityTypes)) {
-                    const existingTypes = getFromLocalStorage('activityTypes');
-                    const newTypes = data.activityTypes.filter(newType => 
-                        !existingTypes.some(existingType => existingType.name === newType.name)
+                    const allActivityTypes = getFromLocalStorage('activityTypes');
+                    const otherUsersTypes = allActivityTypes.filter(type => type.userId !== loggedInUser.id);
+                    
+                    const restoredTypes = data.activityTypes.map(type => ({
+                        ...type,
+                        userId: loggedInUser.id
+                    }));
+                    
+                    const updatedUserTypes = mergeData(
+                        allActivityTypes.filter(type => type.userId === loggedInUser.id),
+                        restoredTypes,
+                        'id'
                     );
-                    if (newTypes.length > 0) {
-                        saveToLocalStorage('activityTypes', [...existingTypes, ...newTypes]);
-                    }
+                    
+                    const updatedTypes = [...otherUsersTypes, ...updatedUserTypes];
+                    saveToLocalStorage('activityTypes', updatedTypes);
                 }
 
-                document.getElementById('backup-restore-message').textContent = 'กู้คืนข้อมูลเรียบร้อยแล้ว';
+                document.getElementById('backup-restore-message').textContent = 'กู้คืนและอัปเดทข้อมูลเรียบร้อยแล้ว';
+                
+                // โหลดข้อมูลใหม่
                 loadUserActivities();
+                loadActivityTypes();
                 populateActivityTypeDropdowns('activity-name-select');
                 populateActivityTypeDropdowns('filter-activity-type');
+                
+                // ล้างข้อความหลังจาก 3 วินาที
+                setTimeout(() => {
+                    document.getElementById('backup-restore-message').textContent = '';
+                }, 3000);
+                
             } else {
                 document.getElementById('backup-restore-message').textContent = 'รูปแบบไฟล์ไม่ถูกต้อง';
             }
@@ -2974,12 +3042,15 @@ function restoreData(event) {
             document.getElementById('backup-restore-message').textContent = 'เกิดข้อผิดพลาดในการกู้คืนข้อมูล: ' + error.message;
             console.error('Restore error:', error);
         }
+        event.target.value = '';
     };
+    
     reader.onerror = function() {
         document.getElementById('backup-restore-message').textContent = 'เกิดข้อผิดพลาดในการอ่านไฟล์';
+        event.target.value = '';
     };
+    
     reader.readAsText(file);
-    event.target.value = '';
 }
 
 function showRestoreDialog() {
