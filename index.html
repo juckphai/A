@@ -3374,7 +3374,7 @@ function displaySummaryOnScreen() {
 let summaryHTML = `
     <div class="summaryResult" style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 10px; border: 1.5px solid #F660EB; border-radius: 15px; background-color: #FAFAD2; text-align: center;">
         <h2 style="color: blue; margin-bottom: 10px; font-size: clamp(1.2rem, 3.5vw, 2em);">สรุปกิจกรรม</h2>
-        <h3 style="color: blue; margin-bottom: 10px; font-size: clamp(1rem, 3vw, 1.5em);">ผู้ใช้งาน: ${loggedInUser.username}</h3>
+        <h3 style="color: blue; margin-bottom: 10px; font-size: clamp(1rem, 3vw, 1.5em);">กิจกรรมของ : ${loggedInUser.username}</h3>
         <div style="text-align: center; margin-bottom: 2px;">
             <h3 style="color: blue; font-size: clamp(0.8rem, 2.5vw, 1rem); line-height: 1.0; margin: 0;">
                 สรุปเมื่อ ${getCurrentDateTimeThai()}
@@ -3604,7 +3604,7 @@ function exportSummaryToXLSX() {
     
     // หัวเรื่องหลัก
     allData.push(['สรุปกิจกรรม']);
-    allData.push(['ผู้ใช้งาน:', loggedInUser.username]);
+    allData.push(['กิจกรรมของ :', loggedInUser.username]);
     
     // ช่วงวันที่
     if (startDate && endDate && startDate !== endDate) {
@@ -3857,7 +3857,7 @@ function exportSummaryToPDF() {
         <body>
             <div class="header">
                 <h1>สรุปกิจกรรม</h1>
-                <h2>ผู้ใช้งาน: ${loggedInUser.username}</h2>
+                <h2>กิจกรรมของ : ${loggedInUser.username}</h2>
     `;
     
     // ส่วนหัวเรื่องวันที่
