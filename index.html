@@ -336,6 +336,7 @@ label {
 .password-container {
     position: relative;
     width: 100%;
+    margin-bottom: 10px;
 }
 
 .password-toggle {
@@ -1378,30 +1379,35 @@ table th,
         </div>
 
     <!-- Modal for editing users -->
-    <div id="edit-user-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 class="modal-title">แก้ไขผู้ใช้งาน</h3>
-                <button class="close-modal">&times;</button>
-            </div>
-            <form id="edit-user-form">
-                <input type="hidden" id="edit-user-id">
-                <input type="text" id="edit-user-username" placeholder="ชื่อผู้ใช้งาน" required>
-                
-                <div class="password-container">
-                    <input type="password" id="edit-user-password" placeholder="รหัสผ่าน (เว้นว่างหากไม่ต้องการเปลี่ยน)">
-                    <button type="button" class="password-toggle" id="toggle-edit-user-password">👁️</button>
-                </div>
-                
-                <select id="edit-user-role" required>
-                    <option value="user">User</option>
-                    <option value="admin">Admin</option>
-                </select>
-                <button type="submit">อัปเดตผู้ใช้งาน</button>
-                <p id="edit-user-message" class="error-message"></p>
-            </form>
+<div id="edit-user-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">แก้ไขผู้ใช้งาน</h3>
+            <button class="close-modal">&times;</button>
         </div>
+        <form id="edit-user-form">
+            <input type="hidden" id="edit-user-id">
+            <input type="text" id="edit-user-username" placeholder="ชื่อผู้ใช้งาน" required>
+            
+            <div class="password-container">
+                <input type="password" id="edit-user-password" placeholder="รหัสผ่านใหม่ (เว้นว่างหากไม่ต้องการเปลี่ยน)">
+                <button type="button" class="password-toggle" id="toggle-edit-user-password">👁️</button>
+            </div>
+            
+            <div class="password-container">
+                <input type="password" id="edit-user-confirm-password" placeholder="ยืนยันรหัสผ่านใหม่">
+                <button type="button" class="password-toggle" id="toggle-edit-user-confirm-password">👁️</button>
+            </div>
+            
+            <select id="edit-user-role" required>
+                <option value="user">User</option>
+                <option value="admin">Admin</option>
+            </select>
+            <button type="submit">อัปเดตผู้ใช้งาน</button>
+            <p id="edit-user-message" class="error-message"></p>
+        </form>
     </div>
+</div>
     
     <!-- Modal สำหรับเลือกรูปแบบการแสดงผลสรุป -->
     <div id="summaryOutputModal" class="modal-overlay">
@@ -1714,48 +1720,59 @@ function decryptData(encryptedData, password) {
     }
 }
 
-    // ========== Password Toggle Functionality ==========
-    function setupPasswordToggles() {
-        const toggleLoginPassword = document.getElementById('toggle-login-password');
-        const loginPasswordInput = document.getElementById('login-password');
-        if (toggleLoginPassword && loginPasswordInput) {
-            toggleLoginPassword.addEventListener('click', function() {
-                const type = loginPasswordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-                loginPasswordInput.setAttribute('type', type);
-                this.textContent = type === 'password' ? '👁️' : '🙈';
-            });
-        }
-
-        const toggleAdminAddPassword = document.getElementById('toggle-admin-add-password');
-        const adminAddPasswordInput = document.getElementById('admin-add-password');
-        if (toggleAdminAddPassword && adminAddPasswordInput) {
-            toggleAdminAddPassword.addEventListener('click', function() {
-                const type = adminAddPasswordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-                adminAddPasswordInput.setAttribute('type', type);
-                this.textContent = type === 'password' ? '👁️' : '🙈';
-            });
-        }
-
-        const toggleAdminAddConfirmPassword = document.getElementById('toggle-admin-add-confirm-password');
-        const adminAddConfirmPasswordInput = document.getElementById('admin-add-confirm-password');
-        if (toggleAdminAddConfirmPassword && adminAddConfirmPasswordInput) {
-            toggleAdminAddConfirmPassword.addEventListener('click', function() {
-                const type = adminAddConfirmPasswordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-                adminAddConfirmPasswordInput.setAttribute('type', type);
-                this.textContent = type === 'password' ? '👁️' : '🙈';
-            });
-        }
-
-        const toggleEditUserPassword = document.getElementById('toggle-edit-user-password');
-        const editUserPasswordInput = document.getElementById('edit-user-password');
-        if (toggleEditUserPassword && editUserPasswordInput) {
-            toggleEditUserPassword.addEventListener('click', function() {
-                const type = editUserPasswordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-                editUserPasswordInput.setAttribute('type', type);
-                this.textContent = type === 'password' ? '👁️' : '🙈';
-            });
-        }
+// ========== Password Toggle Functionality ==========
+function setupPasswordToggles() {
+    const toggleLoginPassword = document.getElementById('toggle-login-password');
+    const loginPasswordInput = document.getElementById('login-password');
+    if (toggleLoginPassword && loginPasswordInput) {
+        toggleLoginPassword.addEventListener('click', function() {
+            const type = loginPasswordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            loginPasswordInput.setAttribute('type', type);
+            this.textContent = type === 'password' ? '👁️' : '🙈';
+        });
     }
+
+    const toggleAdminAddPassword = document.getElementById('toggle-admin-add-password');
+    const adminAddPasswordInput = document.getElementById('admin-add-password');
+    if (toggleAdminAddPassword && adminAddPasswordInput) {
+        toggleAdminAddPassword.addEventListener('click', function() {
+            const type = adminAddPasswordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            adminAddPasswordInput.setAttribute('type', type);
+            this.textContent = type === 'password' ? '👁️' : '🙈';
+        });
+    }
+
+    const toggleAdminAddConfirmPassword = document.getElementById('toggle-admin-add-confirm-password');
+    const adminAddConfirmPasswordInput = document.getElementById('admin-add-confirm-password');
+    if (toggleAdminAddConfirmPassword && adminAddConfirmPasswordInput) {
+        toggleAdminAddConfirmPassword.addEventListener('click', function() {
+            const type = adminAddConfirmPasswordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            adminAddConfirmPasswordInput.setAttribute('type', type);
+            this.textContent = type === 'password' ? '👁️' : '🙈';
+        });
+    }
+
+    const toggleEditUserPassword = document.getElementById('toggle-edit-user-password');
+    const editUserPasswordInput = document.getElementById('edit-user-password');
+    if (toggleEditUserPassword && editUserPasswordInput) {
+        toggleEditUserPassword.addEventListener('click', function() {
+            const type = editUserPasswordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            editUserPasswordInput.setAttribute('type', type);
+            this.textContent = type === 'password' ? '👁️' : '🙈';
+        });
+    }
+
+    // เพิ่มการจัดการสำหรับฟิลด์ยืนยันรหัสผ่านในหน้าต่างแก้ไขผู้ใช้
+    const toggleEditUserConfirmPassword = document.getElementById('toggle-edit-user-confirm-password');
+    const editUserConfirmPasswordInput = document.getElementById('edit-user-confirm-password');
+    if (toggleEditUserConfirmPassword && editUserConfirmPasswordInput) {
+        toggleEditUserConfirmPassword.addEventListener('click', function() {
+            const type = editUserConfirmPasswordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            editUserConfirmPasswordInput.setAttribute('type', type);
+            this.textContent = type === 'password' ? '👁️' : '🙈';
+        });
+    }
+}
 
     // ========== Page Navigation ==========
     function showPage(pageId) {
@@ -2206,15 +2223,16 @@ function handleActivityFormSubmit(event) {
     }
 
     const allActivities = getFromLocalStorage('activities');
-    const newActivity = {
-        id: Date.now().toString(),
-        userId: loggedInUser.id,
-        activityName,
-        date,
-        startTime,
-        endTime,
-        details,
-        createdAt: new Date().toISOString()
+const newActivity = {
+    id: Date.now().toString(),
+    userId: loggedInUser.id,
+    username: loggedInUser.username, // 🔥 เพิ่มฟิลด์ username
+    activityName,
+    date,
+    startTime,
+    endTime,
+    details,
+    createdAt: new Date().toISOString()
     };
 
     allActivities.push(newActivity);
@@ -2673,54 +2691,119 @@ function attachUserEventListeners() {
     });
 }
 
-    function editUser(userId) {
-        const users = getFromLocalStorage('users');
-        const user = users.find(u => u.id === userId);
-        if (!user) return;
+function editUser(userId) {
+    const users = getFromLocalStorage('users');
+    const user = users.find(u => u.id === userId);
+    if (!user) return;
 
-        document.getElementById('edit-user-id').value = user.id;
-        document.getElementById('edit-user-username').value = user.username;
-        document.getElementById('edit-user-role').value = user.role;
+    document.getElementById('edit-user-id').value = user.id;
+    document.getElementById('edit-user-username').value = user.username;
+    document.getElementById('edit-user-role').value = user.role;
+    
+    // รีเซ็ตฟิลด์รหัสผ่าน
+    document.getElementById('edit-user-password').value = '';
+    document.getElementById('edit-user-confirm-password').value = '';
 
-        document.getElementById('edit-user-modal').style.display = 'block';
+    document.getElementById('edit-user-modal').style.display = 'block';
+}
+
+function updateUser(event) {
+    event.preventDefault();
+    const userId = document.getElementById('edit-user-id').value;
+    const username = document.getElementById('edit-user-username').value.trim();
+    const password = document.getElementById('edit-user-password').value;
+    const confirmPassword = document.getElementById('edit-user-confirm-password').value;
+    const role = document.getElementById('edit-user-role').value;
+    const messageElement = document.getElementById('edit-user-message');
+
+    // ตรวจสอบข้อมูลพื้นฐาน
+    if (!username) {
+        messageElement.textContent = 'กรุณากรอกชื่อผู้ใช้งาน';
+        return;
     }
 
-    function updateUser(event) {
-        event.preventDefault();
-        const userId = document.getElementById('edit-user-id').value;
-        const username = document.getElementById('edit-user-username').value.trim();
-        const password = document.getElementById('edit-user-password').value;
-        const role = document.getElementById('edit-user-role').value;
-
-        if (!username) {
-            document.getElementById('edit-user-message').textContent = 'กรุณากรอกชื่อผู้ใช้งาน';
-            return;
-        }
-
-        const users = getFromLocalStorage('users');
-        const userIndex = users.findIndex(u => u.id === userId);
-        if (userIndex === -1) return;
-
-        const existingUser = users.find(u => u.username === username && u.id !== userId);
-        if (existingUser) {
-            document.getElementById('edit-user-message').textContent = 'มีชื่อผู้ใช้งานนี้อยู่แล้ว';
-            return;
-        }
-
-        users[userIndex].username = username;
-        users[userIndex].role = role;
-
-        if (password) {
-            users[userIndex].password = hashPassword(password);
-        }
-
-        saveToLocalStorage('users', users);
-        document.getElementById('edit-user-modal').style.display = 'none';
-        document.getElementById('edit-user-form').reset();
-        document.getElementById('edit-user-message').textContent = '';
-
-        loadAllUsers();
+    // ตรวจสอบชื่อผู้ใช้ซ้ำ (ไม่รวมผู้ใช้ปัจจุบัน)
+    const users = getFromLocalStorage('users');
+    const existingUser = users.find(u => u.username === username && u.id !== userId);
+    if (existingUser) {
+        messageElement.textContent = 'มีชื่อผู้ใช้งานนี้อยู่แล้ว';
+        return;
     }
+
+    // ตรวจสอบรหัสผ่าน (ถ้ามีการกรอก)
+    if (password) {
+        if (password.length < 4) {
+            messageElement.textContent = 'รหัสผ่านต้องมีความยาวอย่างน้อย 4 ตัวอักษร';
+            return;
+        }
+        
+        if (password !== confirmPassword) {
+            messageElement.textContent = 'รหัสผ่านไม่ตรงกัน';
+            return;
+        }
+    }
+
+    // ค้นหาข้อมูลผู้ใช้เดิมก่อนอัปเดต
+    const oldUser = users.find(u => u.id === userId);
+    if (!oldUser) return;
+
+    const oldUsername = oldUser.username;
+
+    // อัปเดตข้อมูลผู้ใช้
+    const userIndex = users.findIndex(u => u.id === userId);
+    if (userIndex === -1) return;
+
+    users[userIndex].username = username;
+    users[userIndex].role = role;
+
+    // อัปเดตรหัสผ่านถ้ามีการเปลี่ยนแปลง
+    if (password) {
+        users[userIndex].password = hashPassword(password);
+    }
+
+    saveToLocalStorage('users', users);
+    
+    // 🔥 อัปเดตข้อมูลกิจกรรมทั้งหมดที่ใช้ชื่อผู้ใช้เดิม
+    const allActivities = getFromLocalStorage('activities');
+    let updatedActivitiesCount = 0;
+    
+const updatedActivities = allActivities.map(activity => {
+    if (activity.userId === userId) {
+        updatedActivitiesCount++;
+        // อัปเดต username ในกิจกรรม
+        return {
+            ...activity,
+            username: username // 🔥 อัปเดต username ในกิจกรรม
+        };
+    }
+    return activity;
+});
+    
+    saveToLocalStorage('activities', updatedActivities);
+    
+    document.getElementById('edit-user-modal').style.display = 'none';
+    document.getElementById('edit-user-form').reset();
+    messageElement.textContent = '';
+
+    loadAllUsers();
+    loadAllActivities(); // โหลดกิจกรรมใหม่เพื่อแสดงข้อมูลที่อัปเดต
+    
+    // แสดงข้อความสำเร็จ
+    const successMessage = document.getElementById('admin-add-user-message');
+    successMessage.textContent = `อัปเดตผู้ใช้งานเรียบร้อยแล้ว${updatedActivitiesCount > 0 ? ' และอัปเดตกิจกรรมที่เกี่ยวข้อง ' + updatedActivitiesCount + ' รายการ' : ''}`;
+    successMessage.className = 'success-message';
+    
+    setTimeout(() => {
+        successMessage.textContent = '';
+    }, 3000);
+    
+    // ถ้าผู้ใช้ที่เปลี่ยนคือผู้ใช้ที่ล็อกอินอยู่ ให้อัปเดต session
+    const loggedInUser = getLoggedInUser();
+    if (loggedInUser && loggedInUser.id === userId) {
+        setLoggedInUser(users[userIndex]);
+        document.getElementById('welcome-message').textContent = `บันทึกกิจกรรม, ${username}!`;
+    }
+}
 
     function deleteUser(userId) {
         if (!confirm('คุณแน่ใจว่าต้องการลบผู้ใช้งานนี้?')) return;
@@ -2738,9 +2821,10 @@ function attachUserEventListeners() {
         loadAllActivities();
     }
 
-    function loadAllActivities() {
-        const allActivities = getFromLocalStorage('activities');
-        const allUsers = getFromLocalStorage('users');
+function loadAllActivities() {
+    const allActivities = getFromLocalStorage('activities');
+    const allUsers = getFromLocalStorage('users');
+    
     // ✅ เพิ่มการจัดเรียงข้อมูล: เรียงจากวันที่เก่าสุดไปใหม่สุด
     const sortedActivities = [...allActivities].sort((a, b) => {
         // ถ้าวันที่เท่ากัน ให้เรียงตามเวลาเริ่มต้น
@@ -2754,28 +2838,31 @@ function attachUserEventListeners() {
     const tableBody = document.querySelector('#all-activities-table tbody');
     tableBody.innerHTML = '';
 
-        allActivities.forEach(activity => {
-            const user = allUsers.find(u => u.id === activity.userId);
-            const row = document.createElement('tr');
-            const duration = calculateDuration(activity.startTime, activity.endTime);
-            row.innerHTML = `
-                <td>${user ? user.username : 'Unknown'}</td>
-                <td>${activity.activityName}</td>
-                <td>${formatDate(activity.date)}</td>
-                <td>${activity.startTime}</td>
-                <td>${activity.endTime}</td>
-                <td>${formatDuration(duration)}</td>
-                <td>${activity.details || '-'}</td>
-                <td class="action-buttons">
-                    <button class="edit-activity-admin" data-id="${activity.id}">แก้ไข</button>
-                    <button class="delete-activity-admin delete-button" data-id="${activity.id}">ลบ</button>
-                </td>
-            `;
-            tableBody.appendChild(row);
-        });
+    allActivities.forEach(activity => {
+        // ใช้ username จากกิจกรรม หรือค้นหาจาก users ถ้าไม่มี
+        const displayUsername = activity.username || 
+                               (allUsers.find(u => u.id === activity.userId)?.username || 'Unknown');
+        
+        const row = document.createElement('tr');
+        const duration = calculateDuration(activity.startTime, activity.endTime);
+        row.innerHTML = `
+            <td>${displayUsername}</td>
+            <td>${activity.activityName}</td>
+            <td>${formatDate(activity.date)}</td>
+            <td>${activity.startTime}</td>
+            <td>${activity.endTime}</td>
+            <td>${formatDuration(duration)}</td>
+            <td>${activity.details || '-'}</td>
+            <td class="action-buttons">
+                <button class="edit-activity-admin" data-id="${activity.id}">แก้ไข</button>
+                <button class="delete-activity-admin delete-button" data-id="${activity.id}">ลบ</button>
+            </td>
+        `;
+        tableBody.appendChild(row);
+    });
 
-        attachAdminActivityEventListeners();
-    }
+    attachAdminActivityEventListeners();
+}
 
     function attachAdminActivityEventListeners() {
         document.querySelectorAll('.edit-activity-admin').forEach(button => {
