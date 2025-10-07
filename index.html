@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -2965,7 +2966,7 @@ table th,
         loadAllActivities();
     }
 
-    // ========== Data Import/Export ==========
+ // ========== Data Import/Export ==========
 function exportData() {
     const data = {
         users: getFromLocalStorage('users'),
@@ -2979,11 +2980,16 @@ function exportData() {
     const link = document.createElement('a');
     link.href = url;
     
-    // เพิ่มเวลาตอนสำรองพ่วงท้าย
+    // สร้างชื่อไฟล์ในรูปแบบ YYYYMMDDHHMM (12 หลัก)
     const now = new Date();
-    const dateStr = now.toISOString().split('T')[0]; // วันที่
-    const timeStr = now.toTimeString().split(' ')[0].replace(/:/g, '-'); // เวลา แทน : ด้วย -
-    link.download = `สำรองกิจกรรม${dateStr}_${timeStr}.json`;
+    const year = now.getFullYear().toString(); // 4 หลัก
+    const month = (now.getMonth() + 1).toString().padStart(2, '0');
+    const day = now.getDate().toString().padStart(2, '0');
+    const hours = now.getHours().toString().padStart(2, '0');
+    const minutes = now.getMinutes().toString().padStart(2, '0');
+    
+    const timestamp = year + month + day + hours + minutes;
+    link.download = `สำรองกิจกรรม${timestamp}.json`;
     
     document.body.appendChild(link);
     link.click();
@@ -3051,52 +3057,62 @@ function exportData() {
         document.getElementById('import-data-input').click();
     }
 
-    // ========== Backup and Restore ==========
-    function backupData() {
-        const loggedInUser = getLoggedInUser();
-        if (!loggedInUser) return;
+// ========== Backup and Restore ==========
+function backupData() {
+    const loggedInUser = getLoggedInUser();
+    if (!loggedInUser) return;
 
-        const password = prompt('กรุณากรอกรหัสผ่านสำหรับการสำรองข้อมูล:');
-        if (!password) {
-            document.getElementById('backup-restore-message').textContent = 'ยกเลิกการสำรองข้อมูล';
-            return;
-        }
-
-        if (password.length < 4) {
-            document.getElementById('backup-restore-message').textContent = 'รหัสผ่านต้องมีความยาวอย่างน้อย 4 ตัวอักษร';
-            return;
-        }
-
-        try {
-            const allActivities = getFromLocalStorage('activities');
-            const userActivities = allActivities.filter(activity => activity.userId === loggedInUser.id);
-            
-            const data = {
-                activities: userActivities,
-                activityTypes: getFromLocalStorage('activityTypes'),
-                exportedAt: new Date().toISOString(),
-                exportedBy: loggedInUser.username
-            };
-
-            // เข้ารหัสข้อมูล
-            const encryptedData = encryptData(data, password);
-
-            const dataBlob = new Blob([encryptedData], { type: 'application/json' });
-            const url = URL.createObjectURL(dataBlob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = `my-activities-backup-${new Date().toISOString().split('T')[0]}.json`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            URL.revokeObjectURL(url);
-
-            document.getElementById('backup-restore-message').textContent = 'สำรองข้อมูลเรียบร้อยแล้ว (มีการเข้ารหัส)';
-        } catch (error) {
-            document.getElementById('backup-restore-message').textContent = 'เกิดข้อผิดพลาดในการสำรองข้อมูล: ' + error.message;
-        }
+    const password = prompt('กรุณากรอกรหัสผ่านสำหรับการสำรองข้อมูล:');
+    if (!password) {
+        document.getElementById('backup-restore-message').textContent = 'ยกเลิกการสำรองข้อมูล';
+        return;
     }
 
+    if (password.length < 4) {
+        document.getElementById('backup-restore-message').textContent = 'รหัสผ่านต้องมีความยาวอย่างน้อย 4 ตัวอักษร';
+        return;
+    }
+
+    try {
+        const allActivities = getFromLocalStorage('activities');
+        const userActivities = allActivities.filter(activity => activity.userId === loggedInUser.id);
+        
+        const data = {
+            activities: userActivities,
+            activityTypes: getFromLocalStorage('activityTypes'),
+            exportedAt: new Date().toISOString(),
+            exportedBy: loggedInUser.username
+        };
+
+        // เข้ารหัสข้อมูล
+        const encryptedData = encryptData(data, password);
+
+        // สร้างชื่อไฟล์ในรูปแบบ YYYYMMDDHHMM (12 หลัก)
+        const now = new Date();
+        const year = now.getFullYear().toString(); // 4 หลัก
+        const month = (now.getMonth() + 1).toString().padStart(2, '0');
+        const day = now.getDate().toString().padStart(2, '0');
+        const hours = now.getHours().toString().padStart(2, '0');
+        const minutes = now.getMinutes().toString().padStart(2, '0');
+        
+        const timestamp = year + month + day + hours + minutes;
+
+        const dataBlob = new Blob([encryptedData], { type: 'application/json' });
+        const url = URL.createObjectURL(dataBlob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `สำรองกิจกรรมใส่รหัสผ่าน${timestamp}.json`;
+
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+
+        document.getElementById('backup-restore-message').textContent = 'สำรองข้อมูลเรียบร้อยแล้ว (มีการเข้ารหัส)';
+    } catch (error) {
+        document.getElementById('backup-restore-message').textContent = 'เกิดข้อผิดพลาดในการสำรองข้อมูล: ' + error.message;
+    }
+}
     function restoreData(event) {
         const file = event.target.files[0];
         if (!file) return;
