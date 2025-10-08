@@ -1262,30 +1262,33 @@ table th,
         margin: 0 !important;
     }
 
-    /* ปรับปรุงตารางผู้ใช้งานทั้งหมดให้เลื่อนได้บนมือถือ */
-    #user-list-table-container {
+    /* ปรับปรุงตารางผู้ใช้งานในหน้า Admin สำหรับมือถือ */
+    #admin-page .table-container {
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
         border: 1px solid #ddd;
         border-radius: 5px;
-        margin-top: 20px;
+        margin-top: 15px;
     }
-    
-    #user-list-table {
-        min-width: 600px; /* กำหนดความกว้างขั้นต่ำเพื่อให้แน่ใจว่าตารางจะกว้างพอ */
-        width: 100%;
+
+    #admin-page #user-list-table {
+        table-layout: auto;
+        width: auto;
+        min-width: 100%;
+        font-size: 12px;
     }
-    
-    #user-list-table th,
-    #user-list-table td {
+
+    #admin-page #user-list-table th,
+    #admin-page #user-list-table td {
         white-space: nowrap;
         font-size: 11px;
         vertical-align: middle;
         padding: 6px 4px;
         line-height: 1.2;
     }
-    
-    #user-list-table .action-buttons {
+
+    /* ปรับปรุงปุ่มจัดการในตารางผู้ใช้งานบนมือถือ */
+    #admin-page #user-list-table .action-buttons {
         display: flex !important;
         flex-direction: row !important;
         gap: 3px !important;
@@ -1293,8 +1296,8 @@ table th,
         align-items: center !important;
         flex-wrap: nowrap !important;
     }
-    
-    #user-list-table .action-buttons button {
+
+    #admin-page #user-list-table .action-buttons button {
         padding: 4px 6px !important;
         font-size: 0.75rem !important;
         min-width: 50px !important;
@@ -1303,195 +1306,47 @@ table th,
     }
 }
 
-/* สำหรับหน้าจอขนาดเล็กมาก (เช่น iPhone SE) */
-@media (max-width: 320px) {
+/* Small Mobile Styles (สำหรับหน้าจอขนาดเล็กมาก) */
+@media (max-width: 480px) {
     .container {
         padding: 15px;
+        margin: 10px auto;
     }
-    
-    .form-section, .data-section {
-        padding: 10px;
+
+    .summaryResult th, 
+    .summaryResult td {
+        padding: 4px 3px !important;
+        font-size: 10px !important;
     }
-    
-    input[type="text"],
-    input[type="password"],
-    input[type="date"],
-    input[type="time"],
-    select,
-    textarea {
-        padding: 8px;
-        font-size: 0.85rem;
-    }
-    
-    button, .button-group button {
-        padding: 6px 10px;
-        font-size: 0.85rem;
-    }
-    
+
     .nav-row a {
         flex: 0 0 100%;
+        margin-bottom: 6px;
     }
-}
 
-/* ===== PWA INSTALL PROMPT ===== */
-#pwa-install-prompt {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    background-color: #333;
-    color: white;
-    padding: 15px;
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    z-index: 1001;
-    max-width: 300px;
-    display: none;
-}
+    .action-buttons {
+        flex-direction: column;
+        gap: 2px;
+    }
 
-#pwa-install-prompt button {
-    background-color: #007bff;
-    color: white;
-    border: none;
-    padding: 8px 15px;
-    border-radius: 4px;
-    cursor: pointer;
-    margin-right: 10px;
-}
+    .action-buttons button {
+        width: 100%;
+        margin: 1px 0;
+    }
 
-#pwa-install-prompt button:hover {
-    background-color: #0056b3;
-}
-
-#pwa-install-prompt #pwa-dismiss {
-    background-color: #6c757d;
-}
-
-#pwa-install-prompt #pwa-dismiss:hover {
-    background-color: #5a6268;
-}
-
-/* ===== UTILITY CLASSES ===== */
-.text-center {
-    text-align: center;
-}
-
-.text-right {
-    text-align: right;
-}
-
-.mt-10 {
-    margin-top: 10px;
-}
-
-.mt-20 {
-    margin-top: 20px;
-}
-
-.mb-10 {
-    margin-bottom: 10px;
-}
-
-.mb-20 {
-    margin-bottom: 20px;
-}
-
-/* ===== ACCESSIBILITY ===== */
-.sr-only {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
-}
-
-/* ===== ANIMATIONS ===== */
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
-.fade-in {
-    animation: fadeIn 0.3s ease-in-out;
-}
-
-/* ===== CUSTOM SCROLLBARS ===== */
-::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-}
-
-::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb {
-    background: #c1c1c1;
-    border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: #a8a8a8;
-}
-
-/* ===== PRINT STYLES FOR SUMMARY MODAL ===== */
-@media print {
-    .summary-modal-overlay {
-        display: block !important;
-        position: static !important;
-        background: none !important;
-        width: 100% !important;
-        height: auto !important;
-        overflow: visible !important;
+    /* สำหรับหน้าจอขนาดเล็กมาก */
+    #user-list-table .action-buttons,
+    #all-activities-table .action-buttons {
+        flex-direction: row !important;
+        gap: 2px !important;
     }
     
-    .summary-modal-content-container {
-        box-shadow: none !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        width: 100% !important;
-        max-width: 100% !important;
-        background: none !important;
-    }
-    
-    .summary-modal-controls,
-    .summary-modal-close-btn {
-        display: none !important;
-    }
-    
-    .summaryResult {
-        background: none !important;
-        padding: 0 !important;
-        margin: 0 !important;
-    }
-    
-    .summaryResult table {
-        width: 100% !important;
-        font-size: 12px !important;
-    }
-    
-    .summaryResult th, .summaryResult td {
-        padding: 6px 4px !important;
-        font-size: 11px !important;
-    }
-    
-    /* Ensure visibility */
-    .summary-modal-overlay * {
-        visibility: visible !important;
-    }
-    
-    /* Page break control */
-    .summary-section {
-        page-break-inside: avoid !important;
-    }
-    
-    /* Hide other elements */
-    body > *:not(.summary-modal-overlay) {
-        display: none !important;
+    #user-list-table .action-buttons button,
+    #all-activities-table .action-buttons button {
+        width: auto !important;
+        margin: 0 1px !important;
+        padding: 3px 5px !important;
+        font-size: 0.7rem !important;
     }
 }
 </style>
