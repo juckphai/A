@@ -15,7 +15,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
     
 <style>
-/* ===== BASE STYLES ===== */
+/* ===== RESET & BASE STYLES ===== */
 body {
     font-family: Arial, sans-serif;
     margin: 0;
@@ -37,7 +37,7 @@ body {
     display: none !important;
 }
 
-/* ===== TYPOGRAPHY & MESSAGES ===== */
+/* ===== TYPOGRAPHY ===== */
 header h1, .container h1 {
     color: #0056b3;
     margin: 0;
@@ -76,6 +76,7 @@ p {
     font-size: clamp(0.6rem, 1.8vw, 1rem);
 }
 
+/* ===== MESSAGES & FEEDBACK ===== */
 .error-message {
     color: red;
     margin-top: 10px;
@@ -216,7 +217,7 @@ header nav a.active {
     background: #636e72;
 }
 
-/* ===== BUTTONS & ACTIONS ===== */
+/* ===== BUTTONS & CONTROLS ===== */
 button, .button-group button {
     background-color: #007bff;
     color: white;
@@ -282,6 +283,23 @@ button:disabled, .button-group button:disabled {
 
 .action-buttons .delete-button:hover {
     color: #bd2130;
+}
+
+/* สำหรับตารางกิจกรรมเท่านั้น */
+#activity-list-table .action-buttons {
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 5px !important;
+    justify-content: center !important;
+    align-items: center !important;
+    flex-wrap: nowrap !important;
+}
+
+#activity-list-table .action-buttons button {
+    padding: 4px 8px !important;
+    font-size: 0.8rem !important;
+    white-space: nowrap !important;
+    margin: 0 !important;
 }
 
 /* ===== FORMS & INPUTS ===== */
@@ -531,7 +549,7 @@ table th,
     display: block;
 }
 
-/* ===== MODALS ===== */
+/* ===== MODALS & DIALOGS ===== */
 .modal {
     display: none;
     position: fixed;
@@ -1104,36 +1122,6 @@ table th,
         overflow-x: auto;
         -webkit-overflow-scrolling: touch;
     }
-}
-
-/* Small Mobile Styles (สำหรับหน้าจอขนาดเล็กมาก) */
-@media (max-width: 480px) {
-    .container {
-        padding: 15px;
-        margin: 10px auto;
-    }
-
-    .summaryResult th, 
-    .summaryResult td {
-        padding: 4px 3px !important;
-        font-size: 10px !important;
-    }
-
-    .nav-row a {
-        flex: 0 0 100%;
-        margin-bottom: 6px;
-    }
-
-    .action-buttons {
-        flex-direction: column;
-        gap: 2px;
-    }
-
-    .action-buttons button {
-        width: 100%;
-        margin: 1px 0;
-    }
-}
 
     #logout-button {
         width: 100%;
@@ -1207,6 +1195,46 @@ table th,
     #admin-page .button-group.horizontal::-webkit-scrollbar-thumb {
         background-color: rgba(0, 0, 0, 0.2);
         border-radius: 2px;
+    }
+
+    /* สำหรับมือถือเท่านั้น */
+    #activity-list-table .action-buttons {
+        flex-direction: row !important;
+        gap: 3px !important;
+    }
+    
+    #activity-list-table .action-buttons button {
+        padding: 3px 6px !important;
+        font-size: 0.75rem !important;
+    }
+}
+
+/* Small Mobile Styles (สำหรับหน้าจอขนาดเล็กมาก) */
+@media (max-width: 480px) {
+    .container {
+        padding: 15px;
+        margin: 10px auto;
+    }
+
+    .summaryResult th, 
+    .summaryResult td {
+        padding: 4px 3px !important;
+        font-size: 10px !important;
+    }
+
+    .nav-row a {
+        flex: 0 0 100%;
+        margin-bottom: 6px;
+    }
+
+    .action-buttons {
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    .action-buttons button {
+        width: 100%;
+        margin: 1px 0;
     }
 }
 </style>
