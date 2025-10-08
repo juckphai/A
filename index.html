@@ -1593,7 +1593,13 @@ table th,
             คุณจะต้องใช้รหัสผ่านเดียวกันนี้ในการกู้คืนข้อมูล
         </p>
     </section>
-
+<section class="form-section">
+    <h2>จัดการข้อมูลระบบ</h2>
+    <div class="button-group horizontal admin-button-group">
+        <button id="cleanup-data-button" style="background-color: #dc3545;">ล้างข้อมูลขยะ</button>
+    </div>
+    <p id="cleanup-message" class="info-message"></p>
+</section>
 <!-- แทนที่ส่วน User Management Section ในหน้า Admin ด้วยโค้ดนี้ -->
 <section class="form-section">
     <h2>เพิ่มผู้ใช้งานใหม่</h2>
@@ -3008,6 +3014,110 @@ function generateSummary(startDate, endDate, summaryType = 'all-time') {
 }
 
     // ========== Admin Functionality ==========
+// ========== Data Cleanup Functionality ==========
+function setupDataCleanup() {
+    const cleanupButton = document.getElementById('cleanup-data-button');
+    if (cleanupButton) {
+        cleanupButton.addEventListener('click', handleDataCleanup);
+    }
+}
+
+function handleDataCleanup() {
+    if (!confirm('คุณแน่ใจว่าต้องการล้างข้อมูลขยะ?\n\nการดำเนินการนี้จะลบ:\n• กิจกรรมที่ไม่มีผู้ใช้งานในระบบ\n• ประเภทกิจกรรมที่ไม่มีผู้ใช้งานในระบบ\n\nการดำเนินการนี้ไม่สามารถย้อนกลับได้')) {
+        return;
+    }
+
+    try {
+        const result = performDataCleanup();
+        const messageElement = document.getElementById('cleanup-message');
+        
+        if (result.deletedActivities > 0 || result.deletedActivityTypes > 0) {
+            messageElement.textContent = `ล้างข้อมูลขยะเรียบร้อยแล้ว: ลบกิจกรรม ${result.deletedActivities} รายการ, ลบประเภทกิจกรรม ${result.deletedActivityTypes} รายการ`;
+            messageElement.className = 'success-message';
+            
+            // โหลดข้อมูลใหม่
+            loadAllUsers();
+            loadAllActivities();
+            loadActivityTypes();
+            populateActivityTypeDropdowns('activity-name-select');
+            populateActivityTypeDropdowns('filter-activity-type');
+            populateActivityTypeDropdowns('admin-filter-activity-type');
+        } else {
+            messageElement.textContent = 'ไม่พบข้อมูลขยะในระบบ';
+            messageElement.className = 'info-message';
+        }
+        
+        // ล้างข้อความหลังจาก 5 วินาที
+        setTimeout(() => {
+            messageElement.textContent = '';
+        }, 5000);
+        
+    } catch (error) {
+        const messageElement = document.getElementById('cleanup-message');
+        messageElement.textContent = 'เกิดข้อผิดพลาดในการล้างข้อมูลขยะ: ' + error.message;
+        messageElement.className = 'error-message';
+        console.error('Data cleanup error:', error);
+    }
+}
+
+function performDataCleanup() {
+    const users = getFromLocalStorage('users');
+    const activities = getFromLocalStorage('activities');
+    const activityTypes = getFromLocalStorage('activityTypes');
+    
+    // สร้าง Set ของ user IDs ที่มีอยู่ในระบบ
+    const validUserIds = new Set(users.map(user => user.id));
+    
+    let deletedActivities = 0;
+    let deletedActivityTypes = 0;
+    
+    // ลบกิจกรรมที่ไม่มีผู้ใช้งาน
+    const cleanedActivities = activities.filter(activity => {
+        if (validUserIds.has(activity.userId)) {
+            return true;
+        } else {
+            deletedActivities++;
+            return false;
+        }
+    });
+    
+    // ลบประเภทกิจกรรมที่ไม่มีผู้ใช้งาน
+    const cleanedActivityTypes = activityTypes.filter(type => {
+        if (validUserIds.has(type.userId)) {
+            return true;
+        } else {
+            deletedActivityTypes++;
+            return false;
+        }
+    });
+    
+    // บันทึกข้อมูลที่ทำความสะอาดแล้ว
+    saveToLocalStorage('activities', cleanedActivities);
+    saveToLocalStorage('activityTypes', cleanedActivityTypes);
+    
+    return {
+        deletedActivities,
+        deletedActivityTypes
+    };
+}
+
+// เพิ่มฟังก์ชันตรวจสอบข้อมูลขยะ (สำหรับแสดงสถิติ)
+function checkOrphanedData() {
+    const users = getFromLocalStorage('users');
+    const activities = getFromLocalStorage('activities');
+    const activityTypes = getFromLocalStorage('activityTypes');
+    
+    const validUserIds = new Set(users.map(user => user.id));
+    
+    const orphanedActivities = activities.filter(activity => !validUserIds.has(activity.userId));
+    const orphanedActivityTypes = activityTypes.filter(type => !validUserIds.has(type.userId));
+    
+    return {
+        orphanedActivities: orphanedActivities.length,
+        orphanedActivityTypes: orphanedActivityTypes.length
+    };
+}
+
     function loadAllUsers() {
         const users = getFromLocalStorage('users');
         
@@ -4628,6 +4738,7 @@ function initializeApp() {
         setupEventListeners();
         setupModals();
         setupImportFromOtherUser(); // เพิ่มบรรทัดนี้
+        setupDataCleanup(); // เพิ่มบรรทัดนี้
 
         // Populate activity type dropdowns
         populateActivityTypeDropdowns('activity-name-select');
