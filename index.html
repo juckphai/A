@@ -903,25 +903,28 @@ table th,
     .action-buttons {
         flex-direction: row;
         gap: 3px;
+        justify-content: center;
     }
 
     .action-buttons button {
         padding: 4px 6px;
         font-size: 0.8rem;
+        min-width: 50px;
     }
 
     .nav-row {
-        flex-direction: row; /* Keep as row for wrap */
+        flex-direction: row;
         flex-wrap: wrap;
         justify-content: space-between;
+        gap: 8px;
     }
 
     .nav-row a {
-        flex: 0 0 48%; /* Two columns */
+        flex: 0 0 48%;
         text-align: center;
-        margin-bottom: 10px;
-        padding: 12px 8px;
-        font-size: 0.9rem;
+        margin-bottom: 8px;
+        padding: 10px 8px;
+        font-size: 0.85rem;
     }
 
     .menu-toggle {
@@ -938,6 +941,7 @@ table th,
         table-layout: auto;
         width: auto;
         min-width: 100%;
+        font-size: 12px;
     }
 
     #modalBodyContent table th, #modalBodyContent table td,
@@ -950,6 +954,7 @@ table th,
         font-size: 11px;
         vertical-align: middle;
         padding: 6px 4px;
+        line-height: 1.2;
     }
 
     table th, table td {
@@ -963,6 +968,57 @@ table th,
         vertical-align: middle;
     }
 
+    /* ปรับปรุงตารางสรุปกิจกรรมบนมือถือ */
+    .summaryResult {
+        padding: 8px !important;
+        margin: 0 !important;
+        width: 100% !important;
+        overflow-x: auto;
+    }
+
+    .summaryResult table {
+        font-size: 12px !important;
+        width: 100% !important;
+        table-layout: auto;
+        min-width: 100%;
+    }
+
+    .summaryResult th, 
+    .summaryResult td {
+        padding: 6px 4px !important;
+        font-size: 11px !important;
+        white-space: nowrap;
+        text-align: center;
+        vertical-align: middle;
+        line-height: 1.2;
+    }
+
+    /* ปรับปรุงระยะห่างระหว่างหัวข้อและเนื้อหา */
+    .summaryResult h2 {
+        margin-bottom: 8px !important;
+        line-height: 1.2 !important;
+        font-size: clamp(1.2rem, 4vw, 1.6rem) !important;
+    }
+
+    .summaryResult h3 {
+        margin-bottom: 6px !important;
+        line-height: 1.2 !important;
+        font-size: clamp(1rem, 3.5vw, 1.3rem) !important;
+    }
+
+    .summaryResult h4 {
+        margin-top: 10px !important;
+        margin-bottom: 5px !important;
+        line-height: 1.2 !important;
+        font-size: clamp(0.9rem, 3vw, 1.1rem) !important;
+    }
+
+    .summaryResult p {
+        margin: 2px 0 !important;
+        line-height: 1.3 !important;
+        font-size: clamp(0.7rem, 2.5vw, 0.9rem) !important;
+    }
+
     .summary-modal-overlay {
         padding: 5px;
         align-items: flex-start;
@@ -974,53 +1030,6 @@ table th,
         border-radius: 8px;
     }
 
-    .summaryResult {
-        padding: 5px !important;
-        transform: none !important;
-    }
-
-    .summaryResult h2 {
-        color: #0056b3;
-        margin-bottom: 8px !important;
-        line-height: 1.0 !important;
-        font-size: clamp(1.2rem, 3.5vw, 2em) !important;
-    }
-
-    .summaryResult h3 {
-        color: #333;
-        margin-bottom: 8px !important;
-        line-height: 1.0 !important;
-        font-size: clamp(1rem, 3vw, 1.5em) !important;
-    }
-
-    .summaryResult h4 {
-        color: #0056b3;
-        margin-top: 15px !important;
-        margin-bottom: 8px !important;
-        line-height: 1.0 !important;
-        font-size: clamp(0.9rem, 2.8vw, 1.0em) !important;
-    }
-
-    .summaryResult p {
-        margin: 3px 0 !important;
-        line-height: 1.0 !important;
-        font-size: clamp(0.6rem, 1.8vw, 1rem) !important;
-    }
-
-    .summaryResult > div > div:first-child p {
-        margin: 2px 0 !important;
-        line-height: 1.0 !important;
-    }
-
-    .summaryResult table {
-        font-size: 12px !important;
-    }
-
-    .summaryResult th, .summaryResult td {
-        padding: 4px 3px !important;
-        font-size: 11px !important;
-    }
-
     .summary-modal-controls {
         padding: 8px;
     }
@@ -1029,6 +1038,102 @@ table th,
     .summary-control-group span {
         font-size: 14px;
     }
+
+    /* ปรับปรุงฟอร์มบนมือถือ */
+    .form-section, .data-section {
+        padding: 15px;
+        margin-bottom: 20px;
+    }
+
+    input[type="text"],
+    input[type="password"],
+    input[type="date"],
+    input[type="time"],
+    select,
+    textarea {
+        padding: 10px;
+        font-size: 0.9rem;
+    }
+
+    /* ปรับปรุงส่วนกรอกเวลา */
+    .time-inputs-container {
+        flex-direction: row;
+        justify-content: space-between;
+        gap: 5px;
+    }
+
+    .time-input-group {
+        min-width: 45%;
+        flex: 1;
+    }
+
+    .time-input-group input[type="time"] {
+        padding: 8px;
+        font-size: 0.85rem;
+    }
+
+    .time-label {
+        font-size: 0.75rem;
+    }
+
+    .time-separator {
+        align-self: center;
+        margin: 0 5px;
+        font-size: 0.85rem;
+    }
+
+    /* ปรับปรุงปุ่มบนมือถือ */
+    button, .button-group button {
+        padding: 8px 12px;
+        font-size: 0.9rem;
+    }
+
+    /* ปรับปรุงส่วนกรองข้อมูล */
+    .filter-controls {
+        gap: 8px;
+    }
+
+    .filter-controls input, 
+    .filter-controls button, 
+    .filter-controls select {
+        padding: 8px;
+    }
+
+    /* ปรับปรุงตารางให้เลื่อนได้บนมือถือ */
+    .table-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+}
+
+/* Small Mobile Styles (สำหรับหน้าจอขนาดเล็กมาก) */
+@media (max-width: 480px) {
+    .container {
+        padding: 15px;
+        margin: 10px auto;
+    }
+
+    .summaryResult th, 
+    .summaryResult td {
+        padding: 4px 3px !important;
+        font-size: 10px !important;
+    }
+
+    .nav-row a {
+        flex: 0 0 100%;
+        margin-bottom: 6px;
+    }
+
+    .action-buttons {
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    .action-buttons button {
+        width: 100%;
+        margin: 1px 0;
+    }
+}
 
     #logout-button {
         width: 100%;
@@ -2378,116 +2483,116 @@ table th,
         generateSummary(startDate, endDate, summaryType);
     }
 
-    function generateSummary(startDate, endDate, summaryType = 'all-time') {
-        const loggedInUser = getLoggedInUser();
-        if (!loggedInUser) return;
+function generateSummary(startDate, endDate, summaryType = 'all-time') {
+    const loggedInUser = getLoggedInUser();
+    if (!loggedInUser) return;
 
-        const allActivities = getFromLocalStorage('activities');
-        let userActivities = allActivities.filter(activity => activity.userId === loggedInUser.id);
+    const allActivities = getFromLocalStorage('activities');
+    let userActivities = allActivities.filter(activity => activity.userId === loggedInUser.id);
 
-        // ✅ เพิ่มการจัดเรียงข้อมูล: เรียงจากวันที่เก่าสุดไปใหม่สุด
-        userActivities.sort((a, b) => {
-            if (a.date === b.date) {
-                return a.startTime.localeCompare(b.startTime);
-            }
-            return a.date.localeCompare(b.date);
-        });
-
-        // 🔥 **แก้ไขส่วนนี้ - สำหรับสรุปอย่างย่อ ให้ใช้ข้อมูลทั้งหมด แต่แสดงเฉพาะรายการล่าสุด**
-        let displayActivities = userActivities; // ใช้สำหรับแสดงผล
-        let summaryActivities = userActivities; // ใช้สำหรับคำนวณสถิติ
-
-        // 🔥 **แก้ไขส่วนนี้ - คำนวณวันที่เริ่มต้นและสิ้นสุดที่ถูกต้องสำหรับสรุปอย่างย่อ**
-        let actualStartDate = startDate;
-        let actualEndDate = endDate;
-
-        if (summaryType === 'brief-summary' && userActivities.length > 0) {
-            // สำหรับสรุปอย่างย่อ: ใช้ข้อมูลทั้งหมดในการคำนวณสถิติ
-            // แต่แสดงเฉพาะกิจกรรมล่าสุดในตาราง
-            const latestDate = userActivities[userActivities.length - 1].date;
-            displayActivities = userActivities.filter(activity => activity.date === latestDate);
-            
-            // 🔥 **กำหนดวันที่เริ่มต้นและสิ้นสุดที่ถูกต้องสำหรับสรุปอย่างย่อ**
-            const earliestDate = userActivities[0].date;
-            actualStartDate = earliestDate;
-            actualEndDate = latestDate;
+    // ✅ เพิ่มการจัดเรียงข้อมูล: เรียงจากวันที่เก่าสุดไปใหม่สุด
+    userActivities.sort((a, b) => {
+        if (a.date === b.date) {
+            return a.startTime.localeCompare(b.startTime);
         }
+        return a.date.localeCompare(b.date);
+    });
 
-        // กรองกิจกรรมตามช่วงวันที่ที่เลือก (สำหรับประเภทอื่น)
-        if (startDate && endDate) {
-            summaryActivities = summaryActivities.filter(activity => {
-                const activityDate = activity.date;
-                return activityDate >= startDate && activityDate <= endDate;
-            });
-            displayActivities = displayActivities.filter(activity => {
-                const activityDate = activity.date;
-                return activityDate >= startDate && activityDate <= endDate;
-            });
-        } else if (startDate) {
-            summaryActivities = summaryActivities.filter(activity => activity.date === startDate);
-            displayActivities = displayActivities.filter(activity => activity.date === startDate);
-        }
+    // 🔥 **แก้ไขส่วนนี้ - สำหรับสรุปอย่างย่อ ให้ใช้ข้อมูลทั้งหมด แต่แสดงเฉพาะ 4 รายการล่าสุด**
+    let displayActivities = userActivities; // ใช้สำหรับแสดงผล
+    let summaryActivities = userActivities; // ใช้สำหรับคำนวณสถิติ
 
-        // ส่วนที่เหลือของโค้ดให้ใช้ summaryActivities สำหรับคำนวณสถิติ
-        const activityTypes = getFromLocalStorage('activityTypes');
-        const typeTotals = {};
-        let totalDurationAll = 0;
+    // 🔥 **แก้ไขส่วนนี้ - คำนวณวันที่เริ่มต้นและสิ้นสุดที่ถูกต้องสำหรับสรุปอย่างย่อ**
+    let actualStartDate = startDate;
+    let actualEndDate = endDate;
+
+    if (summaryType === 'brief-summary' && userActivities.length > 0) {
+        // สำหรับสรุปอย่างย่อ: ใช้ข้อมูลทั้งหมดในการคำนวณสถิติ
+        // แต่แสดงเฉพาะ 4 กิจกรรมล่าสุดในตาราง
+        displayActivities = userActivities.slice(-4); // 🔥 เปลี่ยนเป็น 4 รายการล่าสุด
         
-        const activityDates = new Set();
-        
-        // 🔥 **ใช้ summaryActivities สำหรับคำนวณสถิติ**
-        summaryActivities.forEach(activity => {
-            const duration = calculateDuration(activity.startTime, activity.endTime);
-            if (duration > 0) {
-                if (!typeTotals[activity.activityName]) {
-                    typeTotals[activity.activityName] = 0;
-                }
-                typeTotals[activity.activityName] += duration;
-                totalDurationAll += duration;
-                activityDates.add(activity.date);
-            }
-        });
-
-        // คำนวณข้อมูลวันที่สำหรับสรุป
-        let totalDays = 0;
-        let daysWithActivities = 0;
-        let daysWithoutActivities = 0;
-        
-        // 🔥 **ใช้ actualStartDate และ actualEndDate สำหรับคำนวณ**
-        const calcStartDate = actualStartDate || (userActivities.length > 0 ? userActivities[0].date : null);
-        const calcEndDate = actualEndDate || (userActivities.length > 0 ? userActivities[userActivities.length - 1].date : null);
-        
-        if (calcStartDate && calcEndDate) {
-            const start = new Date(calcStartDate);
-            const end = new Date(calcEndDate);
-            totalDays = Math.floor((end - start) / (1000 * 60 * 60 * 24)) + 1;
-            daysWithActivities = activityDates.size;
-            daysWithoutActivities = totalDays - daysWithActivities;
-        } else {
-            totalDays = 0;
-            daysWithActivities = 0;
-            daysWithoutActivities = 0;
-        }
-
-        // เก็บข้อมูลสรุปสำหรับการส่งออก
-        // 🔥 **ใช้ displayActivities สำหรับแสดงผลในตาราง และเพิ่ม actualStartDate, actualEndDate**
-        summaryContext = {
-            userActivities: displayActivities, // ใช้ displayActivities สำหรับแสดงตาราง
-            typeTotals,
-            totalDurationAll,
-            startDate: actualStartDate, // 🔥 ใช้ actualStartDate
-            endDate: actualEndDate,     // 🔥 ใช้ actualEndDate
-            activityTypes,
-            totalDays,
-            daysWithActivities,
-            daysWithoutActivities,
-            loggedInUser,
-            summaryType
-        };
-
-        // แสดง modal เลือกรูปแบบการแสดงผล
-        document.getElementById('summaryOutputModal').style.display = 'flex';
+        // 🔥 **กำหนดวันที่เริ่มต้นและสิ้นสุดที่ถูกต้องสำหรับสรุปอย่างย่อ**
+        const earliestDate = userActivities[0].date;
+        const latestDate = userActivities[userActivities.length - 1].date;
+        actualStartDate = earliestDate;
+        actualEndDate = latestDate;
     }
+
+    // กรองกิจกรรมตามช่วงวันที่ที่เลือก (สำหรับประเภทอื่น)
+    if (startDate && endDate) {
+        summaryActivities = summaryActivities.filter(activity => {
+            const activityDate = activity.date;
+            return activityDate >= startDate && activityDate <= endDate;
+        });
+        displayActivities = displayActivities.filter(activity => {
+            const activityDate = activity.date;
+            return activityDate >= startDate && activityDate <= endDate;
+        });
+    } else if (startDate) {
+        summaryActivities = summaryActivities.filter(activity => activity.date === startDate);
+        displayActivities = displayActivities.filter(activity => activity.date === startDate);
+    }
+
+    // ส่วนที่เหลือของโค้ดให้ใช้ summaryActivities สำหรับคำนวณสถิติ
+    const activityTypes = getFromLocalStorage('activityTypes');
+    const typeTotals = {};
+    let totalDurationAll = 0;
+    
+    const activityDates = new Set();
+    
+    // 🔥 **ใช้ summaryActivities สำหรับคำนวณสถิติ**
+    summaryActivities.forEach(activity => {
+        const duration = calculateDuration(activity.startTime, activity.endTime);
+        if (duration > 0) {
+            if (!typeTotals[activity.activityName]) {
+                typeTotals[activity.activityName] = 0;
+            }
+            typeTotals[activity.activityName] += duration;
+            totalDurationAll += duration;
+            activityDates.add(activity.date);
+        }
+    });
+
+    // คำนวณข้อมูลวันที่สำหรับสรุป
+    let totalDays = 0;
+    let daysWithActivities = 0;
+    let daysWithoutActivities = 0;
+    
+    // 🔥 **ใช้ actualStartDate และ actualEndDate สำหรับคำนวณ**
+    const calcStartDate = actualStartDate || (userActivities.length > 0 ? userActivities[0].date : null);
+    const calcEndDate = actualEndDate || (userActivities.length > 0 ? userActivities[userActivities.length - 1].date : null);
+    
+    if (calcStartDate && calcEndDate) {
+        const start = new Date(calcStartDate);
+        const end = new Date(calcEndDate);
+        totalDays = Math.floor((end - start) / (1000 * 60 * 60 * 24)) + 1;
+        daysWithActivities = activityDates.size;
+        daysWithoutActivities = totalDays - daysWithActivities;
+    } else {
+        totalDays = 0;
+        daysWithActivities = 0;
+        daysWithoutActivities = 0;
+    }
+
+    // เก็บข้อมูลสรุปสำหรับการส่งออก
+    // 🔥 **ใช้ displayActivities สำหรับแสดงผลในตาราง และเพิ่ม actualStartDate, actualEndDate**
+    summaryContext = {
+        userActivities: displayActivities, // ใช้ displayActivities สำหรับแสดงตาราง
+        typeTotals,
+        totalDurationAll,
+        startDate: actualStartDate, // 🔥 ใช้ actualStartDate
+        endDate: actualEndDate,     // 🔥 ใช้ actualEndDate
+        activityTypes,
+        totalDays,
+        daysWithActivities,
+        daysWithoutActivities,
+        loggedInUser,
+        summaryType
+    };
+
+    // แสดง modal เลือกรูปแบบการแสดงผล
+    document.getElementById('summaryOutputModal').style.display = 'flex';
+}
 
     // ========== Admin Functionality ==========
     function loadAllUsers() {
@@ -3300,14 +3405,14 @@ function backupData() {
             // 🔥 สำหรับสรุปอย่างย่อ แสดงวันที่ที่มีข้อมูลจริง
             if (startDate && endDate) {
                 summaryHTML += `
-                    <div style="text-align: center; margin-bottom: 2px;">
+                    <div style="text-align: center; margin-bottom: 1px;">
                         <h3 style="color: blue; font-size: clamp(0.8rem, 2.5vw, 1rem); line-height: 1.0; margin: 0;">
                             จากข้อมูลวันที่ ${formatDate(startDate)} ถึง ${formatDate(endDate)}
                         </h3>
                     </div>`;
             } else {
                 summaryHTML += `
-                    <div style="text-align: center; margin-bottom: 2px;">
+                    <div style="text-align: center; margin-bottom: 1px;">
                         <h3 style="color: blue; font-size: clamp(0.8rem, 2.5vw, 1rem); line-height: 1.0; margin: 0;">
                             ข้อมูลทั้งหมดที่มี
                         </h3>
@@ -3315,7 +3420,7 @@ function backupData() {
             }
         } else if (startDate && endDate && startDate !== endDate) {
             summaryHTML += `
-                <div style="text-align: center; margin-bottom: 2px;">
+                <div style="text-align: center; margin-bottom: 1px;">
                     <h3 style="color: blue; font-size: clamp(0.8rem, 2.5vw, 1rem); line-height: 1.0; margin: 0;">
                         ช่วงวันที่ ${formatDate(startDate)} ถึง ${formatDate(endDate)}
                     </h3>
@@ -3323,7 +3428,7 @@ function backupData() {
         } 
         else if (startDate) {
             summaryHTML += `
-                <div style="text-align: center; margin-bottom: 2px;">
+                <div style="text-align: center; margin-bottom: 1px;">
                     <h3 style="color: blue; font-size: clamp(0.8rem, 2.5vw, 1rem); line-height: 1.0; margin: 0;">
                         สรุปข้อมูลของวันที่ ${formatDate(startDate)}
                     </h3>
@@ -3350,18 +3455,18 @@ function backupData() {
 
         // เพิ่มข้อมูลสรุปจำนวนวัน
         summaryHTML += `
-            <div style="background-color: #FAFAD2; padding: 5px; margin-bottom: 2px; text-align: center; color: blue;">
-                <h4 style="margin-top: 0; font-size: clamp(0.7rem, 2vw, 1.0rem); line-height: 1;">สรุปจำนวนวัน</h4>
-                <p style="margin: 5px 0; font-size: clamp(0.6rem, 1.8vw, 1rem); line-height: 1;">• จำนวนวันทั้งหมด: ${totalDays} วัน</p>
-                <p style="margin: 5px 0; font-size: clamp(0.6rem, 1.8vw, 1rem); line-height: 1;">• มีกิจกรรม: ${daysWithActivities} วัน</p>
-                <p style="margin: 5px 0; font-size: clamp(0.6rem, 1.8vw, 1rem); line-height: 1;">• ไม่มีกิจกรรม: ${daysWithoutActivities} วัน</p>
-                <p style="margin: 5px 0; font-size: clamp(0.6rem, 1.8vw, 1rem); line-height: 1;">• เวลารวมทั้งหมด: ${formatDuration(totalDurationAll)}</p>
-                <p style="margin: 5px 0; font-size: clamp(0.6rem, 1.8vw, 1rem); line-height: 1;">• เวลาเฉลี่ยต่อวัน (เฉพาะวันที่มีกิจกรรม): ${formatDuration(avgDurationPerDay)}</p>
-            </div>
-            `;
+    <div style="background-color: #FAFAD2; padding: 5px; margin-bottom: 1px; text-align: center; color: blue;">
+        <h4 style="margin-top: 0; font-size: clamp(0.9rem, 2.8vw, 1.2rem); line-height: 1;">สรุปจำนวนวัน</h4>
+        <p style="margin: 5px 0; font-size: clamp(0.8rem, 2.2vw, 1rem); line-height: 1.2;">• จำนวนวันทั้งหมด: ${totalDays} วัน</p>
+        <p style="margin: 5px 0; font-size: clamp(0.8rem, 2.2vw, 1rem); line-height: 1.2;">• มีกิจกรรม: ${daysWithActivities} วัน</p>
+        <p style="margin: 5px 0; font-size: clamp(0.8rem, 2.2vw, 1rem); line-height: 1.2;">• ไม่มีกิจกรรม: ${daysWithoutActivities} วัน</p>
+        <p style="margin: 5px 0; font-size: clamp(0.8rem, 2.2vw, 1rem); line-height: 1.2;">• เวลารวมทั้งหมด: ${formatDuration(totalDurationAll)}</p>
+        <p style="margin: 5px 0; font-size: clamp(0.8rem, 2.2vw, 1rem); line-height: 1.2;">• เวลาเฉลี่ยต่อวัน (เฉพาะวันที่มีกิจกรรม): ${formatDuration(avgDurationPerDay)}</p>
+    </div>
+`;
             
         summaryHTML += `
-                <h4 style="color: #0056b3; margin-top: 2px; font-size: clamp(0.9rem, 2.8vw, 1.0em);">
+                <h4 style="color: #0056b3; margin-top: 1px; font-size: clamp(0.9rem, 2.8vw, 1.0em);">
                     สรุปตามประเภทกิจกรรม
                 </h4>
                 <table style="width: 100%; border-collapse: collapse; margin: 15px 0; font-size: clamp(0.75rem, 2vw, 1em);">
