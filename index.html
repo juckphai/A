@@ -1223,6 +1223,44 @@ table th,
         padding: 3px 6px !important;
         font-size: 0.75rem !important;
     }
+
+    /* เพิ่ม CSS นี้ในส่วน Responsive Styles - Mobile Styles */
+
+    /* ปรับปรุงตารางผู้ใช้งานในหน้า Admin */
+    #user-list-table .action-buttons {
+        display: flex !important;
+        flex-direction: row !important;
+        gap: 3px !important;
+        justify-content: center !important;
+        align-items: center !important;
+        flex-wrap: nowrap !important;
+    }
+    
+    #user-list-table .action-buttons button {
+        padding: 4px 6px !important;
+        font-size: 0.75rem !important;
+        min-width: 50px !important;
+        white-space: nowrap !important;
+        margin: 0 !important;
+    }
+    
+    /* ปรับปรุงตารางกิจกรรมทั้งหมดในหน้า Admin */
+    #all-activities-table .action-buttons {
+        display: flex !important;
+        flex-direction: row !important;
+        gap: 3px !important;
+        justify-content: center !important;
+        align-items: center !important;
+        flex-wrap: nowrap !important;
+    }
+    
+    #all-activities-table .action-buttons button {
+        padding: 4px 6px !important;
+        font-size: 0.75rem !important;
+        min-width: 50px !important;
+        white-space: nowrap !important;
+        margin: 0 !important;
+    }
 }
 
 /* Small Mobile Styles (สำหรับหน้าจอขนาดเล็กมาก) */
@@ -1251,6 +1289,21 @@ table th,
     .action-buttons button {
         width: 100%;
         margin: 1px 0;
+    }
+
+    /* สำหรับหน้าจอขนาดเล็กมาก */
+    #user-list-table .action-buttons,
+    #all-activities-table .action-buttons {
+        flex-direction: row !important;
+        gap: 2px !important;
+    }
+    
+    #user-list-table .action-buttons button,
+    #all-activities-table .action-buttons button {
+        width: auto !important;
+        margin: 0 1px !important;
+        padding: 3px 5px !important;
+        font-size: 0.7rem !important;
     }
 }
 </style>
