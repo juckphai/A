@@ -1528,7 +1528,50 @@ table th,
 
         <!-- ส่วนที่เหลือของโค้ด HTML ยังคงเหมือนเดิมทุกประการ -->
         <!-- Admin Page Content -->
+
+<!-- เพิ่ม Modal สำหรับการนำเข้าข้อมูลจากบัญชีอื่น -->
+<div id="import-from-other-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">นำเข้าข้อมูลจากบัญชีอื่น</h3>
+            <button class="close-modal">&times;</button>
+        </div>
+        <form id="import-from-other-form">
+            <label for="source-user-select">เลือกบัญชีต้นทาง:</label>
+            <select id="source-user-select" required>
+                <option value="">-- เลือกบัญชีผู้ใช้ --</option>
+                <!-- Options will be loaded here by JavaScript -->
+            </select>
+            
+            <label>เลือกข้อมูลที่จะนำเข้า:</label>
+            <div class="remember-me-container">
+                <input type="checkbox" id="import-activities" checked>
+                <label for="import-activities">กิจกรรม</label>
+            </div>
+            <div class="remember-me-container">
+                <input type="checkbox" id="import-activity-types" checked>
+                <label for="import-activity-types">ประเภทกิจกรรม</label>
+            </div>
+            
+            <div class="remember-me-container">
+                <input type="checkbox" id="replace-existing-data">
+                <label for="replace-existing-data">แทนที่ข้อมูลที่มีอยู่ (หากไม่เลือกจะเป็นการเพิ่มข้อมูล)</label>
+            </div>
+            
+            <button type="submit">นำเข้าข้อมูล</button>
+            <p id="import-from-other-form-message" class="error-message"></p>
+        </form>
+    </div>
+</div>
+
 <div id="admin-page" class="hidden">
+<section class="form-section">
+    <h2>นำเข้าข้อมูลจากบัญชีอื่น</h2>
+    <div class="button-group horizontal admin-button-group">
+        <button id="import-from-other-user-button">นำเข้าข้อมูลจากบัญชีอื่น</button>
+    </div>
+    <p id="import-from-other-message" class="info-message"></p>
+</section>
     <section class="data-section">
         <h2>นำเข้า/ส่งออกข้อมูล</h2>
         <div class="button-group horizontal admin-button-group">
@@ -1704,6 +1747,236 @@ table th,
     let summaryContext = {};
 
     // ========== Common Functions ==========
+// ========== Import Data from Other User ==========
+function setupImportFromOtherUser() {
+    const importButton = document.getElementById('import-from-other-user-button');
+    const modal = document.getElementById('import-from-other-modal');
+    const closeButtons = document.querySelectorAll('#import-from-other-modal .close-modal, #import-from-other-modal');
+    const form = document.getElementById('import-from-other-form');
+    
+    if (importButton) {
+        importButton.addEventListener('click', function() {
+            loadSourceUsers();
+            modal.style.display = 'block';
+        });
+    }
+    
+    closeButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            if (e.target === this || e.target.classList.contains('close-modal')) {
+                modal.style.display = 'none';
+                document.getElementById('import-from-other-form-message').textContent = '';
+            }
+        });
+    });
+    
+    if (form) {
+        form.addEventListener('submit', handleImportFromOtherUser);
+    }
+}
+
+function loadSourceUsers() {
+    const loggedInUser = getLoggedInUser();
+    if (!loggedInUser) return;
+    
+    const users = getFromLocalStorage('users');
+    const select = document.getElementById('source-user-select');
+    
+    // ล้าง options เดิม
+    select.innerHTML = '<option value="">-- เลือกบัญชีผู้ใช้ --</option>';
+    
+    // เพิ่มผู้ใช้ทั้งหมดยกเว้นผู้ใช้ปัจจุบัน
+    users.forEach(user => {
+        if (user.id !== loggedInUser.id) {
+            const option = document.createElement('option');
+            option.value = user.id;
+            option.textContent = `${user.username} (${user.role})`;
+            select.appendChild(option);
+        }
+    });
+}
+
+function handleImportFromOtherUser(event) {
+    event.preventDefault();
+    
+    const loggedInUser = getLoggedInUser();
+    if (!loggedInUser) return;
+    
+    const sourceUserId = document.getElementById('source-user-select').value;
+    const importActivities = document.getElementById('import-activities').checked;
+    const importActivityTypes = document.getElementById('import-activity-types').checked;
+    const replaceExisting = document.getElementById('replace-existing-data').checked;
+    const messageElement = document.getElementById('import-from-other-form-message');
+    const mainMessageElement = document.getElementById('import-from-other-message');
+    
+    if (!sourceUserId) {
+        messageElement.textContent = 'กรุณาเลือกบัญชีต้นทาง';
+        return;
+    }
+    
+    if (!importActivities && !importActivityTypes) {
+        messageElement.textContent = 'กรุณาเลือกข้อมูลอย่างน้อยหนึ่งประเภทที่จะนำเข้า';
+        return;
+    }
+    
+    try {
+        let importedCount = {
+            activities: 0,
+            activityTypes: 0
+        };
+        
+        // นำเข้าข้อมูลกิจกรรม
+        if (importActivities) {
+            importedCount.activities = importActivitiesFromUser(sourceUserId, loggedInUser.id, replaceExisting);
+        }
+        
+        // นำเข้าข้อมูลประเภทกิจกรรม
+        if (importActivityTypes) {
+            importedCount.activityTypes = importActivityTypesFromUser(sourceUserId, loggedInUser.id, replaceExisting);
+        }
+        
+        // แสดงผลลัพธ์
+        let successMessage = 'นำเข้าข้อมูลเรียบร้อยแล้ว: ';
+        const parts = [];
+        
+        if (importedCount.activities > 0) {
+            parts.push(`กิจกรรม ${importedCount.activities} รายการ`);
+        }
+        
+        if (importedCount.activityTypes > 0) {
+            parts.push(`ประเภทกิจกรรม ${importedCount.activityTypes} รายการ`);
+        }
+        
+        successMessage += parts.join(', ');
+        
+        messageElement.textContent = '';
+        mainMessageElement.textContent = successMessage;
+        mainMessageElement.className = 'success-message';
+        
+        // ปิด modal
+        document.getElementById('import-from-other-modal').style.display = 'none';
+        
+        // โหลดข้อมูลใหม่
+        loadUserActivities();
+        loadActivityTypes();
+        populateActivityTypeDropdowns('activity-name-select');
+        populateActivityTypeDropdowns('filter-activity-type');
+        
+        // ล้างข้อความหลังจาก 5 วินาที
+        setTimeout(() => {
+            mainMessageElement.textContent = '';
+        }, 5000);
+        
+    } catch (error) {
+        messageElement.textContent = 'เกิดข้อผิดพลาดในการนำเข้าข้อมูล: ' + error.message;
+        console.error('Import from other user error:', error);
+    }
+}
+
+function importActivitiesFromUser(sourceUserId, targetUserId, replaceExisting) {
+    const allActivities = getFromLocalStorage('activities');
+    
+    // กรองกิจกรรมจากผู้ใช้ต้นทาง
+    const sourceActivities = allActivities.filter(activity => activity.userId === sourceUserId);
+    
+    if (sourceActivities.length === 0) {
+        return 0;
+    }
+    
+    let importedCount = 0;
+    
+    if (replaceExisting) {
+        // ลบกิจกรรมเดิมของผู้ใช้ปลายทาง
+        const otherActivities = allActivities.filter(activity => activity.userId !== targetUserId);
+        
+        // สร้างกิจกรรมใหม่โดยเปลี่ยน userId
+        const newActivities = sourceActivities.map(activity => ({
+            ...activity,
+            id: Date.now().toString() + Math.random().toString(36).substr(2, 5), // สร้าง ID ใหม่
+            userId: targetUserId
+        }));
+        
+        // บันทึกข้อมูล
+        saveToLocalStorage('activities', [...otherActivities, ...newActivities]);
+        importedCount = newActivities.length;
+    } else {
+        // เพิ่มกิจกรรมใหม่โดยไม่ลบของเดิม
+        const existingActivities = allActivities.filter(activity => activity.userId === targetUserId);
+        
+        // สร้างกิจกรรมใหม่โดยเปลี่ยน userId และตรวจสอบไม่ให้ซ้ำ
+        const newActivities = sourceActivities
+            .filter(sourceActivity => 
+                !existingActivities.some(existingActivity => 
+                    existingActivity.activityName === sourceActivity.activityName &&
+                    existingActivity.date === sourceActivity.date &&
+                    existingActivity.startTime === sourceActivity.startTime
+                )
+            )
+            .map(activity => ({
+                ...activity,
+                id: Date.now().toString() + Math.random().toString(36).substr(2, 5), // สร้าง ID ใหม่
+                userId: targetUserId
+            }));
+        
+        // บันทึกข้อมูล
+        saveToLocalStorage('activities', [...allActivities, ...newActivities]);
+        importedCount = newActivities.length;
+    }
+    
+    return importedCount;
+}
+
+function importActivityTypesFromUser(sourceUserId, targetUserId, replaceExisting) {
+    const allActivityTypes = getFromLocalStorage('activityTypes');
+    
+    // กรองประเภทกิจกรรมจากผู้ใช้ต้นทาง
+    const sourceActivityTypes = allActivityTypes.filter(type => type.userId === sourceUserId);
+    
+    if (sourceActivityTypes.length === 0) {
+        return 0;
+    }
+    
+    let importedCount = 0;
+    
+    if (replaceExisting) {
+        // ลบประเภทกิจกรรมเดิมของผู้ใช้ปลายทาง
+        const otherActivityTypes = allActivityTypes.filter(type => type.userId !== targetUserId);
+        
+        // สร้างประเภทกิจกรรมใหม่โดยเปลี่ยน userId
+        const newActivityTypes = sourceActivityTypes.map(type => ({
+            ...type,
+            id: Date.now().toString() + Math.random().toString(36).substr(2, 5), // สร้าง ID ใหม่
+            userId: targetUserId
+        }));
+        
+        // บันทึกข้อมูล
+        saveToLocalStorage('activityTypes', [...otherActivityTypes, ...newActivityTypes]);
+        importedCount = newActivityTypes.length;
+    } else {
+        // เพิ่มประเภทกิจกรรมใหม่โดยไม่ลบของเดิม
+        const existingActivityTypes = allActivityTypes.filter(type => type.userId === targetUserId);
+        
+        // สร้างประเภทกิจกรรมใหม่โดยเปลี่ยน userId และตรวจสอบไม่ให้ซ้ำชื่อ
+        const newActivityTypes = sourceActivityTypes
+            .filter(sourceType => 
+                !existingActivityTypes.some(existingType => 
+                    existingType.name.toLowerCase() === sourceType.name.toLowerCase()
+                )
+            )
+            .map(type => ({
+                ...type,
+                id: Date.now().toString() + Math.random().toString(36).substr(2, 5), // สร้าง ID ใหม่
+                userId: targetUserId
+            }));
+        
+        // บันทึกข้อมูล
+        saveToLocalStorage('activityTypes', [...allActivityTypes, ...newActivityTypes]);
+        importedCount = newActivityTypes.length;
+    }
+    
+    return importedCount;
+}
+
     function mergeData(existingData, newData, keyField) {
         const existingMap = new Map();
         existingData.forEach(item => {
@@ -2941,61 +3214,61 @@ function generateSummary(startDate, endDate, summaryType = 'all-time') {
         }
     }
 
-    function handleAdminAddUser(event) {
-        event.preventDefault();
-        const username = document.getElementById('admin-add-username').value.trim();
-        const password = document.getElementById('admin-add-password').value;
-        const confirmPassword = document.getElementById('admin-add-confirm-password').value;
-        const role = document.getElementById('admin-add-role').value;
-        const messageElement = document.getElementById('admin-add-user-message');
+function handleAdminAddUser(event) {
+    event.preventDefault();
+    const username = document.getElementById('admin-add-username').value.trim();
+    const password = document.getElementById('admin-add-password').value;
+    const confirmPassword = document.getElementById('admin-add-confirm-password').value;
+    const role = document.getElementById('admin-add-role').value;
+    const messageElement = document.getElementById('admin-add-user-message');
 
-        if (!username || !password) {
-            messageElement.textContent = 'กรุณากรอกชื่อผู้ใช้งานและรหัสผ่าน';
-            return;
-        }
-
-        if (password.length < 4) {
-            messageElement.textContent = 'รหัสผ่านต้องมีความยาวอย่างน้อย 4 ตัวอักษร';
-            return;
-        }
-
-        if (password !== confirmPassword) {
-            messageElement.textContent = 'รหัสผ่านไม่ตรงกัน';
-            return;
-        }
-
-        const users = getFromLocalStorage('users');
-        const existingUser = users.find(u => u.username === username);
-        if (existingUser) {
-            messageElement.textContent = 'มีชื่อผู้ใช้งานนี้อยู่แล้ว';
-            return;
-        }
-
-        const loggedInUser = getLoggedInUser(); // รับข้อมูลผู้ใช้ที่ล็อกอินอยู่
-
-        const newUser = {
-            id: Date.now().toString(),
-            username,
-            password: hashPassword(password),
-            role,
-            createdBy: loggedInUser ? loggedInUser.id : 'system' // บันทึก ID ของผู้สร้าง
-        };
-
-        users.push(newUser);
-        saveToLocalStorage('users', users);
-        document.getElementById('admin-add-user-form').reset();
-        
-        messageElement.textContent = 'เพิ่มผู้ใช้งานเรียบร้อยแล้ว';
-        messageElement.className = 'success-message';
-
-        loadAllUsers();
-        
-        // ล้างข้อความหลังจาก 3 วินาที
-        setTimeout(() => {
-            messageElement.textContent = '';
-            messageElement.className = 'error-message';
-        }, 3000);
+    if (!username || !password) {
+        messageElement.textContent = 'กรุณากรอกชื่อผู้ใช้งานและรหัสผ่าน';
+        return;
     }
+
+    if (password.length < 4) {
+        messageElement.textContent = 'รหัสผ่านต้องมีความยาวอย่างน้อย 4 ตัวอักษร';
+        return;
+    }
+
+    if (password !== confirmPassword) {
+        messageElement.textContent = 'รหัสผ่านไม่ตรงกัน';
+        return;
+    }
+
+    const users = getFromLocalStorage('users');
+    const existingUser = users.find(u => u.username === username);
+    if (existingUser) {
+        messageElement.textContent = 'มีชื่อผู้ใช้งานนี้อยู่แล้ว';
+        return;
+    }
+
+    const loggedInUser = getLoggedInUser();
+
+    // 🔥 แก้ไขตรงนี้: ใช้ ID 3 หลัก
+    const newUser = {
+        id: generateShortUserId(), // เรียกใช้ฟังก์ชันสร้าง ID 3 หลัก
+        username,
+        password: hashPassword(password),
+        role,
+        createdBy: loggedInUser ? loggedInUser.id : 'system'
+    };
+
+    users.push(newUser);
+    saveToLocalStorage('users', users);
+    document.getElementById('admin-add-user-form').reset();
+    
+    messageElement.textContent = 'เพิ่มผู้ใช้งานเรียบร้อยแล้ว';
+    messageElement.className = 'success-message';
+
+    loadAllUsers();
+    
+    setTimeout(() => {
+        messageElement.textContent = '';
+        messageElement.className = 'error-message';
+    }, 3000);
+}
 
     function loadAllActivities() {
         const allActivities = getFromLocalStorage('activities');
@@ -3253,11 +3526,22 @@ function exportData() {
             try {
                 const importedData = JSON.parse(e.target.result);
                 
-                if (importedData.users && importedData.activities && importedData.activityTypes) {
-                    // อัปเดทข้อมูลผู้ใช้
-                    const existingUsers = getFromLocalStorage('users');
-                    const updatedUsers = mergeData(existingUsers, importedData.users, 'id');
-                    saveToLocalStorage('users', updatedUsers);
+if (importedData.users && Array.isArray(importedData.users)) {
+    // แปลง ID ผู้ใช้ที่นำเข้าให้เป็น 3 หลักถ้าจำเป็น
+    const convertedUsers = importedData.users.map(user => {
+        if (user.id && user.id.length > 3) {
+            return {
+                ...user,
+                id: generateShortUserId() // สร้าง ID 3 หลักใหม่
+            };
+        }
+        return user;
+    });
+    
+    // อัปเดทข้อมูลผู้ใช้
+    const existingUsers = getFromLocalStorage('users');
+    const updatedUsers = mergeData(existingUsers, convertedUsers, 'id');
+    saveToLocalStorage('users', updatedUsers);
                     
                     // อัปเดทข้อมูลกิจกรรม
                     const existingActivities = getFromLocalStorage('activities');
@@ -4234,35 +4518,53 @@ function backupData() {
         // Password toggles
         setupPasswordToggles();
     }
-
+function generateShortUserId() {
+    const users = getFromLocalStorage('users');
+    let newId;
+    let attempts = 0;
+    
+    do {
+        // สร้าง ID 3 หลัก (001-999)
+        newId = String(Math.floor(Math.random() * 999) + 1).padStart(3, '0');
+        attempts++;
+        
+        // ถ้าพยายามหลายครั้งแล้วยังซ้ำ ให้ใช้วิธีอื่น
+        if (attempts > 10) {
+            newId = String(Math.floor(Math.random() * 900) + 100); // 100-999
+        }
+    } while (users.find(user => user.id === newId) && attempts < 20);
+    
+    return newId;
+}
     // ========== Initialization ==========
-    function initializeApp() {
-        // Initialize default data if not exists
-        const users = getFromLocalStorage('users');
-        if (users.length === 0) {
-            const defaultUsers = [
-                {
-                    id: '1',
-                    username: 'admin',
-                    password: hashPassword('123'),
-                    role: 'admin',
-                    createdBy: 'system'
-                }
-            ];
-            saveToLocalStorage('users', defaultUsers);
-        }
+function initializeApp() {
+    // Initialize default data if not exists
+    const users = getFromLocalStorage('users');
+    if (users.length === 0) {
+        const defaultUsers = [
+            {
+                id: '001', // 🔥 เปลี่ยนเป็น 3 หลัก
+                username: 'admin',
+                password: hashPassword('123'),
+                role: 'admin',
+                createdBy: 'system'
+            }
+        ];
+        saveToLocalStorage('users', defaultUsers);
+    }
 
-        const activityTypes = getFromLocalStorage('activityTypes');
-        if (activityTypes.length === 0) {
-            const defaultActivityTypes = [
-                { id: '1', name: 'นั่งสมาธิ', userId: '1' },
-                { id: '2', name: 'เดินจงกรม', userId: '1' },
-                { id: '3', name: 'ออกกำลังกาย', userId: '1' },
-                { id: '4', name: 'เรียน/ฝึกอบรม', userId: '1' },
-                { id: '5', name: 'พักผ่อน', userId: '1' }
-            ];
-            saveToLocalStorage('activityTypes', defaultActivityTypes);
-        }
+    // ... ส่วนที่เหลือของโค้ดให้คงเดิม ...
+    const activityTypes = getFromLocalStorage('activityTypes');
+    if (activityTypes.length === 0) {
+        const defaultActivityTypes = [
+            { id: '1', name: 'นั่งสมาธิ', userId: '001' }, // 🔥 เปลี่ยน userId เป็น '001'
+            { id: '2', name: 'เดินจงกรม', userId: '001' },
+            { id: '3', name: 'ออกกำลังกาย', userId: '001' },
+            { id: '4', name: 'เรียน/ฝึกอบรม', userId: '001' },
+            { id: '5', name: 'พักผ่อน', userId: '001' }
+        ];
+        saveToLocalStorage('activityTypes', defaultActivityTypes);
+    }
 
         if (!localStorage.getItem('activities')) {
             saveToLocalStorage('activities', []);
@@ -4306,6 +4608,7 @@ function backupData() {
         // Setup event listeners
         setupEventListeners();
         setupModals();
+        setupImportFromOtherUser(); // เพิ่มบรรทัดนี้
 
         // Populate activity type dropdowns
         populateActivityTypeDropdowns('activity-name-select');
