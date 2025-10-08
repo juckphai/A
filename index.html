@@ -285,23 +285,6 @@ button:disabled, .button-group button:disabled {
     color: #bd2130;
 }
 
-/* สำหรับตารางกิจกรรมเท่านั้น */
-#activity-list-table .action-buttons {
-    display: flex !important;
-    flex-direction: row !important;
-    gap: 5px !important;
-    justify-content: center !important;
-    align-items: center !important;
-    flex-wrap: nowrap !important;
-}
-
-#activity-list-table .action-buttons button {
-    padding: 4px 8px !important;
-    font-size: 0.8rem !important;
-    white-space: nowrap !important;
-    margin: 0 !important;
-}
-
 /* ===== FORMS & INPUTS ===== */
 .form-section, .data-section {
     background-color: #f9f9f9;
@@ -492,7 +475,7 @@ table tr:hover {
     margin-top: 20px;
 }
 
-/* Table alignment overrides - ปรับเฉพาะ td ให้ชิดซ้าย */
+/* Table alignment overrides */
 table td,
 #activity-list-table td,
 #activity-types-table td,
@@ -503,7 +486,7 @@ table td,
     vertical-align: middle !important;
 }
 
-/* ยังคงให้หัวตารางอยู่กึ่งกลาง */
+/* Header alignment */
 table th,
 #activity-list-table th,
 #activity-types-table th,
@@ -516,6 +499,39 @@ table th,
 
 .details-column {
     text-align: left;
+}
+
+/* Table Action Buttons */
+#activity-types-table .action-buttons {
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 5px !important;
+    justify-content: center !important;
+    align-items: center !important;
+    flex-wrap: nowrap !important;
+}
+
+#activity-types-table .action-buttons button {
+    padding: 4px 8px !important;
+    font-size: 0.8rem !important;
+    white-space: nowrap !important;
+    margin: 0 !important;
+}
+
+#activity-list-table .action-buttons {
+    display: flex !important;
+    flex-direction: row !important;
+    gap: 5px !important;
+    justify-content: center !important;
+    align-items: center !important;
+    flex-wrap: nowrap !important;
+}
+
+#activity-list-table .action-buttons button {
+    padding: 4px 8px !important;
+    font-size: 0.8rem !important;
+    white-space: nowrap !important;
+    margin: 0 !important;
 }
 
 /* ===== SUMMARY BLOCKS ===== */
@@ -2153,38 +2169,38 @@ table th,
     }
 
     // ========== Activity Types Management ==========
-    function loadActivityTypes() {
-        const loggedInUser = getLoggedInUser();
-        if (!loggedInUser) return;
+function loadActivityTypes() {
+    const loggedInUser = getLoggedInUser();
+    if (!loggedInUser) return;
 
-        const allActivityTypes = getFromLocalStorage('activityTypes');
-        
-        // ✅ เพิ่มการจัดเรียงประเภทกิจกรรมตามชื่อ (เรียง A-Z)
-        const userActivityTypes = allActivityTypes
-            .filter(type => type.userId === loggedInUser.id)
-            .sort((a, b) => a.name.localeCompare(b.name, 'th'));
+    const allActivityTypes = getFromLocalStorage('activityTypes');
+    
+    // ✅ เพิ่มการจัดเรียงประเภทกิจกรรมตามชื่อ (เรียง A-Z)
+    const userActivityTypes = allActivityTypes
+        .filter(type => type.userId === loggedInUser.id)
+        .sort((a, b) => a.name.localeCompare(b.name, 'th'));
 
-        populateActivityTypeDropdowns('activity-name-select');
-        populateActivityTypeDropdowns('filter-activity-type');
+    populateActivityTypeDropdowns('activity-name-select');
+    populateActivityTypeDropdowns('filter-activity-type');
 
-        const tableBody = document.querySelector('#activity-types-table tbody');
-        tableBody.innerHTML = '';
+    const tableBody = document.querySelector('#activity-types-table tbody');
+    tableBody.innerHTML = '';
 
-        userActivityTypes.forEach(type => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${type.id}</td>
-                <td>${type.name}</td>
-                <td class="action-buttons">
-                    <button class="edit-activity-type" data-id="${type.id}">แก้ไข</button>
-                    <button class="delete-activity-type delete-button" data-id="${type.id}">ลบ</button>
-                </td>
-            `;
-            tableBody.appendChild(row);
-        });
+    userActivityTypes.forEach(type => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${type.id}</td>
+            <td>${type.name}</td>
+            <td class="action-buttons">
+                <button class="edit-activity-type" data-id="${type.id}">แก้ไข</button>
+                <button class="delete-activity-type delete-button" data-id="${type.id}">ลบ</button>
+            </td>
+        `;
+        tableBody.appendChild(row);
+    });
 
-        attachActivityTypeEventListeners();
-    }
+    attachActivityTypeEventListeners();
+}
 
     function attachActivityTypeEventListeners() {
         document.querySelectorAll('.edit-activity-type').forEach(button => {
