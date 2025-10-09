@@ -1353,87 +1353,82 @@ table th,
 </head>
 <body>
     <div class="container">
-<!-- Header for logged in users -->
-<header id="main-header" class="hidden">
-    <div class="header-top">
-        <h1 id="welcome-message">บันทึกกิจกรรม, ผู้ใช้งาน!</h1>
-        <button class="menu-toggle" id="menu-toggle">☰</button>
-    </div>
-    <nav id="main-nav" class="mobile-hidden">
-        <div class="nav-row">
-            <a href="#" data-page="activity" class="active">บันทึกกิจกรรม</a>
-            <a href="#" data-page="summary">สรุปกิจกรรม</a>
-        </div>
-        <div class="nav-row">
-            <a href="#" data-page="activity-types">จัดการกิจกรรม</a>
-            <a href="#" data-page="admin" id="admin-link" class="hidden">ผู้ดูแลระบบ</a>
-        </div>
-        <button id="logout-button">ออกจากระบบ</button>
-    </nav>
-</header>
+        <!-- Header for logged in users -->
+        <header id="main-header" class="hidden">
+            <div class="header-top">
+                <h1 id="welcome-message">บันทึกกิจกรรม, ผู้ใช้งาน!</h1>
+                <button class="menu-toggle" id="menu-toggle">☰</button>
+            </div>
+            <nav id="main-nav" class="mobile-hidden">
+                <div class="nav-row">
+                    <a href="#" data-page="activity" class="active">บันทึกกิจกรรม</a>
+                    <a href="#" data-page="summary">สรุปกิจกรรม</a>
+                </div>
+                <div class="nav-row">
+                    <a href="#" data-page="activity-types">จัดการกิจกรรม</a>
+                    <a href="#" data-page="admin" id="admin-link" class="hidden">ผู้ดูแลระบบ</a>
+                </div>
+                <button id="logout-button">ออกจากระบบ</button>
+            </nav>
+        </header>
 
-        <!-- ส่วนที่เหลือของโค้ด HTML ยังคงเหมือนเดิมทุกประการ -->
         <!-- Login/Register Section -->
         <div id="auth-section">
             <h1>ระบบบันทึกกิจกรรม</h1>
             
-<div class="form-section" id="login-section">
-    <h2>เข้าสู่ระบบ</h2>
-    <form id="login-form">
-        <input type="text" id="login-username" placeholder="ชื่อผู้ใช้งาน" required>
-        
-        <div class="password-container">
-            <input type="password" id="login-password" placeholder="รหัสผ่าน" required>
-            <button type="button" class="password-toggle" id="toggle-login-password">👁️</button>
-        </div>
-        
-<!-- เพิ่ม checkbox "จำรหัสผ่าน" -->
-        <div class="remember-me-container">
-            <input type="checkbox" id="remember-me">
-            <label for="remember-me">จำรหัสผ่าน</label>
-        </div>
-        
-        <button type="submit">เข้าสู่ระบบ</button>
-        <p id="login-message" class="error-message"></p>
-    </form>
-</div>
+            <div class="form-section" id="login-section">
+                <h2>เข้าสู่ระบบ</h2>
+                <form id="login-form">
+                    <input type="text" id="login-username" placeholder="ชื่อผู้ใช้งาน" required>
+                    
+                    <div class="password-container">
+                        <input type="password" id="login-password" placeholder="รหัสผ่าน" required>
+                        <button type="button" class="password-toggle" id="toggle-login-password">👁️</button>
+                    </div>
+                    
+                    <div class="remember-me-container">
+                        <input type="checkbox" id="remember-me">
+                        <label for="remember-me">จำรหัสผ่าน</label>
+                    </div>
+                    
+                    <button type="submit">เข้าสู่ระบบ</button>
+                    <p id="login-message" class="error-message"></p>
+                </form>
+            </div>
         </div>
 
-        <!-- ส่วนที่เหลือของโค้ด HTML ยังคงเหมือนเดิมทุกประการ -->
         <!-- Activity Page Content -->
         <div id="activity-page" class="hidden">
-<section class="form-section">
-    <h2>บันทึกกิจกรรมใหม่</h2>
-    <form id="activity-form">
-        <label for="activity-name-select">เลือกกิจกรรม:</label>
-        <select id="activity-name-select" required>
-            <option value="">-- เลือกประเภทกิจกรรม --</option>
-            <!-- Options will be loaded here by JavaScript -->
-        </select>
-        <input type="date" id="activity-date" required>
-        
-<!-- ปรับปรุงส่วนกรอกเวลาให้อยู่ในแถวเดียวกัน -->
-<label for="start-time">เวลาเริ่มต้นและสิ้นสุด:</label>
-<div class="time-inputs-container">
-    <div class="time-input-group">
-        <input type="time" id="start-time" required>
-        <span class="time-label">เริ่ม</span>
-    </div>
-    <span class="time-separator">ถึง</span>
-    <div class="time-input-group">
-        <input type="time" id="end-time" required>
-        <span class="time-label">สิ้นสุด</span>
-    </div>
-</div>
-        
-        <label for="activity-details">รายละเอียดกิจกรรม (ไม่บังคับ):</label>
-        <textarea id="activity-details" placeholder="เช่น การประชุมกับทีม, อ่านหนังสือบทที่ 5"></textarea>
-        <button type="submit" id="save-activity-button">บันทึกกิจกรรม</button>
-        <button type="button" id="update-activity-button" class="hidden">อัปเดตกิจกรรม</button>
-        <button type="button" id="cancel-edit-activity-button" class="hidden">ยกเลิก</button>
-        <p id="activity-message" class="error-message"></p>
-    </form>
-</section>
+            <section class="form-section">
+                <h2>บันทึกกิจกรรมใหม่</h2>
+                <form id="activity-form">
+                    <label for="activity-name-select">เลือกกิจกรรม:</label>
+                    <select id="activity-name-select" required>
+                        <option value="">-- เลือกประเภทกิจกรรม --</option>
+                    </select>
+                    <input type="date" id="activity-date" required>
+                    
+                    <label for="start-time">เวลาเริ่มต้นและสิ้นสุด:</label>
+                    <div class="time-inputs-container">
+                        <div class="time-input-group">
+                            <input type="time" id="start-time" required>
+                            <span class="time-label">เริ่ม</span>
+                        </div>
+                        <span class="time-separator">ถึง</span>
+                        <div class="time-input-group">
+                            <input type="time" id="end-time" required>
+                            <span class="time-label">สิ้นสุด</span>
+                        </div>
+                    </div>
+                    
+                    <label for="activity-details">รายละเอียดกิจกรรม (ไม่บังคับ):</label>
+                    <textarea id="activity-details" placeholder="เช่น การประชุมกับทีม, อ่านหนังสือบทที่ 5"></textarea>
+                    <button type="submit" id="save-activity-button">บันทึกกิจกรรม</button>
+                    <button type="button" id="update-activity-button" class="hidden">อัปเดตกิจกรรม</button>
+                    <button type="button" id="cancel-edit-activity-button" class="hidden">ยกเลิก</button>
+                    <p id="activity-message" class="error-message"></p>
+                </form>
+            </section>
 
             <section class="data-section">
                 <h2>รายการกิจกรรมของคุณ</h2>
@@ -1445,7 +1440,6 @@ table th,
                     <button id="apply-filter-button">กรอง</button>
                     <button id="reset-filter-button">รีเซ็ต</button>
                 </div>
-                <!-- เพิ่ม container สำหรับตาราง -->
                 <div class="table-container">
                     <table id="activity-list-table">
                         <thead>
@@ -1467,7 +1461,6 @@ table th,
             </section>
         </div>
         
-        <!-- ส่วนที่เหลือของโค้ด HTML ยังคงเหมือนเดิมทุกประการ -->
         <!-- Activity Types Management Page Content -->
         <div id="activity-types-page" class="hidden">
             <section class="form-section">
@@ -1498,7 +1491,6 @@ table th,
             </section>
         </div>
 
-        <!-- ส่วนที่เหลือของโค้ด HTML ยังคงเหมือนเดิมทุกประการ -->
         <!-- Summary Page Content -->
         <div id="summary-page" class="hidden">
             <section class="data-section">
@@ -1526,125 +1518,89 @@ table th,
             </section>
         </div>
 
-        <!-- ส่วนที่เหลือของโค้ด HTML ยังคงเหมือนเดิมทุกประการ -->
         <!-- Admin Page Content -->
+        <div id="admin-page" class="hidden">
+            <!-- Import from Other Account and Cleanup Section -->
+            <section class="form-section">
+                <h2>จัดการข้อมูลระบบ</h2>
+                <div class="button-group horizontal admin-button-group">
+                    <button id="import-from-other-user-button">นำเข้าข้อมูลจากบัญชีอื่น</button>
+                    <button id="cleanup-data-button" style="background-color: #dc3545;">ล้างข้อมูลขยะ</button>
+                </div>
+                <p id="import-from-other-message" class="info-message"></p>
+                <p id="cleanup-message" class="info-message"></p>
+            </section>
 
-<!-- เพิ่ม Modal สำหรับการนำเข้าข้อมูลจากบัญชีอื่น -->
-<div id="import-from-other-modal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3 class="modal-title">นำเข้าข้อมูลจากบัญชีอื่น</h3>
-            <button class="close-modal">&times;</button>
-        </div>
-        <form id="import-from-other-form">
-            <label for="source-user-select">เลือกบัญชีต้นทาง:</label>
-            <select id="source-user-select" required>
-                <option value="">-- เลือกบัญชีผู้ใช้ --</option>
-                <!-- Options will be loaded here by JavaScript -->
-            </select>
-            
-            <label>เลือกข้อมูลที่จะนำเข้า:</label>
-            <div class="remember-me-container">
-                <input type="checkbox" id="import-activities" checked>
-                <label for="import-activities">กิจกรรม</label>
-            </div>
-            <div class="remember-me-container">
-                <input type="checkbox" id="import-activity-types" checked>
-                <label for="import-activity-types">ประเภทกิจกรรม</label>
-            </div>
-            
-            <div class="remember-me-container">
-                <input type="checkbox" id="replace-existing-data">
-                <label for="replace-existing-data">แทนที่ข้อมูลที่มีอยู่ (หากไม่เลือกจะเป็นการเพิ่มข้อมูล)</label>
-            </div>
-            
-            <button type="submit">นำเข้าข้อมูล</button>
-            <p id="import-from-other-form-message" class="error-message"></p>
-        </form>
-    </div>
-</div>
+            <!-- Import/Export Data Section -->
+            <section class="data-section">
+                <h2>นำเข้า/ส่งออกข้อมูล</h2>
+                <div class="button-group horizontal admin-button-group">
+                    <button id="export-data-button">บันทึกข้อมูล (JSON)</button>
+                    <input type="file" id="import-data-input" accept=".json" class="hidden">
+                    <button id="show-import-button">โหลดข้อมูล (JSON)</button>
+                </div>
+                <p id="import-export-message" class="info-message"></p>
+                
+                <!-- Backup and Restore Section -->
+                <div class="button-group horizontal admin-button-group">
+                    <button id="backup-data-button">บันทึกข้อมูล (มีรหัสผ่าน)</button>
+                    <input type="file" id="restore-data-input" accept=".json" class="hidden">
+                    <button id="show-restore-button">โหลดข้อมูล (ใช้รหัสผ่าน)</button>
+                </div>
+                <p id="backup-restore-message" class="info-message"></p>
+                <p class="info-message" style="font-size: 0.8rem; margin-top: -10px;">
+                    หมายเหตุ: การสำรองข้อมูลจะถูกเข้ารหัสด้วยรหัสผ่านที่คุณกำหนด<br>
+                    คุณจะต้องใช้รหัสผ่านเดียวกันนี้ในการกู้คืนข้อมูล
+                </p>
+            </section>
 
-<div id="admin-page" class="hidden">
-<section class="form-section">
-    <h2>นำเข้าข้อมูลจากบัญชีอื่น</h2>
-    <div class="button-group horizontal admin-button-group">
-        <button id="import-from-other-user-button">นำเข้าข้อมูลจากบัญชีอื่น</button>
-    </div>
-    <p id="import-from-other-message" class="info-message"></p>
-</section>
-    <section class="data-section">
-        <h2>นำเข้า/ส่งออกข้อมูล</h2>
-        <div class="button-group horizontal admin-button-group">
-            <button id="export-data-button">บันทึกข้อมูล (JSON)</button>
-            <input type="file" id="import-data-input" accept=".json" class="hidden">
-            <button id="show-import-button">โหลดข้อมูล (JSON)</button>
-        </div>
-        <p id="import-export-message" class="info-message"></p>
-        
-        <!-- เพิ่มส่วนสำรองข้อมูลและกู้คืนสำหรับผู้ดูแลระบบ -->
-        <div class="button-group horizontal admin-button-group">
-            <button id="backup-data-button">บันทึกข้อมูล (มีรหัสผ่าน)</button>
-            <input type="file" id="restore-data-input" accept=".json" class="hidden">
-            <button id="show-restore-button">โหลดข้อมูล (ใช้รหัสผ่าน)</button>
-        </div>
-        <p id="backup-restore-message" class="info-message"></p>
-        <p class="info-message" style="font-size: 0.8rem; margin-top: -10px;">
-            หมายเหตุ: การสำรองข้อมูลจะถูกเข้ารหัสด้วยรหัสผ่านที่คุณกำหนด<br>
-            คุณจะต้องใช้รหัสผ่านเดียวกันนี้ในการกู้คืนข้อมูล
-        </p>
-    </section>
-<section class="form-section">
-    <h2>จัดการข้อมูลระบบ</h2>
-    <div class="button-group horizontal admin-button-group">
-        <button id="cleanup-data-button" style="background-color: #dc3545;">ล้างข้อมูลขยะ</button>
-    </div>
-    <p id="cleanup-message" class="info-message"></p>
-</section>
-<!-- แทนที่ส่วน User Management Section ในหน้า Admin ด้วยโค้ดนี้ -->
-<section class="form-section">
-    <h2>เพิ่มผู้ใช้งานใหม่</h2>
-    <form id="admin-add-user-form">
-        <input type="text" id="admin-add-username" placeholder="ชื่อผู้ใช้งาน" required>
-        
-        <div class="password-container">
-            <input type="password" id="admin-add-password" placeholder="รหัสผ่าน" required>
-            <button type="button" class="password-toggle" id="toggle-admin-add-password">👁️</button>
-        </div>
-        
-        <div class="password-container">
-            <input type="password" id="admin-add-confirm-password" placeholder="ยืนยันรหัสผ่าน" required>
-            <button type="button" class="password-toggle" id="toggle-admin-add-confirm-password">👁️</button>
-        </div>
-        
-        <select id="admin-add-role" required>
-            <option value="user">User</option>
-            <option value="admin">Admin</option>
-        </select>
-        <button type="submit">เพิ่มผู้ใช้งาน</button>
-        <p id="admin-add-user-message" class="error-message"></p>
-    </form>
-</section>
+            <!-- Add New User Section -->
+            <section class="form-section">
+                <h2>เพิ่มผู้ใช้งานใหม่</h2>
+                <form id="admin-add-user-form">
+                    <input type="text" id="admin-add-username" placeholder="ชื่อผู้ใช้งาน" required>
+                    
+                    <div class="password-container">
+                        <input type="password" id="admin-add-password" placeholder="รหัสผ่าน" required>
+                        <button type="button" class="password-toggle" id="toggle-admin-add-password">👁️</button>
+                    </div>
+                    
+                    <div class="password-container">
+                        <input type="password" id="admin-add-confirm-password" placeholder="ยืนยันรหัสผ่าน" required>
+                        <button type="button" class="password-toggle" id="toggle-admin-add-confirm-password">👁️</button>
+                    </div>
+                    
+                    <select id="admin-add-role" required>
+                        <option value="user">User</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                    <button type="submit">เพิ่มผู้ใช้งาน</button>
+                    <p id="admin-add-user-message" class="error-message"></p>
+                </form>
+            </section>
 
-<section class="data-section">
-    <h2>ผู้ใช้งานทั้งหมด</h2>
-    <div class="table-container">
-        <table id="user-list-table">
-            <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>ชื่อผู้ใช้งาน</th>
-                    <th>บทบาท</th>
-                    <th>ผู้สร้าง</th>
-                    <th>จัดการ</th>
-                </tr>
-            </thead>
-            <tbody>
-                <!-- Users will be loaded here by JavaScript -->
-            </tbody>
-        </table>
-    </div>
-</section>
+            <!-- All Users Section -->
+            <section class="data-section">
+                <h2>ผู้ใช้งานทั้งหมด</h2>
+                <div class="table-container">
+                    <table id="user-list-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>ชื่อผู้ใช้งาน</th>
+                                <th>บทบาท</th>
+                                <th>ผู้สร้าง</th>
+                                <th>จัดการ</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Users will be loaded here by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
 
+            <!-- All Activities Section -->
             <section class="data-section">
                 <h2>กิจกรรมทั้งหมด</h2>
                 <div class="filter-controls">
@@ -1665,7 +1621,7 @@ table th,
                             <th>เริ่มเวลา</th>
                             <th>จบเวลา</th>
                             <th>รวมเวลา</th>
-                            <th>รายละเอียด</th> <!-- เพิ่มบรรทัดนี้ -->
+                            <th>รายละเอียด</th>
                             <th>จัดการ</th>
                         </tr>
                     </thead>
@@ -1676,255 +1632,270 @@ table th,
             </section>
         </div>
 
-    <!-- Modal for editing users -->
-<div id="edit-user-modal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3 class="modal-title">แก้ไขผู้ใช้งาน</h3>
-            <button class="close-modal">&times;</button>
-        </div>
-        <form id="edit-user-form">
-            <input type="hidden" id="edit-user-id">
-            <input type="text" id="edit-user-username" placeholder="ชื่อผู้ใช้งาน" required>
-            
-            <div class="password-container">
-                <input type="password" id="edit-user-password" placeholder="รหัสผ่านใหม่ (เว้นว่างหากไม่ต้องการเปลี่ยน)">
-                <button type="button" class="password-toggle" id="toggle-edit-user-password">👁️</button>
-            </div>
-            
-            <div class="password-container">
-                <input type="password" id="edit-user-confirm-password" placeholder="ยืนยันรหัสผ่านใหม่">
-                <button type="button" class="password-toggle" id="toggle-edit-user-confirm-password">👁️</button>
-            </div>
-            
-            <select id="edit-user-role" required>
-                <option value="user">User</option>
-                <option value="admin">Admin</option>
-            </select>
-            <button type="submit">อัปเดตผู้ใช้งาน</button>
-            <p id="edit-user-message" class="error-message"></p>
-        </form>
-    </div>
-</div>
-    
-    <!-- Modal สำหรับเลือกรูปแบบการแสดงผลสรุป -->
-    <div id="summaryOutputModal" class="modal-overlay">
-        <div class="format-modal-content">
-            <h3>เลือกรูปแบบการแสดงผลสรุป</h3>
-            <div class="format-modal-buttons">
-                <button class="btn-display" onclick="handleSummaryOutput('display')">แสดงบนจอ</button>
-                <button class="btn-xlsx" onclick="handleSummaryOutput('xlsx')">บันทึกเป็น XLSX</button>
-                <button class="btn-pdf" onclick="handleSummaryOutput('pdf')">บันทึกเป็น PDF</button>
-                <button class="btn-cancel" onclick="closeSummaryOutputModal()">ยกเลิก</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal สำหรับแสดงสรุปบนจอ (ใหม่) -->
-    <div id="summaryModal" class="summary-modal-overlay">
-        <div class="summary-modal-content-container">
-            <div id="modalBodyContent" class="summaryResult">
-                <!-- เนื้อหาการสรุปจะถูกใส่ที่นี่โดย JavaScript -->
-            </div>
-            <div class="summary-modal-controls">
-                <button id="saveSummaryAsImageBtn" class="summary-modal-close-btn" style="background-color: #007bff; margin-bottom: 15px;">บันทึกเป็นรูปภาพ</button>
-                <div class="summary-control-group">
-                    <label for="summaryFontSizeSlider">ปรับขนาดตัวอักษร:</label>
-                    <input type="range" id="summaryFontSizeSlider" min="0.5" max="1.5" step="0.05" value="1.0">
-                    <span id="summaryFontSizeValue">ขนาด: 100%</span>
+        <!-- Import from Other Account Modal -->
+        <div id="import-from-other-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 class="modal-title">นำเข้าข้อมูลจากบัญชีอื่น</h3>
+                    <button class="close-modal">&times;</button>
                 </div>
-                <div class="summary-control-group">
-                    <label for="summaryLineHeightSlider">ปรับขนาดของบรรทัด:</label>
-                    <input type="range" id="summaryLineHeightSlider" min="0.01" max="1.5" step="0.01" value="0.5">
-                    <span id="summaryLineHeightValue">ความสูงของบรรทัด: 0.5</span>
-                </div>
-                <button onclick="closeSummaryModal()" class="summary-modal-close-btn">ปิดหน้าต่างนี้</button>
+                <form id="import-from-other-form">
+                    <label for="source-user-select">เลือกบัญชีต้นทาง:</label>
+                    <select id="source-user-select" required>
+                        <option value="">-- เลือกบัญชีผู้ใช้ --</option>
+                    </select>
+                    
+                    <label>เลือกข้อมูลที่จะนำเข้า:</label>
+                    <div class="remember-me-container">
+                        <input type="checkbox" id="import-activities" checked>
+                        <label for="import-activities">กิจกรรม</label>
+                    </div>
+                    <div class="remember-me-container">
+                        <input type="checkbox" id="import-activity-types" checked>
+                        <label for="import-activity-types">ประเภทกิจกรรม</label>
+                    </div>
+                    
+                    <div class="remember-me-container">
+                        <input type="checkbox" id="replace-existing-data">
+                        <label for="replace-existing-data">แทนที่ข้อมูลที่มีอยู่ (หากไม่เลือกจะเป็นการเพิ่มข้อมูล)</label>
+                    </div>
+                    
+                    <button type="submit">นำเข้าข้อมูล</button>
+                    <p id="import-from-other-form-message" class="error-message"></p>
+                </form>
             </div>
         </div>
+
+        <!-- Modal for editing users -->
+        <div id="edit-user-modal" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 class="modal-title">แก้ไขผู้ใช้งาน</h3>
+                    <button class="close-modal">&times;</button>
+                </div>
+                <form id="edit-user-form">
+                    <input type="hidden" id="edit-user-id">
+                    <input type="text" id="edit-user-username" placeholder="ชื่อผู้ใช้งาน" required>
+                    
+                    <div class="password-container">
+                        <input type="password" id="edit-user-password" placeholder="รหัสผ่านใหม่ (เว้นว่างหากไม่ต้องการเปลี่ยน)">
+                        <button type="button" class="password-toggle" id="toggle-edit-user-password">👁️</button>
+                    </div>
+                    
+                    <div class="password-container">
+                        <input type="password" id="edit-user-confirm-password" placeholder="ยืนยันรหัสผ่านใหม่">
+                        <button type="button" class="password-toggle" id="toggle-edit-user-confirm-password">👁️</button>
+                    </div>
+                    
+                    <select id="edit-user-role" required>
+                        <option value="user">User</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                    <button type="submit">อัปเดตผู้ใช้งาน</button>
+                    <p id="edit-user-message" class="error-message"></p>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Modal สำหรับเลือกรูปแบบการแสดงผลสรุป -->
+        <div id="summaryOutputModal" class="modal-overlay">
+            <div class="format-modal-content">
+                <h3>เลือกรูปแบบการแสดงผลสรุป</h3>
+                <div class="format-modal-buttons">
+                    <button class="btn-display" onclick="handleSummaryOutput('display')">แสดงบนจอ</button>
+                    <button class="btn-xlsx" onclick="handleSummaryOutput('xlsx')">บันทึกเป็น XLSX</button>
+                    <button class="btn-pdf" onclick="handleSummaryOutput('pdf')">บันทึกเป็น PDF</button>
+                    <button class="btn-cancel" onclick="closeSummaryOutputModal()">ยกเลิก</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal สำหรับแสดงสรุปบนจอ -->
+        <div id="summaryModal" class="summary-modal-overlay">
+            <div class="summary-modal-content-container">
+                <div id="modalBodyContent" class="summaryResult">
+                    <!-- เนื้อหาการสรุปจะถูกใส่ที่นี่โดย JavaScript -->
+                </div>
+                <div class="summary-modal-controls">
+                    <button id="saveSummaryAsImageBtn" class="summary-modal-close-btn" style="background-color: #007bff; margin-bottom: 15px;">บันทึกเป็นรูปภาพ</button>
+                    <div class="summary-control-group">
+                        <label for="summaryFontSizeSlider">ปรับขนาดตัวอักษร:</label>
+                        <input type="range" id="summaryFontSizeSlider" min="0.5" max="1.5" step="0.05" value="1.0">
+                        <span id="summaryFontSizeValue">ขนาด: 100%</span>
+                    </div>
+                    <div class="summary-control-group">
+                        <label for="summaryLineHeightSlider">ปรับขนาดของบรรทัด:</label>
+                        <input type="range" id="summaryLineHeightSlider" min="0.01" max="1.5" step="0.01" value="0.5">
+                        <span id="summaryLineHeightValue">ความสูงของบรรทัด: 0.5</span>
+                    </div>
+                    <button onclick="closeSummaryModal()" class="summary-modal-close-btn">ปิดหน้าต่างนี้</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Container สำหรับการพิมพ์ PDF -->
+        <div id="print-container"></div>
     </div>
-
-    <!-- Container สำหรับการพิมพ์ PDF -->
-    <div id="print-container"></div>
-
-
+</body>
 
 <script>
     // ตัวแปรเก็บข้อมูลสรุปสำหรับการส่งออก
     let summaryContext = {};
 
-    // ========== Common Functions ==========
-// ========== Import Data from Other User ==========
-function setupImportFromOtherUser() {
-    const importButton = document.getElementById('import-from-other-user-button');
-    const modal = document.getElementById('import-from-other-modal');
-    const closeButtons = document.querySelectorAll('#import-from-other-modal .close-modal, #import-from-other-modal');
-    const form = document.getElementById('import-from-other-form');
-    
-    if (importButton) {
-        importButton.addEventListener('click', function() {
-            loadSourceUsers();
-            modal.style.display = 'block';
+    // ========== IMPORT DATA FROM OTHER USER ==========
+    function setupImportFromOtherUser() {
+        const importButton = document.getElementById('import-from-other-user-button');
+        const modal = document.getElementById('import-from-other-modal');
+        const closeButtons = document.querySelectorAll('#import-from-other-modal .close-modal, #import-from-other-modal');
+        const form = document.getElementById('import-from-other-form');
+        
+        if (importButton) {
+            importButton.addEventListener('click', function() {
+                loadSourceUsers();
+                modal.style.display = 'block';
+            });
+        }
+        
+        closeButtons.forEach(button => {
+            button.addEventListener('click', function(e) {
+                if (e.target === this || e.target.classList.contains('close-modal')) {
+                    modal.style.display = 'none';
+                    document.getElementById('import-from-other-form-message').textContent = '';
+                }
+            });
         });
+        
+        if (form) {
+            form.addEventListener('submit', handleImportFromOtherUser);
+        }
     }
-    
-    closeButtons.forEach(button => {
-        button.addEventListener('click', function(e) {
-            if (e.target === this || e.target.classList.contains('close-modal')) {
-                modal.style.display = 'none';
-                document.getElementById('import-from-other-form-message').textContent = '';
+
+    function loadSourceUsers() {
+        const loggedInUser = getLoggedInUser();
+        if (!loggedInUser) return;
+        
+        const users = getFromLocalStorage('users');
+        const select = document.getElementById('source-user-select');
+        
+        // ล้าง options เดิม
+        select.innerHTML = '<option value="">-- เลือกบัญชีผู้ใช้ --</option>';
+        
+        // เพิ่มผู้ใช้ทั้งหมดยกเว้นผู้ใช้ปัจจุบัน
+        users.forEach(user => {
+            if (user.id !== loggedInUser.id) {
+                const option = document.createElement('option');
+                option.value = user.id;
+                option.textContent = `${user.username} (${user.role})`;
+                select.appendChild(option);
             }
         });
-    });
-    
-    if (form) {
-        form.addEventListener('submit', handleImportFromOtherUser);
     }
-}
 
-function loadSourceUsers() {
-    const loggedInUser = getLoggedInUser();
-    if (!loggedInUser) return;
-    
-    const users = getFromLocalStorage('users');
-    const select = document.getElementById('source-user-select');
-    
-    // ล้าง options เดิม
-    select.innerHTML = '<option value="">-- เลือกบัญชีผู้ใช้ --</option>';
-    
-    // เพิ่มผู้ใช้ทั้งหมดยกเว้นผู้ใช้ปัจจุบัน
-    users.forEach(user => {
-        if (user.id !== loggedInUser.id) {
-            const option = document.createElement('option');
-            option.value = user.id;
-            option.textContent = `${user.username} (${user.role})`;
-            select.appendChild(option);
+    function handleImportFromOtherUser(event) {
+        event.preventDefault();
+        
+        const loggedInUser = getLoggedInUser();
+        if (!loggedInUser) return;
+        
+        const sourceUserId = document.getElementById('source-user-select').value;
+        const importActivities = document.getElementById('import-activities').checked;
+        const importActivityTypes = document.getElementById('import-activity-types').checked;
+        const replaceExisting = document.getElementById('replace-existing-data').checked;
+        const messageElement = document.getElementById('import-from-other-form-message');
+        const mainMessageElement = document.getElementById('import-from-other-message');
+        
+        if (!sourceUserId) {
+            messageElement.textContent = 'กรุณาเลือกบัญชีต้นทาง';
+            return;
         }
-    });
-}
-
-function handleImportFromOtherUser(event) {
-    event.preventDefault();
-    
-    const loggedInUser = getLoggedInUser();
-    if (!loggedInUser) return;
-    
-    const sourceUserId = document.getElementById('source-user-select').value;
-    const importActivities = document.getElementById('import-activities').checked;
-    const importActivityTypes = document.getElementById('import-activity-types').checked;
-    const replaceExisting = document.getElementById('replace-existing-data').checked;
-    const messageElement = document.getElementById('import-from-other-form-message');
-    const mainMessageElement = document.getElementById('import-from-other-message');
-    
-    if (!sourceUserId) {
-        messageElement.textContent = 'กรุณาเลือกบัญชีต้นทาง';
-        return;
+        
+        if (!importActivities && !importActivityTypes) {
+            messageElement.textContent = 'กรุณาเลือกข้อมูลอย่างน้อยหนึ่งประเภทที่จะนำเข้า';
+            return;
+        }
+        
+        try {
+            let importedCount = {
+                activities: 0,
+                activityTypes: 0
+            };
+            
+            // นำเข้าข้อมูลกิจกรรม
+            if (importActivities) {
+                importedCount.activities = importActivitiesFromUser(sourceUserId, loggedInUser.id, replaceExisting);
+            }
+            
+            // นำเข้าข้อมูลประเภทกิจกรรม
+            if (importActivityTypes) {
+                importedCount.activityTypes = importActivityTypesFromUser(sourceUserId, loggedInUser.id, replaceExisting);
+            }
+            
+            // แสดงผลลัพธ์
+            let successMessage = 'นำเข้าข้อมูลเรียบร้อยแล้ว: ';
+            const parts = [];
+            
+            if (importedCount.activities > 0) {
+                parts.push(`กิจกรรม ${importedCount.activities} รายการ`);
+            }
+            
+            if (importedCount.activityTypes > 0) {
+                parts.push(`ประเภทกิจกรรม ${importedCount.activityTypes} รายการ`);
+            }
+            
+            successMessage += parts.join(', ');
+            
+            messageElement.textContent = '';
+            mainMessageElement.textContent = successMessage;
+            mainMessageElement.className = 'success-message';
+            
+            // ปิด modal
+            document.getElementById('import-from-other-modal').style.display = 'none';
+            
+            // โหลดข้อมูลใหม่
+            loadUserActivities();
+            loadActivityTypes();
+            populateActivityTypeDropdowns('activity-name-select');
+            populateActivityTypeDropdowns('filter-activity-type');
+            
+            // ล้างข้อความหลังจาก 5 วินาที
+            setTimeout(() => {
+                mainMessageElement.textContent = '';
+            }, 5000);
+            
+        } catch (error) {
+            messageElement.textContent = 'เกิดข้อผิดพลาดในการนำเข้าข้อมูล: ' + error.message;
+            console.error('Import from other user error:', error);
+        }
     }
-    
-    if (!importActivities && !importActivityTypes) {
-        messageElement.textContent = 'กรุณาเลือกข้อมูลอย่างน้อยหนึ่งประเภทที่จะนำเข้า';
-        return;
-    }
-    
-    try {
-        let importedCount = {
-            activities: 0,
-            activityTypes: 0
-        };
-        
-        // นำเข้าข้อมูลกิจกรรม
-        if (importActivities) {
-            importedCount.activities = importActivitiesFromUser(sourceUserId, loggedInUser.id, replaceExisting);
-        }
-        
-        // นำเข้าข้อมูลประเภทกิจกรรม
-        if (importActivityTypes) {
-            importedCount.activityTypes = importActivityTypesFromUser(sourceUserId, loggedInUser.id, replaceExisting);
-        }
-        
-        // แสดงผลลัพธ์
-        let successMessage = 'นำเข้าข้อมูลเรียบร้อยแล้ว: ';
-        const parts = [];
-        
-        if (importedCount.activities > 0) {
-            parts.push(`กิจกรรม ${importedCount.activities} รายการ`);
-        }
-        
-        if (importedCount.activityTypes > 0) {
-            parts.push(`ประเภทกิจกรรม ${importedCount.activityTypes} รายการ`);
-        }
-        
-        successMessage += parts.join(', ');
-        
-        messageElement.textContent = '';
-        mainMessageElement.textContent = successMessage;
-        mainMessageElement.className = 'success-message';
-        
-        // ปิด modal
-        document.getElementById('import-from-other-modal').style.display = 'none';
-        
-        // โหลดข้อมูลใหม่
-        loadUserActivities();
-        loadActivityTypes();
-        populateActivityTypeDropdowns('activity-name-select');
-        populateActivityTypeDropdowns('filter-activity-type');
-        
-        // ล้างข้อความหลังจาก 5 วินาที
-        setTimeout(() => {
-            mainMessageElement.textContent = '';
-        }, 5000);
-        
-    } catch (error) {
-        messageElement.textContent = 'เกิดข้อผิดพลาดในการนำเข้าข้อมูล: ' + error.message;
-        console.error('Import from other user error:', error);
-    }
-}
 
 function importActivitiesFromUser(sourceUserId, targetUserId, replaceExisting) {
     const allActivities = getFromLocalStorage('activities');
-    
-    // กรองกิจกรรมจากผู้ใช้ต้นทาง
     const sourceActivities = allActivities.filter(activity => activity.userId === sourceUserId);
     
-    if (sourceActivities.length === 0) {
-        return 0;
-    }
+    if (sourceActivities.length === 0) return 0;
     
     let importedCount = 0;
-    
+
     if (replaceExisting) {
-        // ลบกิจกรรมเดิมของผู้ใช้ปลายทาง
         const otherActivities = allActivities.filter(activity => activity.userId !== targetUserId);
-        
-        // สร้างกิจกรรมใหม่โดยเปลี่ยน userId
         const newActivities = sourceActivities.map(activity => ({
             ...activity,
-            id: Date.now().toString() + Math.random().toString(36).substr(2, 5), // สร้าง ID ใหม่
+            id: generateNewId(),
             userId: targetUserId
         }));
         
-        // บันทึกข้อมูล
         saveToLocalStorage('activities', [...otherActivities, ...newActivities]);
         importedCount = newActivities.length;
     } else {
-        // เพิ่มกิจกรรมใหม่โดยไม่ลบของเดิม
         const existingActivities = allActivities.filter(activity => activity.userId === targetUserId);
-        
-        // สร้างกิจกรรมใหม่โดยเปลี่ยน userId และตรวจสอบไม่ให้ซ้ำ
         const newActivities = sourceActivities
-            .filter(sourceActivity => 
-                !existingActivities.some(existingActivity => 
-                    existingActivity.activityName === sourceActivity.activityName &&
-                    existingActivity.date === sourceActivity.date &&
-                    existingActivity.startTime === sourceActivity.startTime
-                )
-            )
+            .filter(sourceActivity => !isDuplicateActivity(sourceActivity, existingActivities))
             .map(activity => ({
                 ...activity,
-                id: Date.now().toString() + Math.random().toString(36).substr(2, 5), // สร้าง ID ใหม่
+                id: generateNewId(),
                 userId: targetUserId
             }));
         
-        // บันทึกข้อมูล
         saveToLocalStorage('activities', [...allActivities, ...newActivities]);
         importedCount = newActivities.length;
     }
@@ -1934,48 +1905,32 @@ function importActivitiesFromUser(sourceUserId, targetUserId, replaceExisting) {
 
 function importActivityTypesFromUser(sourceUserId, targetUserId, replaceExisting) {
     const allActivityTypes = getFromLocalStorage('activityTypes');
-    
-    // กรองประเภทกิจกรรมจากผู้ใช้ต้นทาง
     const sourceActivityTypes = allActivityTypes.filter(type => type.userId === sourceUserId);
     
-    if (sourceActivityTypes.length === 0) {
-        return 0;
-    }
+    if (sourceActivityTypes.length === 0) return 0;
     
     let importedCount = 0;
-    
+
     if (replaceExisting) {
-        // ลบประเภทกิจกรรมเดิมของผู้ใช้ปลายทาง
         const otherActivityTypes = allActivityTypes.filter(type => type.userId !== targetUserId);
-        
-        // สร้างประเภทกิจกรรมใหม่โดยเปลี่ยน userId
         const newActivityTypes = sourceActivityTypes.map(type => ({
             ...type,
-            id: Date.now().toString() + Math.random().toString(36).substr(2, 5), // สร้าง ID ใหม่
+            id: generateNewId(),
             userId: targetUserId
         }));
         
-        // บันทึกข้อมูล
         saveToLocalStorage('activityTypes', [...otherActivityTypes, ...newActivityTypes]);
         importedCount = newActivityTypes.length;
     } else {
-        // เพิ่มประเภทกิจกรรมใหม่โดยไม่ลบของเดิม
         const existingActivityTypes = allActivityTypes.filter(type => type.userId === targetUserId);
-        
-        // สร้างประเภทกิจกรรมใหม่โดยเปลี่ยน userId และตรวจสอบไม่ให้ซ้ำชื่อ
         const newActivityTypes = sourceActivityTypes
-            .filter(sourceType => 
-                !existingActivityTypes.some(existingType => 
-                    existingType.name.toLowerCase() === sourceType.name.toLowerCase()
-                )
-            )
+            .filter(sourceType => !isDuplicateActivityType(sourceType, existingActivityTypes))
             .map(type => ({
                 ...type,
-                id: Date.now().toString() + Math.random().toString(36).substr(2, 5), // สร้าง ID ใหม่
+                id: generateNewId(),
                 userId: targetUserId
             }));
         
-        // บันทึกข้อมูล
         saveToLocalStorage('activityTypes', [...allActivityTypes, ...newActivityTypes]);
         importedCount = newActivityTypes.length;
     }
@@ -1983,32 +1938,37 @@ function importActivityTypesFromUser(sourceUserId, targetUserId, replaceExisting
     return importedCount;
 }
 
-    function mergeData(existingData, newData, keyField) {
-        const existingMap = new Map();
-        existingData.forEach(item => {
-            existingMap.set(item[keyField], item);
-        });
-        
-        newData.forEach(newItem => {
-            existingMap.set(newItem[keyField], newItem);
-        });
-        
-        return Array.from(existingMap.values());
-    }
+function isDuplicateActivity(sourceActivity, existingActivities) {
+    return existingActivities.some(existingActivity => 
+        existingActivity.activityName === sourceActivity.activityName &&
+        existingActivity.date === sourceActivity.date &&
+        existingActivity.startTime === sourceActivity.startTime
+    );
+}
 
-    function getFromLocalStorage(key, defaultValue = []) {
-        const data = localStorage.getItem(key);
-        try {
-            return data ? JSON.parse(data) : defaultValue;
-        } catch (e) {
-            console.error(`Error parsing data from localStorage for key "${key}":`, e);
-            return defaultValue;
-        }
-    }
+function isDuplicateActivityType(sourceType, existingActivityTypes) {
+    return existingActivityTypes.some(existingType => 
+        existingType.name.toLowerCase() === sourceType.name.toLowerCase()
+    );
+}
 
-    function saveToLocalStorage(key, data) {
-        localStorage.setItem(key, JSON.stringify(data));
+function generateNewId() {
+    return Date.now().toString() + Math.random().toString(36).substr(2, 5);
+}
+
+function getFromLocalStorage(key, defaultValue = []) {
+    const data = localStorage.getItem(key);
+    try {
+        return data ? JSON.parse(data) : defaultValue;
+    } catch (e) {
+        console.error(`Error parsing data from localStorage for key "${key}":`, e);
+        return defaultValue;
     }
+}
+
+function saveToLocalStorage(key, data) {
+    localStorage.setItem(key, JSON.stringify(data));
+}
 
     // ========== Session Management ==========
     function getLoggedInUser() {
