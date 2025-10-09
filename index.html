@@ -1737,165 +1737,183 @@ table th,
         <div id="print-container"></div>
     </div>
 </body>
-
 <script>
     // ตัวแปรเก็บข้อมูลสรุปสำหรับการส่งออก
     let summaryContext = {};
 
-    // ========== IMPORT DATA FROM OTHER USER ==========
-    function setupImportFromOtherUser() {
-        const importButton = document.getElementById('import-from-other-user-button');
-        const modal = document.getElementById('import-from-other-modal');
-        const closeButtons = document.querySelectorAll('#import-from-other-modal .close-modal, #import-from-other-modal');
-        const form = document.getElementById('import-from-other-form');
-        
-        if (importButton) {
-            importButton.addEventListener('click', function() {
-                loadSourceUsers();
-                modal.style.display = 'block';
-            });
-        }
-        
-        closeButtons.forEach(button => {
-            button.addEventListener('click', function(e) {
-                if (e.target === this || e.target.classList.contains('close-modal')) {
-                    modal.style.display = 'none';
-                    document.getElementById('import-from-other-form-message').textContent = '';
-                }
-            });
-        });
-        
-        if (form) {
-            form.addEventListener('submit', handleImportFromOtherUser);
-        }
-    }
-
-    function loadSourceUsers() {
-        const loggedInUser = getLoggedInUser();
-        if (!loggedInUser) return;
-        
-        const users = getFromLocalStorage('users');
-        const select = document.getElementById('source-user-select');
-        
-        // ล้าง options เดิม
-        select.innerHTML = '<option value="">-- เลือกบัญชีผู้ใช้ --</option>';
-        
-        // เพิ่มผู้ใช้ทั้งหมดยกเว้นผู้ใช้ปัจจุบัน
-        users.forEach(user => {
-            if (user.id !== loggedInUser.id) {
-                const option = document.createElement('option');
-                option.value = user.id;
-                option.textContent = `${user.username} (${user.role})`;
-                select.appendChild(option);
-            }
+    // ========== Common Functions ==========
+// ========== Import Data from Other User ==========
+function setupImportFromOtherUser() {
+    const importButton = document.getElementById('import-from-other-user-button');
+    const modal = document.getElementById('import-from-other-modal');
+    const closeButtons = document.querySelectorAll('#import-from-other-modal .close-modal, #import-from-other-modal');
+    const form = document.getElementById('import-from-other-form');
+    
+    if (importButton) {
+        importButton.addEventListener('click', function() {
+            loadSourceUsers();
+            modal.style.display = 'block';
         });
     }
-
-    function handleImportFromOtherUser(event) {
-        event.preventDefault();
-        
-        const loggedInUser = getLoggedInUser();
-        if (!loggedInUser) return;
-        
-        const sourceUserId = document.getElementById('source-user-select').value;
-        const importActivities = document.getElementById('import-activities').checked;
-        const importActivityTypes = document.getElementById('import-activity-types').checked;
-        const replaceExisting = document.getElementById('replace-existing-data').checked;
-        const messageElement = document.getElementById('import-from-other-form-message');
-        const mainMessageElement = document.getElementById('import-from-other-message');
-        
-        if (!sourceUserId) {
-            messageElement.textContent = 'กรุณาเลือกบัญชีต้นทาง';
-            return;
-        }
-        
-        if (!importActivities && !importActivityTypes) {
-            messageElement.textContent = 'กรุณาเลือกข้อมูลอย่างน้อยหนึ่งประเภทที่จะนำเข้า';
-            return;
-        }
-        
-        try {
-            let importedCount = {
-                activities: 0,
-                activityTypes: 0
-            };
-            
-            // นำเข้าข้อมูลกิจกรรม
-            if (importActivities) {
-                importedCount.activities = importActivitiesFromUser(sourceUserId, loggedInUser.id, replaceExisting);
+    
+    closeButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            if (e.target === this || e.target.classList.contains('close-modal')) {
+                modal.style.display = 'none';
+                document.getElementById('import-from-other-form-message').textContent = '';
             }
-            
-            // นำเข้าข้อมูลประเภทกิจกรรม
-            if (importActivityTypes) {
-                importedCount.activityTypes = importActivityTypesFromUser(sourceUserId, loggedInUser.id, replaceExisting);
-            }
-            
-            // แสดงผลลัพธ์
-            let successMessage = 'นำเข้าข้อมูลเรียบร้อยแล้ว: ';
-            const parts = [];
-            
-            if (importedCount.activities > 0) {
-                parts.push(`กิจกรรม ${importedCount.activities} รายการ`);
-            }
-            
-            if (importedCount.activityTypes > 0) {
-                parts.push(`ประเภทกิจกรรม ${importedCount.activityTypes} รายการ`);
-            }
-            
-            successMessage += parts.join(', ');
-            
-            messageElement.textContent = '';
-            mainMessageElement.textContent = successMessage;
-            mainMessageElement.className = 'success-message';
-            
-            // ปิด modal
-            document.getElementById('import-from-other-modal').style.display = 'none';
-            
-            // โหลดข้อมูลใหม่
-            loadUserActivities();
-            loadActivityTypes();
-            populateActivityTypeDropdowns('activity-name-select');
-            populateActivityTypeDropdowns('filter-activity-type');
-            
-            // ล้างข้อความหลังจาก 5 วินาที
-            setTimeout(() => {
-                mainMessageElement.textContent = '';
-            }, 5000);
-            
-        } catch (error) {
-            messageElement.textContent = 'เกิดข้อผิดพลาดในการนำเข้าข้อมูล: ' + error.message;
-            console.error('Import from other user error:', error);
-        }
+        });
+    });
+    
+    if (form) {
+        form.addEventListener('submit', handleImportFromOtherUser);
     }
+}
+
+function loadSourceUsers() {
+    const loggedInUser = getLoggedInUser();
+    if (!loggedInUser) return;
+    
+    const users = getFromLocalStorage('users');
+    const select = document.getElementById('source-user-select');
+    
+    // ล้าง options เดิม
+    select.innerHTML = '<option value="">-- เลือกบัญชีผู้ใช้ --</option>';
+    
+    // เพิ่มผู้ใช้ทั้งหมดยกเว้นผู้ใช้ปัจจุบัน
+    users.forEach(user => {
+        if (user.id !== loggedInUser.id) {
+            const option = document.createElement('option');
+            option.value = user.id;
+            option.textContent = `${user.username} (${user.role})`;
+            select.appendChild(option);
+        }
+    });
+}
+
+function handleImportFromOtherUser(event) {
+    event.preventDefault();
+    
+    const loggedInUser = getLoggedInUser();
+    if (!loggedInUser) return;
+    
+    const sourceUserId = document.getElementById('source-user-select').value;
+    const importActivities = document.getElementById('import-activities').checked;
+    const importActivityTypes = document.getElementById('import-activity-types').checked;
+    const replaceExisting = document.getElementById('replace-existing-data').checked;
+    const messageElement = document.getElementById('import-from-other-form-message');
+    const mainMessageElement = document.getElementById('import-from-other-message');
+    
+    if (!sourceUserId) {
+        messageElement.textContent = 'กรุณาเลือกบัญชีต้นทาง';
+        return;
+    }
+    
+    if (!importActivities && !importActivityTypes) {
+        messageElement.textContent = 'กรุณาเลือกข้อมูลอย่างน้อยหนึ่งประเภทที่จะนำเข้า';
+        return;
+    }
+    
+    try {
+        let importedCount = {
+            activities: 0,
+            activityTypes: 0
+        };
+        
+        // นำเข้าข้อมูลกิจกรรม
+        if (importActivities) {
+            importedCount.activities = importActivitiesFromUser(sourceUserId, loggedInUser.id, replaceExisting);
+        }
+        
+        // นำเข้าข้อมูลประเภทกิจกรรม
+        if (importActivityTypes) {
+            importedCount.activityTypes = importActivityTypesFromUser(sourceUserId, loggedInUser.id, replaceExisting);
+        }
+        
+        // แสดงผลลัพธ์
+        let successMessage = 'นำเข้าข้อมูลเรียบร้อยแล้ว: ';
+        const parts = [];
+        
+        if (importedCount.activities > 0) {
+            parts.push(`กิจกรรม ${importedCount.activities} รายการ`);
+        }
+        
+        if (importedCount.activityTypes > 0) {
+            parts.push(`ประเภทกิจกรรม ${importedCount.activityTypes} รายการ`);
+        }
+        
+        successMessage += parts.join(', ');
+        
+        messageElement.textContent = '';
+        mainMessageElement.textContent = successMessage;
+        mainMessageElement.className = 'success-message';
+        
+        // ปิด modal
+        document.getElementById('import-from-other-modal').style.display = 'none';
+        
+        // โหลดข้อมูลใหม่
+        loadUserActivities();
+        loadActivityTypes();
+        populateActivityTypeDropdowns('activity-name-select');
+        populateActivityTypeDropdowns('filter-activity-type');
+        
+        // ล้างข้อความหลังจาก 5 วินาที
+        setTimeout(() => {
+            mainMessageElement.textContent = '';
+        }, 5000);
+        
+    } catch (error) {
+        messageElement.textContent = 'เกิดข้อผิดพลาดในการนำเข้าข้อมูล: ' + error.message;
+        console.error('Import from other user error:', error);
+    }
+}
 
 function importActivitiesFromUser(sourceUserId, targetUserId, replaceExisting) {
     const allActivities = getFromLocalStorage('activities');
+    
+    // กรองกิจกรรมจากผู้ใช้ต้นทาง
     const sourceActivities = allActivities.filter(activity => activity.userId === sourceUserId);
     
-    if (sourceActivities.length === 0) return 0;
+    if (sourceActivities.length === 0) {
+        return 0;
+    }
     
     let importedCount = 0;
-
+    
     if (replaceExisting) {
+        // ลบกิจกรรมเดิมของผู้ใช้ปลายทาง
         const otherActivities = allActivities.filter(activity => activity.userId !== targetUserId);
+        
+        // สร้างกิจกรรมใหม่โดยเปลี่ยน userId
         const newActivities = sourceActivities.map(activity => ({
             ...activity,
-            id: generateNewId(),
+            id: Date.now().toString() + Math.random().toString(36).substr(2, 5), // สร้าง ID ใหม่
             userId: targetUserId
         }));
         
+        // บันทึกข้อมูล
         saveToLocalStorage('activities', [...otherActivities, ...newActivities]);
         importedCount = newActivities.length;
     } else {
+        // เพิ่มกิจกรรมใหม่โดยไม่ลบของเดิม
         const existingActivities = allActivities.filter(activity => activity.userId === targetUserId);
+        
+        // สร้างกิจกรรมใหม่โดยเปลี่ยน userId และตรวจสอบไม่ให้ซ้ำ
         const newActivities = sourceActivities
-            .filter(sourceActivity => !isDuplicateActivity(sourceActivity, existingActivities))
+            .filter(sourceActivity => 
+                !existingActivities.some(existingActivity => 
+                    existingActivity.activityName === sourceActivity.activityName &&
+                    existingActivity.date === sourceActivity.date &&
+                    existingActivity.startTime === sourceActivity.startTime
+                )
+            )
             .map(activity => ({
                 ...activity,
-                id: generateNewId(),
+                id: Date.now().toString() + Math.random().toString(36).substr(2, 5), // สร้าง ID ใหม่
                 userId: targetUserId
             }));
         
+        // บันทึกข้อมูล
         saveToLocalStorage('activities', [...allActivities, ...newActivities]);
         importedCount = newActivities.length;
     }
@@ -1905,32 +1923,48 @@ function importActivitiesFromUser(sourceUserId, targetUserId, replaceExisting) {
 
 function importActivityTypesFromUser(sourceUserId, targetUserId, replaceExisting) {
     const allActivityTypes = getFromLocalStorage('activityTypes');
+    
+    // กรองประเภทกิจกรรมจากผู้ใช้ต้นทาง
     const sourceActivityTypes = allActivityTypes.filter(type => type.userId === sourceUserId);
     
-    if (sourceActivityTypes.length === 0) return 0;
+    if (sourceActivityTypes.length === 0) {
+        return 0;
+    }
     
     let importedCount = 0;
-
+    
     if (replaceExisting) {
+        // ลบประเภทกิจกรรมเดิมของผู้ใช้ปลายทาง
         const otherActivityTypes = allActivityTypes.filter(type => type.userId !== targetUserId);
+        
+        // สร้างประเภทกิจกรรมใหม่โดยเปลี่ยน userId
         const newActivityTypes = sourceActivityTypes.map(type => ({
             ...type,
-            id: generateNewId(),
+            id: Date.now().toString() + Math.random().toString(36).substr(2, 5), // สร้าง ID ใหม่
             userId: targetUserId
         }));
         
+        // บันทึกข้อมูล
         saveToLocalStorage('activityTypes', [...otherActivityTypes, ...newActivityTypes]);
         importedCount = newActivityTypes.length;
     } else {
+        // เพิ่มประเภทกิจกรรมใหม่โดยไม่ลบของเดิม
         const existingActivityTypes = allActivityTypes.filter(type => type.userId === targetUserId);
+        
+        // สร้างประเภทกิจกรรมใหม่โดยเปลี่ยน userId และตรวจสอบไม่ให้ซ้ำชื่อ
         const newActivityTypes = sourceActivityTypes
-            .filter(sourceType => !isDuplicateActivityType(sourceType, existingActivityTypes))
+            .filter(sourceType => 
+                !existingActivityTypes.some(existingType => 
+                    existingType.name.toLowerCase() === sourceType.name.toLowerCase()
+                )
+            )
             .map(type => ({
                 ...type,
-                id: generateNewId(),
+                id: Date.now().toString() + Math.random().toString(36).substr(2, 5), // สร้าง ID ใหม่
                 userId: targetUserId
             }));
         
+        // บันทึกข้อมูล
         saveToLocalStorage('activityTypes', [...allActivityTypes, ...newActivityTypes]);
         importedCount = newActivityTypes.length;
     }
@@ -1938,37 +1972,32 @@ function importActivityTypesFromUser(sourceUserId, targetUserId, replaceExisting
     return importedCount;
 }
 
-function isDuplicateActivity(sourceActivity, existingActivities) {
-    return existingActivities.some(existingActivity => 
-        existingActivity.activityName === sourceActivity.activityName &&
-        existingActivity.date === sourceActivity.date &&
-        existingActivity.startTime === sourceActivity.startTime
-    );
-}
-
-function isDuplicateActivityType(sourceType, existingActivityTypes) {
-    return existingActivityTypes.some(existingType => 
-        existingType.name.toLowerCase() === sourceType.name.toLowerCase()
-    );
-}
-
-function generateNewId() {
-    return Date.now().toString() + Math.random().toString(36).substr(2, 5);
-}
-
-function getFromLocalStorage(key, defaultValue = []) {
-    const data = localStorage.getItem(key);
-    try {
-        return data ? JSON.parse(data) : defaultValue;
-    } catch (e) {
-        console.error(`Error parsing data from localStorage for key "${key}":`, e);
-        return defaultValue;
+    function mergeData(existingData, newData, keyField) {
+        const existingMap = new Map();
+        existingData.forEach(item => {
+            existingMap.set(item[keyField], item);
+        });
+        
+        newData.forEach(newItem => {
+            existingMap.set(newItem[keyField], newItem);
+        });
+        
+        return Array.from(existingMap.values());
     }
-}
 
-function saveToLocalStorage(key, data) {
-    localStorage.setItem(key, JSON.stringify(data));
-}
+    function getFromLocalStorage(key, defaultValue = []) {
+        const data = localStorage.getItem(key);
+        try {
+            return data ? JSON.parse(data) : defaultValue;
+        } catch (e) {
+            console.error(`Error parsing data from localStorage for key "${key}":`, e);
+            return defaultValue;
+        }
+    }
+
+    function saveToLocalStorage(key, data) {
+        localStorage.setItem(key, JSON.stringify(data));
+    }
 
     // ========== Session Management ==========
     function getLoggedInUser() {
