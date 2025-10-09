@@ -1,62 +1,111 @@
-// กำหนดชื่อ Cache สองชุด: หนึ่งสำหรับไฟล์หลักของแอป, อีกหนึ่งสำหรับไฟล์ที่โหลดทีหลัง
-const staticCacheName = 'site-static-v3'; // เปลี่ยน v2 เป็น v3 เพื่อบังคับอัปเดต
-const dynamicCacheName = 'site-dynamic-v2'; // Cache สำหรับไฟล์ที่เปลี่ยนแปลงบ่อย หรือมาจากข้างนอก
-
-// --- จุดที่แก้ไข 1 ---
-// นำ URL ของ Google Fonts ออกจากรายการนี้ เหลือไว้แค่ไฟล์ในโปรเจกต์ของเรา
-const assets = [
+// service-worker.js
+const CACHE_NAME = 'activities-pwa-cache-v4';
+const urlsToCache = [
   './',
   './index.html',
-  './css/style.css',
-  './js/main.js',
-  './pages/fallback.html' // หน้า fallback ควรอยู่ในนี้
+  './style.css',
+  './script.js',
+  './manifest.json',
+  'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js',
+  'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js'
 ];
 
-// install service worker
-self.addEventListener('install', evt => {
-  evt.waitUntil(
-    caches.open(staticCacheName).then(cache => {
-      console.log('caching shell assets');
-      cache.addAll(assets);
-    })
+// Event: install
+self.addEventListener('install', event => {
+  console.log('Service Worker: Installing...');
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then(cache => {
+        console.log('Service Worker: Caching app files');
+        return cache.addAll(urlsToCache);
+      })
+      .then(() => {
+        console.log('Service Worker: All files cached successfully');
+        return self.skipWaiting();
+      })
+      .catch(error => {
+        console.error('Service Worker: Cache installation failed:', error);
+      })
   );
 });
 
-// activate event
-self.addEventListener('activate', evt => {
-  evt.waitUntil(
-    caches.keys().then(keys => {
-      return Promise.all(keys
-        // ลบ cache ทั้ง static และ dynamic เวอร์ชันเก่าออกไป
-        .filter(key => key !== staticCacheName && key !== dynamicCacheName)
-        .map(key => caches.delete(key))
+// Event: activate
+self.addEventListener('activate', event => {
+  console.log('Service Worker: Activating...');
+  event.waitUntil(
+    caches.keys().then(cacheNames => {
+      return Promise.all(
+        cacheNames.map(cache => {
+          if (cache !== CACHE_NAME) {
+            console.log('Service Worker: Deleting old cache:', cache);
+            return caches.delete(cache);
+          }
+        })
       );
     })
+    .then(() => {
+      console.log('Service Worker: Activated successfully');
+      return self.clients.claim();
+    })
   );
 });
 
-// --- จุดที่แก้ไข 2 ---
-// ปรับปรุง fetch event ให้ฉลาดขึ้น
-self.addEventListener('fetch', evt => {
-  evt.respondWith(
-    // 1. ตรวจสอบใน Cache ก่อน (ทั้ง static และ dynamic)
-    caches.match(evt.request).then(cacheRes => {
-      // ถ้าเจอไฟล์ใน Cache ให้ส่งไฟล์นั้นกลับไปเลย (ทำงานเร็ว + offline)
-      return cacheRes || fetch(evt.request).then(fetchRes => {
-        // 2. ถ้าไม่เจอใน Cache ให้ไปโหลดจาก Network
-        // และนำไฟล์ที่โหลดได้ มาเก็บใน dynamic cache สำหรับใช้ครั้งต่อไป
-        return caches.open(dynamicCacheName).then(cache => {
-          // ใช้ put เพื่อเก็บ request-response คู่กัน, clone() เพราะ response ใช้ได้ครั้งเดียว
-          cache.put(evt.request.url, fetchRes.clone()); 
-          return fetchRes; // ส่ง response ที่โหลดมาใหม่กลับไปให้เบราว์เซอร์
-        });
-      });
-    }).catch(() => {
-      // 3. ถ้าทั้ง Cache และ Network ล้มเหลว (เช่น offline และไม่เคยเข้าเว็บนี้มาก่อน)
-      // ให้แสดงหน้า fallback ที่เราเตรียมไว้
-      if (evt.request.url.indexOf('.html') > -1) {
-        return caches.match('./pages/fallback.html');
-      }
-    })
+// Event: fetch
+self.addEventListener('fetch', event => {
+  // ตรวจสอบว่าเป็น request ชนิด GET
+  if (event.request.method !== 'GET') {
+    return;
+  }
+
+  event.respondWith(
+    caches.match(event.request)
+      .then(response => {
+        // ถ้าพบใน cache ให้ส่งคืน
+        if (response) {
+          return response;
+        }
+
+        // ถ้าไม่พบใน cache ให้ทำการ fetch จาก network
+        return fetch(event.request)
+          .then(networkResponse => {
+            // ตรวจสอบว่าการตอบสนองถูกต้อง
+            if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
+              return networkResponse;
+            }
+
+            // คัดลอกการตอบสนองและเพิ่มลงใน cache
+            const responseToCache = networkResponse.clone();
+            caches.open(CACHE_NAME)
+              .then(cache => {
+                cache.put(event.request, responseToCache);
+              });
+
+            return networkResponse;
+          })
+          .catch(error => {
+            console.error('Service Worker: Fetch failed:', error);
+            // สำหรับ HTML requests ถ้า offline ให้แสดงหน้า index.html
+            if (event.request.destination === 'document' || 
+                (event.request.headers.get('accept') && event.request.headers.get('accept').includes('text/html'))) {
+              return caches.match('./index.html');
+            }
+            // สำหรับ CSS, JS requests
+            if (event.request.destination === 'style' || event.request.destination === 'script') {
+              return caches.match(event.request.url);
+            }
+            return new Response('Network error happened', {
+              status: 408,
+              headers: { 'Content-Type': 'text/plain' }
+            });
+          });
+      })
   );
+});
+
+// Event: message
+self.addEventListener('message', event => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
