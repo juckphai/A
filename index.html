@@ -2684,38 +2684,119 @@ function loadActivityTypes() {
         }
     }
 
-    function deleteActivityType(typeId) {
-        const allActivityTypes = getFromLocalStorage('activityTypes');
-        const activities = getFromLocalStorage('activities');
-        const loggedInUser = getLoggedInUser();
+// ในส่วนของ function deleteActivityType(typeId)
+function deleteActivityType(typeId) {
+    const allActivityTypes = getFromLocalStorage('activityTypes');
+    const activities = getFromLocalStorage('activities');
+    const loggedInUser = getLoggedInUser();
 
-        const typeToDelete = allActivityTypes.find(t => t.id === typeId);
-        
-        // ตรวจสอบสิทธิ์การลบ
-        if (typeToDelete && typeToDelete.userId !== loggedInUser.id) {
-            alert('คุณไม่มีสิทธิ์ลบประเภทกิจกรรมนี้');
-            return;
-        }
-
-        // ตรวจสอบว่ามีกิจกรรมใช้ประเภทนี้อยู่หรือไม่
-        const isTypeUsed = activities.some(activity => 
-            activity.activityName === typeToDelete?.name && 
-            activity.userId === loggedInUser.id
-        );
-        
-        if (isTypeUsed) {
-            alert('ไม่สามารถลบประเภทกิจกรรมนี้ได้ เนื่องจากมีกิจกรรมที่ใช้ประเภทนี้อยู่');
-            return;
-        }
-
-        if (!confirm('คุณแน่ใจว่าต้องการลบประเภทกิจกรรมนี้?')) return;
-
-        const updatedTypes = allActivityTypes.filter(t => t.id !== typeId);
-        saveToLocalStorage('activityTypes', updatedTypes);
-        loadActivityTypes();
-        populateActivityTypeDropdowns('activity-name-select');
-        populateActivityTypeDropdowns('filter-activity-type');
+    // ค้นหาประเภทกิจกรรมที่ต้องการลบ
+    const typeToDelete = allActivityTypes.find(t => t.id === typeId);
+    
+    if (!typeToDelete) {
+        alert('ไม่พบประเภทกิจกรรมนี้');
+        return;
     }
+
+    // ตรวจสอบสิทธิ์การลบ - เฉพาะเจ้าของเท่านั้นที่ลบได้
+    if (typeToDelete.userId !== loggedInUser.id) {
+        alert('คุณไม่มีสิทธิ์ลบประเภทกิจกรรมนี้');
+        return;
+    }
+
+    // ตรวจสอบว่ามีกิจกรรมใช้ประเภทนี้อยู่หรือไม่
+    // 🔥 แก้ไขตรงนี้: ตรวจสอบเฉพาะกิจกรรมของ user นี้เท่านั้น
+    const isTypeUsed = activities.some(activity => 
+        activity.activityName === typeToDelete.name && 
+        activity.userId === loggedInUser.id // ตรวจสอบเฉพาะกิจกรรมของ user นี้
+    );
+    
+    if (isTypeUsed) {
+        alert('ไม่สามารถลบประเภทกิจกรรมนี้ได้ เนื่องจากมีกิจกรรมที่ใช้ประเภทนี้อยู่');
+        return;
+    }
+
+    if (!confirm('คุณแน่ใจว่าต้องการลบประเภทกิจกรรมนี้?')) return;
+
+    // ลบประเภทกิจกรรม
+    const updatedTypes = allActivityTypes.filter(t => t.id !== typeId);
+    saveToLocalStorage('activityTypes', updatedTypes);
+    
+    // โหลดข้อมูลใหม่
+    loadActivityTypes();
+    populateActivityTypeDropdowns('activity-name-select');
+    populateActivityTypeDropdowns('filter-activity-type');
+    
+    // แสดงข้อความสำเร็จ
+    alert('ลบประเภทกิจกรรมเรียบร้อยแล้ว');
+}
+
+// และในส่วนของ function populateActivityTypeDropdowns(dropdownId)
+function populateActivityTypeDropdowns(dropdownId) {
+    const dropdown = document.getElementById(dropdownId);
+    if (!dropdown) return;
+
+    const loggedInUser = getLoggedInUser();
+    if (!loggedInUser) return;
+
+    const allActivityTypes = getFromLocalStorage('activityTypes');
+    
+    // 🔥 แก้ไขตรงนี้: กรองเฉพาะประเภทกิจกรรมของ user นี้เท่านั้น
+    const userActivityTypes = allActivityTypes.filter(type => type.userId === loggedInUser.id);
+    
+    // ✅ เพิ่มการจัดเรียงประเภทกิจกรรมตามชื่อ (เรียง A-Z)
+    userActivityTypes.sort((a, b) => a.name.localeCompare(b.name, 'th'));
+
+    const selectedValue = dropdown.value;
+
+    // ตรวจสอบว่ามีประเภทกิจกรรมกี่รายการ
+    const activityTypeCount = userActivityTypes.length;
+    
+    // ล้างและสร้าง options ใหม่
+    dropdown.innerHTML = '<option value="">-- เลือกประเภทกิจกรรม --</option>';
+    if (dropdownId === 'filter-activity-type' || dropdownId === 'admin-filter-activity-type') {
+        dropdown.innerHTML = '<option value="">-- กรองตามประเภท --</option>';
+    }
+
+    userActivityTypes.forEach(type => {
+        const option = document.createElement('option');
+        option.value = type.name;
+        option.textContent = type.name;
+        dropdown.appendChild(option);
+    });
+    
+    // ถ้ามีแค่ 1 ประเภทกิจกรรม ให้เลือกอัตโนมัติ
+    if (activityTypeCount === 1 && (dropdownId === 'activity-name-select')) {
+        const singleActivityType = userActivityTypes[0];
+        dropdown.value = singleActivityType.name;
+    }
+    
+    // คืนค่าที่เลือกไว้เดิม (สำหรับกรณีที่มีมากกว่า 1)
+    if (selectedValue && activityTypeCount > 1) {
+        dropdown.value = selectedValue;
+    }
+
+    // ตรวจสอบและจัดการการแสดงผลสำหรับมือถือ
+    if (activityTypeCount === 1 && (dropdownId === 'activity-name-select')) {
+        // บนมือถือ ให้แสดง dropdown ปกติ แต่เลือกค่าไว้แล้ว
+        dropdown.style.display = 'block';
+        
+        // ซ่อนการแสดงชื่อกิจกรรมถ้ามี
+        const activityNameDisplay = document.getElementById('activity-name-display');
+        if (activityNameDisplay) {
+            activityNameDisplay.style.display = 'none';
+        }
+    } else {
+        // แสดง dropdown ปกติ
+        dropdown.style.display = 'block';
+        
+        // ซ่อนการแสดงชื่อกิจกรรมถ้ามี
+        const activityNameDisplay = document.getElementById('activity-name-display');
+        if (activityNameDisplay) {
+            activityNameDisplay.style.display = 'none';
+        }
+    }
+}
 
 function handleActivityTypeFormSubmit(event) {
     event.preventDefault();
@@ -4706,7 +4787,7 @@ function initializeApp() {
     const activityTypes = getFromLocalStorage('activityTypes');
     if (activityTypes.length === 0) {
         const defaultActivityTypes = [
-            { id: '1', name: 'นั่งสมาธิ', userId: '001' }, // 🔥 เปลี่ยน userId เป็น '001'
+            { id: '1', name: 'นอน', userId: '001' }, // 🔥 เปลี่ยน userId เป็น '001'
             { id: '2', name: 'เดินจงกรม', userId: '001' },
             { id: '3', name: 'ออกกำลังกาย', userId: '001' },
             { id: '4', name: 'เรียน/ฝึกอบรม', userId: '001' },
