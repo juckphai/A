@@ -1,49 +1,23 @@
 {
-  "name": "ระบบบันทึกกิจกรรม",
+  "name": "บันทึกกิจกรรมประจำวัน",
   "short_name": "บันทึกกิจกรรม",
-  "description": "ระบบบันทึกและจัดการกิจกรรมส่วนตัว",
+  "description": "แอปพลิเคชันสำหรับบันทึกกิจกรรมในชีวิตประจำวัน",
   "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#4a90e2",
   "orientation": "portrait",
-  "launch_handler": {
-    "client_mode": "focus-existing"
-  },
   "icons": [
     {
       "src": "./192.png",
       "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any"
+      "type": "image/png"
     },
     {
       "src": "./512.png",
       "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "./512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable"
-    }
-  ],
-  "screenshots": [
-    {
-      "src": "https://juckphai.github.io/lotto/screenshot1.png",
-      "sizes": "1080x1920",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "หน้าขายสินค้า (POS)"
-    },
-    {
-      "src": "https://juckphai.github.io/lotto/screenshot2.png",
-      "sizes": "1080x1920",
-      "type": "image/png",
-      "form_factor": "narrow",
-      "label": "หน้าจัดการข้อมูลและรายงาน"
+      "type": "image/png"
     }
   ]
 }

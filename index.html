@@ -1,417 +1,457 @@
 <!DOCTYPE html>
 <html lang="th">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ระบบบันทึกกิจกรรม</title>
-    <!-- [PWA] Link to Manifest & Theme Color -->
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#4a90e2">
-    
-    <!-- เพิ่มไลบรารีสำหรับการส่งออก -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
-    
-    <!-- Link to external CSS -->
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>บันทึกกิจกรรมประจำวัน</title>
 
-    <!-- Fallback for non-PWA browsers -->
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', function() {
-          navigator.serviceWorker.register('./service-worker.js');
-        });
-      }
-    </script>
+  <!-- PWA Meta Tags -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#4a90e2"/>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="บันทึกกิจกรรมประจำวัน">
+  <link rel="apple-touch-icon" href="./192.png">
+
+  <!-- External Libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="container">
-        <!-- Header for logged in users -->
-        <header id="main-header" class="hidden">
-            <div class="header-top">
-                <h1 id="welcome-message">บันทึกกิจกรรม, ผู้ใช้งาน!</h1>
-                <button class="menu-toggle" id="menu-toggle">☰</button>
-            </div>
-            <nav id="main-nav" class="mobile-hidden">
-                <div class="nav-row">
-                    <a href="#" data-page="activity" class="active">บันทึกกิจกรรม</a>
-                    <a href="#" data-page="summary">สรุปกิจกรรม</a>
-                </div>
-                <div class="nav-row">
-                    <a href="#" data-page="activity-types">จัดการกิจกรรม</a>
-                    <a href="#" data-page="admin" id="admin-link" class="hidden">ผู้ดูแลระบบ</a>
-                </div>
-                <button id="logout-button">ออกจากระบบ</button>
-            </nav>
-        </header>
-
-        <!-- Login/Register Section -->
-        <div id="auth-section">
-            <h1>ระบบบันทึกกิจกรรม</h1>
-            
-            <div class="form-section" id="login-section">
-                <h2>เข้าสู่ระบบ</h2>
-                <form id="login-form">
-                    <input type="text" id="login-username" placeholder="ชื่อผู้ใช้งาน" required>
-                    
-                    <div class="password-container">
-                        <input type="password" id="login-password" placeholder="รหัสผ่าน" required>
-                        <button type="button" class="password-toggle" id="toggle-login-password">👁️</button>
-                    </div>
-                    
-                    <div class="remember-me-container">
-                        <input type="checkbox" id="remember-me">
-                        <label for="remember-me">จำรหัสผ่าน</label>
-                    </div>
-                    
-                    <button type="submit">เข้าสู่ระบบ</button>
-                    <p id="login-message" class="error-message"></p>
-                </form>
-            </div>
-        </div>
-
-        <!-- Activity Page Content -->
-        <div id="activity-page" class="hidden">
-            <section class="form-section">
-                <h2>บันทึกกิจกรรมใหม่</h2>
-                <form id="activity-form">
-                    <label for="activity-name-select">เลือกกิจกรรม:</label>
-                    <select id="activity-name-select" required>
-                        <option value="">-- เลือกประเภทกิจกรรม --</option>
-                    </select>
-                    <input type="date" id="activity-date" required>
-                    
-                    <label for="start-time">เวลาเริ่มต้นและสิ้นสุด:</label>
-                    <div class="time-inputs-container">
-                        <div class="time-input-group">
-                            <input type="time" id="start-time" required>
-                            <span class="time-label">เริ่ม</span>
-                        </div>
-                        <span class="time-separator">ถึง</span>
-                        <div class="time-input-group">
-                            <input type="time" id="end-time" required>
-                            <span class="time-label">สิ้นสุด</span>
-                        </div>
-                    </div>
-                    
-                    <label for="activity-details">รายละเอียดกิจกรรม (ไม่บังคับ):</label>
-                    <textarea id="activity-details" placeholder="เช่น การประชุมกับทีม, อ่านหนังสือบทที่ 5"></textarea>
-                    <button type="submit" id="save-activity-button">บันทึกกิจกรรม</button>
-                    <button type="button" id="update-activity-button" class="hidden">อัปเดตกิจกรรม</button>
-                    <button type="button" id="cancel-edit-activity-button" class="hidden">ยกเลิก</button>
-                    <p id="activity-message" class="error-message"></p>
-                </form>
-            </section>
-
-            <section class="data-section">
-                <h2>รายการกิจกรรมของคุณ</h2>
-                <div class="filter-controls">
-                    <input type="date" id="filter-date">
-                    <select id="filter-activity-type">
-                        <option value="">-- กรองตามประเภท --</option>
-                    </select>
-                    <button id="apply-filter-button">กรอง</button>
-                    <button id="reset-filter-button">รีเซ็ต</button>
-                </div>
-                <div class="table-container">
-                    <table id="activity-list-table">
-                        <thead>
-                            <tr>
-                                <th>กิจกรรม</th>
-                                <th>วันที่</th>
-                                <th>เริ่มเวลา</th>
-                                <th>จบเวลา</th>
-                                <th>รวมเวลา</th>
-                                <th>รายละเอียด</th>
-                                <th>จัดการ</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <!-- Activities will be loaded here by JavaScript -->
-                        </tbody>
-                    </table>
-                </div>
-            </section>
-        </div>
-        
-        <!-- Activity Types Management Page Content -->
-        <div id="activity-types-page" class="hidden">
-            <section class="form-section">
-                <h2>เพิ่ม/แก้ไขประเภทกิจกรรม</h2>
-                <form id="activity-type-form">
-                    <input type="text" id="activity-type-name" placeholder="ชื่อประเภทกิจกรรมใหม่" required>
-                    <button type="submit" id="save-activity-type-button">เพิ่มประเภทกิจกรรม</button>
-                    <button type="button" id="update-activity-type-button" class="hidden">อัปเดตประเภทกิจกรรม</button>
-                    <button type="button" id="cancel-activity-type-edit-button" class="hidden">ยกเลิก</button>
-                    <p id="activity-type-message" class="error-message"></p>
-                </form>
-            </section>
-
-            <section class="data-section">
-                <h2>ประเภทกิจกรรมทั้งหมด</h2>
-                <table id="activity-types-table">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>ชื่อประเภทกิจกรรม</th>
-                            <th>จัดการ</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <!-- Activity types will be loaded here by JavaScript -->
-                    </tbody>
-                </table>
-            </section>
-        </div>
-
-        <!-- Summary Page Content -->
-        <div id="summary-page" class="hidden">
-            <section class="data-section">
-                <h2>สรุปกิจกรรม</h2>
-                <div class="filter-controls">
-                    <label for="summary-type-select">ประเภทสรุป:</label>
-                    <select id="summary-type-select">
-                         <option value="brief-summary">สรุปอย่างย่อ</option>
-                        <option value="single-day">ตามวันที่เลือก</option>
-                        <option value="date-range">ตามช่วงวันที่</option>
-                        <option value="all-time">ทั้งหมด</option>
-                    </select>
-                    <label for="summary-date-picker" id="label-summary-date-picker">เลือกวันที่:</label>
-                    <input type="date" id="summary-date-picker">
-                    <label for="summary-start-date" class="hidden" id="label-summary-start-date">จากวันที่:</label>
-                    <input type="date" id="summary-start-date" class="hidden">
-                    <label for="summary-end-date" class="hidden" id="label-summary-end-date">ถึงวันที่:</label>
-                    <input type="date" id="summary-end-date" class="hidden">
-                    <button id="view-summary-button">ดูสรุป</button>
-                </div>
-
-                <div id="daily-summary-results">
-                    <p>กรุณาเลือกประเภทสรุปและวันที่เพื่อดูข้อมูล</p>
-                </div>
-            </section>
-        </div>
-
-        <!-- Admin Page Content -->
-        <div id="admin-page" class="hidden">
-            <!-- Import from Other Account and Cleanup Section -->
-            <section class="form-section">
-                <h2>จัดการข้อมูลระบบ</h2>
-                <div class="button-group horizontal admin-button-group">
-                    <button id="import-from-other-user-button">นำเข้าข้อมูลจากบัญชีอื่น</button>
-                    <button id="cleanup-data-button" style="background-color: #dc3545;">ล้างข้อมูลขยะ</button>
-                </div>
-                <p id="import-from-other-message" class="info-message"></p>
-                <p id="cleanup-message" class="info-message"></p>
-            </section>
-
-            <!-- Import/Export Data Section -->
-            <section class="data-section">
-                <h2>นำเข้า/ส่งออกข้อมูล</h2>
-                <div class="button-group horizontal admin-button-group">
-                    <button id="export-data-button">บันทึกข้อมูล (JSON)</button>
-                    <input type="file" id="import-data-input" accept=".json" class="hidden">
-                    <button id="show-import-button">โหลดข้อมูล (JSON)</button>
-                </div>
-                <p id="import-export-message" class="info-message"></p>
-                
-                <!-- Backup and Restore Section -->
-                <div class="button-group horizontal admin-button-group">
-                    <button id="backup-data-button">บันทึกข้อมูล (มีรหัสผ่าน)</button>
-                    <input type="file" id="restore-data-input" accept=".json" class="hidden">
-                    <button id="show-restore-button">โหลดข้อมูล (ใช้รหัสผ่าน)</button>
-                </div>
-                <p id="backup-restore-message" class="info-message"></p>
-                <p class="info-message" style="font-size: 0.8rem; margin-top: -10px;">
-                    หมายเหตุ: การสำรองข้อมูลจะถูกเข้ารหัสด้วยรหัสผ่านที่คุณกำหนด<br>
-                    คุณจะต้องใช้รหัสผ่านเดียวกันนี้ในการกู้คืนข้อมูล
-                </p>
-            </section>
-
-            <!-- Add New User Section -->
-            <section class="form-section">
-                <h2>เพิ่มผู้ใช้งานใหม่</h2>
-                <form id="admin-add-user-form">
-                    <input type="text" id="admin-add-username" placeholder="ชื่อผู้ใช้งาน" required>
-                    
-                    <div class="password-container">
-                        <input type="password" id="admin-add-password" placeholder="รหัสผ่าน" required>
-                        <button type="button" class="password-toggle" id="toggle-admin-add-password">👁️</button>
-                    </div>
-                    
-                    <div class="password-container">
-                        <input type="password" id="admin-add-confirm-password" placeholder="ยืนยันรหัสผ่าน" required>
-                        <button type="button" class="password-toggle" id="toggle-admin-add-confirm-password">👁️</button>
-                    </div>
-                    
-                    <select id="admin-add-role" required>
-                        <option value="user">User</option>
-                        <option value="admin">Admin</option>
-                    </select>
-                    <button type="submit">เพิ่มผู้ใช้งาน</button>
-                    <p id="admin-add-user-message" class="error-message"></p>
-                </form>
-            </section>
-
-            <!-- All Users Section -->
-            <section class="data-section">
-                <h2>ผู้ใช้งานทั้งหมด</h2>
-                <div class="table-container">
-                    <table id="user-list-table">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>ชื่อผู้ใช้งาน</th>
-                                <th>บทบาท</th>
-                                <th>ผู้สร้าง</th>
-                                <th>จัดการ</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <!-- Users will be loaded here by JavaScript -->
-                        </tbody>
-                    </table>
-                </div>
-            </section>
-
-            <!-- All Activities Section -->
-            <section class="data-section">
-                <h2>กิจกรรมทั้งหมด</h2>
-                <div class="filter-controls">
-                    <input type="text" id="admin-search-user" placeholder="ค้นหาผู้ใช้งาน">
-                    <input type="date" id="admin-filter-date">
-                    <select id="admin-filter-activity-type">
-                        <option value="">-- กรองตามประเภท --</option>
-                    </select>
-                    <button id="admin-apply-filter-button">กรอง</button>
-                    <button id="admin-reset-filter-button">รีเซ็ต</button>
-                </div>
-                <table id="all-activities-table">
-                    <thead>
-                        <tr>
-                            <th>ผู้ใช้งาน</th>
-                            <th>กิจกรรม</th>
-                            <th>วันที่</th>
-                            <th>เริ่มเวลา</th>
-                            <th>จบเวลา</th>
-                            <th>รวมเวลา</th>
-                            <th>รายละเอียด</th>
-                            <th>จัดการ</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <!-- All activities will be loaded here by JavaScript -->
-                    </tbody>
-                </table>
-            </section>
-        </div>
-
-        <!-- Import from Other Account Modal -->
-        <div id="import-from-other-modal" class="modal">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3 class="modal-title">นำเข้าข้อมูลจากบัญชีอื่น</h3>
-                    <button class="close-modal">&times;</button>
-                </div>
-                <form id="import-from-other-form">
-                    <label for="source-user-select">เลือกบัญชีต้นทาง:</label>
-                    <select id="source-user-select" required>
-                        <option value="">-- เลือกบัญชีผู้ใช้ --</option>
-                    </select>
-                    
-                    <label>เลือกข้อมูลที่จะนำเข้า:</label>
-                    <div class="remember-me-container">
-                        <input type="checkbox" id="import-activities" checked>
-                        <label for="import-activities">กิจกรรม</label>
-                    </div>
-                    <div class="remember-me-container">
-                        <input type="checkbox" id="import-activity-types" checked>
-                        <label for="import-activity-types">ประเภทกิจกรรม</label>
-                    </div>
-                    
-                    <div class="remember-me-container">
-                        <input type="checkbox" id="replace-existing-data">
-                        <label for="replace-existing-data">แทนที่ข้อมูลที่มีอยู่ (หากไม่เลือกจะเป็นการเพิ่มข้อมูล)</label>
-                    </div>
-                    
-                    <button type="submit">นำเข้าข้อมูล</button>
-                    <p id="import-from-other-form-message" class="error-message"></p>
-                </form>
-            </div>
-        </div>
-
-        <!-- Modal for editing users -->
-        <div id="edit-user-modal" class="modal">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h3 class="modal-title">แก้ไขผู้ใช้งาน</h3>
-                    <button class="close-modal">&times;</button>
-                </div>
-                <form id="edit-user-form">
-                    <input type="hidden" id="edit-user-id">
-                    <input type="text" id="edit-user-username" placeholder="ชื่อผู้ใช้งาน" required>
-                    
-                    <div class="password-container">
-                        <input type="password" id="edit-user-password" placeholder="รหัสผ่านใหม่ (เว้นว่างหากไม่ต้องการเปลี่ยน)">
-                        <button type="button" class="password-toggle" id="toggle-edit-user-password">👁️</button>
-                    </div>
-                    
-                    <div class="password-container">
-                        <input type="password" id="edit-user-confirm-password" placeholder="ยืนยันรหัสผ่านใหม่">
-                        <button type="button" class="password-toggle" id="toggle-edit-user-confirm-password">👁️</button>
-                    </div>
-                    
-                    <select id="edit-user-role" required>
-                        <option value="user">User</option>
-                        <option value="admin">Admin</option>
-                    </select>
-                    <button type="submit">อัปเดตผู้ใช้งาน</button>
-                    <p id="edit-user-message" class="error-message"></p>
-                </form>
-            </div>
-        </div>
-        
-        <!-- Modal สำหรับเลือกรูปแบบการแสดงผลสรุป -->
-        <div id="summaryOutputModal" class="modal-overlay">
-            <div class="format-modal-content">
-                <h3>เลือกรูปแบบการแสดงผลสรุป</h3>
-                <div class="format-modal-buttons">
-                    <button class="btn-display" onclick="handleSummaryOutput('display')">แสดงบนจอ</button>
-                    <button class="btn-xlsx" onclick="handleSummaryOutput('xlsx')">บันทึกเป็น XLSX</button>
-                    <button class="btn-pdf" onclick="handleSummaryOutput('pdf')">บันทึกเป็น PDF</button>
-                    <button class="btn-cancel" onclick="closeSummaryOutputModal()">ยกเลิก</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Modal สำหรับแสดงสรุปบนจอ -->
-        <div id="summaryModal" class="summary-modal-overlay">
-            <div class="summary-modal-content-container">
-                <div id="modalBodyContent" class="summaryResult">
-                    <!-- เนื้อหาการสรุปจะถูกใส่ที่นี่โดย JavaScript -->
-                </div>
-                <div class="summary-modal-controls">
-                    <button id="saveSummaryAsImageBtn" class="summary-modal-close-btn" style="background-color: #007bff; margin-bottom: 15px;">บันทึกเป็นรูปภาพ</button>
-                    <div class="summary-control-group">
-                        <label for="summaryFontSizeSlider">ปรับขนาดตัวอักษร:</label>
-                        <input type="range" id="summaryFontSizeSlider" min="0.5" max="1.5" step="0.05" value="1.0">
-                        <span id="summaryFontSizeValue">ขนาด: 100%</span>
-                    </div>
-                    <div class="summary-control-group">
-                        <label for="summaryLineHeightSlider">ปรับขนาดของบรรทัด:</label>
-                        <input type="range" id="summaryLineHeightSlider" min="0.01" max="1.5" step="0.01" value="0.5">
-                        <span id="summaryLineHeightValue">ความสูงของบรรทัด: 0.5</span>
-                    </div>
-                    <button onclick="closeSummaryModal()" class="summary-modal-close-btn">ปิดหน้าต่างนี้</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Container สำหรับการพิมพ์ PDF -->
-        <div id="print-container"></div>
+  <div class="container" style="padding:0; border:none; background:none;">
+    
+    <!-- ส่วนแนะนำการติดตั้งแอป -->
+    <div id="install-guide" class="install-prompt">
+      <span class="close-prompt" onclick="hideInstallPromptPermanently()">&times;</span>
+      <h4>ติดตั้งแอปนี้ลงในเครื่องของคุณ!</h4>
+      <ul>
+        <li><b>สำหรับ Android:</b> เบราว์เซอร์ Chrome จะมีปุ่ม "ติดตั้งแอป" หรือ "เพิ่มไปยังหน้าจอหลัก" แสดงขึ้นมาให้กด</li>
+        <li><b>สำหรับ iPhone (iOS):</b> เปิดใน Safari แล้วกดที่ปุ่ม "แชร์" (Share) จากนั้นเลือก "เพิ่มไปยังหน้าจอโฮม" (Add to Home Screen)</li>
+      </ul>
+      <div style="text-align: center; margin-top: 10px;">
+        <button onclick="hideInstallPromptPermanently()" style="background-color: #6c757d; color: white; border: none; padding: 5px 15px; border-radius: 5px; cursor: pointer;">
+          ไม่แสดงข้อความนี้อีก
+        </button>
+      </div>
     </div>
 
-    <!-- Link to external JavaScript -->
-    <script src="script.js"></script>
+    <!-- ส่วนหัวแอปพลิเคชัน -->
+<div style="text-align: center; margin-top: 5px;">
+  <div class="container">
+    <div style="width: 100%; max-width: 600px; margin: 10px auto;">
+      <h1 style="text-align: center; color: blue; font-size: clamp(1.2rem, 4vw, 1.8rem);">
+        บันทึกกิจกรรมประจำวัน
+      </h1>
+      
+      <!-- ปุ่มกู้คืนข้อมูลที่ย้ายมาอยู่ด้านบน -->
+<div class="button-container" style="display: flex; flex-wrap: wrap; gap: 10px; margin: 15px 0;">
+  <button 
+    type="button" 
+    onclick="document.getElementById('restoreFile').click()" 
+    style="flex: 1; background-color: #ff69b4; color: white; font-weight: bold; padding: 10px; font-size: 1rem; border: none; border-radius: 50px; cursor: pointer;">
+    โหลดข้อมูลที่บันทึกไว้
+  </button>
+  <input type="file" id="restoreFile" accept=".json" style="display: none;" onchange="restoreData(this.files[0])">
+</div>
+        
+          <!-- เมนูใหญ่ 1: เพิ่มกิจกรรม -->
+          <div class="section-header main-section-header header-add-data" onclick="toggleMainSection('add-activity-section')">
+            <span>➕ เพิ่มกิจกรรม</span>
+            <span class="menu-icon">▼</span>
+          </div>
+          <div id="add-activity-section" class="section-content main-section-content">
+            <div class="form-section">
+              <form id="activity-form">
+                
+                <!-- ส่วนจัดการผู้ทำกิจกรรม - ใช้ชุดเดียวทั้งเดสก์ท็อปและมือถือ -->
+<div class="management-container">
+  <div class="select-wrapper">
+    <button type="button" class="manage-btn-inline" onclick="toggleManagementActions('personActions')" title="จัดการผู้ทำกิจกรรม">⚙️</button>
+    <select id="personSelect" onchange="checkCustomOption(this)" required>
+      <option value="">-- เลือกผู้ทำกิจกรรม --</option>
+    </select>
+  </div>
+
+  <div class="management-actions" id="personActions">
+    <button type="button" id="addPersonBtn" class="add-btn">เพิ่ม</button>
+    <button type="button" id="editPersonBtn" class="edit-btn">แก้ไข</button>
+    <button type="button" id="deletePersonBtn" class="delete-btn">ลบ</button>
+    <button type="button" id="resetPersonBtn" class="reset-btn">คืนค่า</button>
+  </div>
+
+  <input type="text" id="customPersonInput" placeholder="กรุณากรอกชื่อผู้ทำกิจกรรมเอง" style="display: none; width: 100%; margin: 10px 0;" />
+</div>
+                
+                <!-- ส่วนจัดการประเภทกิจกรรม - ใช้ชุดเดียวทั้งเดสก์ท็อปและมือถือ -->
+<div class="management-container">
+  <div class="select-wrapper">
+    <button type="button" class="manage-btn-inline" onclick="toggleManagementActions('activityTypeActions')" title="จัดการประเภทกิจกรรม">⚙️</button>
+    <select id="activityTypeSelect" onchange="checkCustomActivityTypeOption(this)" required>
+      <option value="">-- เลือกประเภทกิจกรรม --</option>
+    </select>
+  </div>
+
+  <div class="management-actions" id="activityTypeActions">
+    <button type="button" id="addActivityTypeBtn" class="add-btn">เพิ่ม</button>
+    <button type="button" id="editActivityTypeBtn" class="edit-btn">แก้ไข</button>
+    <button type="button" id="deleteActivityTypeBtn" class="delete-btn">ลบ</button>
+    <button type="button" id="resetActivityTypeBtn" class="reset-btn">คืนค่า</button>
+  </div>
+
+  <input type="text" id="customActivityTypeInput" placeholder="กรุณากรอกประเภทกิจกรรมเอง" style="display: none; width: 100%; margin: 10px 0;" />
+</div>
+                
+                <label for="activity-date">วันที่:</label>
+                <input type="date" id="activity-date" required>
+                
+<label for="start-time">เวลาเริ่มต้นและสิ้นสุด:</label>
+<div class="time-inputs-container">
+  <div class="time-input-group">
+    <input type="time" id="start-time" required>
+    <span class="time-label">เริ่ม</span>
+  </div>
+  <span class="time-separator">ถึง</span>
+  <div class="time-input-group">
+    <input type="time" id="end-time" required>
+    <span class="time-label">สิ้นสุด</span>
+  </div>
+</div>
+                
+                <label for="activity-details">รายละเอียดกิจกรรม (ไม่บังคับ):</label>
+                <textarea id="activity-details" placeholder="เช่น การประชุมกับทีม, อ่านหนังสือบทที่ 5"></textarea>
+                
+                <button type="submit" id="save-activity-button">บันทึกกิจกรรม</button>
+                <button type="button" id="update-activity-button" class="hidden">อัปเดตกิจกรรม</button>
+                <button type="button" id="cancel-edit-activity-button" class="hidden">ยกเลิก</button>
+                
+                <p id="activity-message" class="error-message"></p>
+              </form>
+              
+              <!-- ย้ายปุ่มแสดง/ซ่อนกิจกรรมทั้งหมดมาอยู่ที่นี่ -->
+              <div class="button-container" style="display: flex; gap: 10px; margin-top: 10px;">
+                <button type="button" onclick="toggleActivitiesVisibility()" style="flex: 1; background-color: #607d8b;">แสดง/ซ่อนกิจกรรมทั้งหมด</button>
+              </div>
+            </div>
+          </div>
+        
+           <!-- เมนูใหญ่ 2: จัดการกิจกรรม -->
+          <div class="section-header main-section-header header-actions" onclick="toggleMainSection('manage-activities-section')">
+            <span>⚙️ จัดการกิจกรรม</span>
+            <span class="menu-icon">▼</span>
+          </div>
+          <div id="manage-activities-section" class="section-content main-section-content">
+            
+            <!-- ส่วนสำรองข้อมูลและกู้คืน -->
+<div class="summary-subsection">
+  <!-- เพิ่มส่วนแสดงสถานะรหัสผ่าน -->
+  <div style="text-align: center; margin: 10px 0;">
+    <p id="password-status" style="font-size: 0.9rem; color: #f5a623;">
+      สถานะ: ยังไม่มีการตั้งรหัสผ่าน (ไฟล์สำรองจะไม่ถูกเข้ารหัส)
+    </p>
+  </div>
+  <div class="entry-form" style="margin-bottom: 0;">
+    <div class="button-container" style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px;">
+      <button type="button" onclick="saveToLocal()" style="flex: 1; background-color: #17a2b8;">บันทึกชั่วคราว</button>
+      <button type="button" onclick="openExportOptionsModal()" style="flex: 1; background-color: #0d47a1;">บันทึกข้อมูล</button>
+    </div>
+                
+<div class="entry-group">
+  <label for="backup-password">รหัสผ่านสำรองข้อมูล (ไม่บังคับ):</label>
+  <input type="password" id="backup-password" placeholder="ถ้าไม่ต้องการใช้รหัสผ่าน ให้ปล่อยว่างไว้">
+</div>
+<div class="entry-group">
+  <label for="backup-password-confirm">ยืนยันรหัสผ่าน:</label>
+  <input type="password" id="backup-password-confirm" placeholder="กรอกรหัสผ่านอีกครั้ง">
+</div>
+    <div class="button-container" style="text-align: center; margin-top: 10px;">
+  <button type="button" onclick="saveBackupPassword(event)" style="background-color: #28a745; margin-right: 10px;">
+    ตั้งรหัสผ่าน
+  </button>
+  <button type="button" onclick="clearBackupPassword()" style="background-color: #dc3545;">
+    ลบรหัสผ่าน
+  </button>
+  </div>
+</div>
+</div>
+
+            <!-- ส่วนจัดการข้อมูลและทำความสะอาด -->
+<div class="summary-subsection">
+    <label class="summary-subsection-header" style="color: #17a2b8;">จัดการข้อมูลและทำความสะอาด</label>
+    <div class="button-container" style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px;">
+        <button type="button" onclick="showDataHealthReport()" style="flex: 1; background-color: #17a2b8;">ตรวจสอบสุขภาพข้อมูล</button>
+        <button type="button" onclick="cleanDuplicateData()" style="flex: 1; background-color: #28a745;">ทำความสะอาดข้อมูลอัตโนมัติ</button>
+        <button type="button" onclick="advancedDataCleanup()" style="flex: 1; background-color: #ff9800;">ทำความสะอาดขั้นสูง</button>
+    </div>
+    <p style="text-align: center; font-size: 0.9rem; color: #666; margin-top: 5px;">
+        ลบข้อมูลซ้ำ, กิจกรรมขยะ และไฟล์ที่ไม่จำเป็น
+    </p>
+</div>
+          </div> <!-- ปิด div ของเมนูจัดการกิจกรรม -->
+     
+          <!-- เมนูใหญ่ 3: สรุปกิจกรรม -->
+          <div class="section-header main-section-header header-summary" onclick="toggleMainSection('summary-section')">
+            <span>📊 สรุปกิจกรรม</span>
+            <span class="menu-icon">▼</span>
+          </div>
+          <div id="summary-section" class="section-content main-section-content">
+            
+            <!-- เมนูเลือกประเภทการสรุป -->
+            <div class="summary-subsection">
+              <div class="entry-form" style="margin-bottom: 0;">
+                <div class="entry-group">
+                  <label for="summary-type-select">ประเภทการสรุป:</label>
+                  <select id="summary-type-select" onchange="loadSummaryData()">
+                    <option value="brief-summary">สรุปอย่างย่อ</option>
+                    <option value="single-day">ตามวันที่เลือก</option>
+                    <option value="date-range">ตามช่วงวันที่</option>
+                    <option value="all-time">ทั้งหมด</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <!-- ส่วนกรองผู้ทำกิจกรรม -->
+<div class="summary-controls">
+    <!-- ส่วนแสดงผู้ทำกิจกรรมอัตโนมัติ (แสดงเมื่อมีแค่คนเดียว) -->
+    <div class="auto-selected-person" id="autoSelectedPerson" style="display: none; background-color: #f8f9fa; padding: 8px 12px; border-radius: 4px; border: 1px solid #dee2e6; margin-bottom: 10px;">
+        <label style="font-weight: bold; margin-right: 8px; color: #495057;">ผู้ทำกิจกรรม:</label>
+        <span id="selectedPersonName" style="color: #28a745; font-size: 1rem; font-weight: bold;"></span>
+    </div>
+
+    <!-- Dropdown กรองผู้ทำกิจกรรม (แสดงเมื่อมีหลายคน) -->
+    <div class="person-filter-container" id="personFilterContainer">
+        <label for="personFilter">ผู้ทำกิจกรรม:</label>
+        <select id="personFilter" onchange="loadSummaryData()">
+            <option value="all">ทุกคน</option>
+        </select>
+              </div>
+            </div>
+            
+            <!-- ฟิลด์วันที่ (จะแสดง/ซ่อนตามประเภทที่เลือก) -->
+            <div id="summary-date-picker" class="summary-subsection hidden">
+              <label class="summary-subsection-header">เลือกวันที่</label>
+              <div class="entry-form" style="margin-bottom: 0;">
+                <div class="entry-group">
+                  <label for="summary-date">เลือกวันที่:</label>
+                  <input type="date" id="summary-date">
+                </div>
+              </div>
+            </div>
+            
+            <div id="summary-date-range" class="summary-subsection hidden">
+              <label class="summary-subsection-header">เลือกช่วงวันที่</label>
+              <div class="entry-form" style="margin-bottom: 0;">
+                <div class="entry-group">
+                  <label for="summary-start-date">จากวันที่:</label>
+                  <input type="date" id="summary-start-date">
+                </div>
+                <div class="entry-group">
+                  <label for="summary-end-date">ถึงวันที่:</label>
+                  <input type="date" id="summary-end-date">
+                </div>
+              </div>
+            </div>
+            
+            <!-- ปุ่มดูสรุป -->
+            <div class="summary-subsection">
+              <div class="button-container" style="text-align: center; margin-top: 10px;">
+                <button type="button" onclick="viewSummary()" style="background-color: #673ab7; color: #FFFFFF;">ดูสรุป</button>
+              </div>
+            </div>
+          </div> <!-- ปิด div ของเมนูสรุปกิจกรรม -->
+          
+          <!-- ตารางกิจกรรม - ปรับปรุงให้เป็น Responsive -->
+          <div id="activitiesSection" style="display: none; margin-top: 20px; width: 100%;">
+            <div class="table-container">
+              <table id="activityTable">
+                <thead>
+                  <tr>
+                    <th>วันเดือนปี</th>
+                    <th>เวลาเริ่มต้น</th>
+                    <th>ผู้ทำกิจกรรม</th>
+                    <th>ประเภทกิจกรรม</th>
+                    <th>ระยะเวลา</th>
+                    <th>รายละเอียด</th>
+                    <th>การจัดการ</th>
+                  </tr>
+                </thead>
+                <tbody id="activityBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+<!-- โครงสร้าง Popup สำหรับแสดงผลสรุป -->
+<div id="summaryModal" class="modal-overlay">
+  <div class="modal-content-container">
+    <div id="modalBodyContent" class="summaryResult">
+      <!-- เนื้อหาการสรุปจะถูกใส่ที่นี่โดย JavaScript -->
+    </div>
+    <div class="modal-controls">
+      <button id="saveSummaryAsImageBtn" class="modal-control-btn">บันทึกเป็นรูปภาพ</button>
+      <button type="button" onclick="closeSummaryModal()" class="modal-close-btn modal-control-btn">ปิดหน้าต่างนี้</button>
+    </div>
+  </div>
+</div>
+
+    <!-- Modal สำหรับเลือกรูปแบบการแสดงผลสรุป -->
+    <div id="summaryOutputModal" class="modal-overlay">
+      <div class="format-modal-content">
+        <h3>เลือกรูปแบบการแสดงผลสรุป</h3>
+        <div class="format-modal-buttons">
+          <button type="button" class="btn-display" onclick="handleSummaryOutput('display')">แสดงบนจอ</button>
+          <button type="button" class="btn-xlsx" onclick="handleSummaryOutput('xlsx')">บันทึกเป็น XLSX</button>
+          <button type="button" class="btn-pdf" onclick="handleSummaryOutput('pdf')">บันทึกเป็น PDF</button>
+          <button type="button" class="btn-cancel" onclick="closeSummaryOutputModal()">ยกเลิก</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal สำหรับจัดการผู้ทำกิจกรรม -->
+    <div id="personModal" class="popup-overlay">
+      <div class="popup-content" style="max-width: 400px; background-color: #f0f8ff;">
+        <h2 id="personModalTitle" style="color: #0056b3; text-align: center;"></h2>
+        <input type="hidden" id="personEditValue">
+        <input type="text" id="modalPersonName" placeholder="ชื่อผู้ทำกิจกรรม">
+        <div class="modal-button-group">
+          <button type="button" id="savePersonBtn" style="background-color: #28a745;">บันทึก</button>
+          <button type="button" id="cancelPersonBtn" class="close-popup-btn">ยกเลิก</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal สำหรับจัดการประเภทกิจกรรม -->
+    <div id="activityTypeModal" class="popup-overlay">
+      <div class="popup-content" style="max-width: 400px; background-color: #f0f8ff;">
+        <h2 id="activityTypeModalTitle" style="color: #0056b3; text-align: center;"></h2>
+        <input type="hidden" id="activityTypeEditValue">
+        <input type="text" id="modalActivityTypeName" placeholder="ชื่อประเภทกิจกรรม">
+        <div class="modal-button-group">
+          <button type="button" id="saveActivityTypeBtn" style="background-color: #28a745;">บันทึก</button>
+          <button type="button" id="cancelActivityTypeBtn" class="close-popup-btn">ยกเลิก</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Container สำหรับพิมพ์ PDF -->
+    <div id="print-container" style="display: none;"></div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast-notification"></div>
+
+    <!-- Modal สำหรับเลือกประเภทการบันทึกข้อมูล -->
+    <div id="exportOptionsModal" class="modal-overlay">
+      <div class="format-modal-content">
+        <h3>เลือกประเภทการบันทึกข้อมูล</h3>
+        <div class="format-modal-buttons">
+          <button onclick="saveToFile()" style="background-color: #0d47a1;">บันทึกข้อมูลทั้งหมด (ทุกบัญชี)</button>
+          <button onclick="exportSelectedAccount()" style="background-color: #ff9800;">บันทึกบัญชีที่เลือก (ทั้งหมด)</button>
+          <button onclick="initiateSingleDateExport()" style="background-color: #009688;">บันทึกเฉพาะวันที่เลือก (บัญชีนี้)</button>
+          <button class="btn-cancel" onclick="closeExportOptionsModal()">ยกเลิก</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal เลือกวันที่ (สำหรับบันทึกรายวัน) -->
+    <div id="singleDateExportModal" class="modal-overlay">
+      <div class="format-modal-content">
+        <h3>เลือกวันที่ต้องการบันทึก</h3>
+        <p>ข้อมูลจากบัญชี: <strong id="singleDateAccountName"></strong></p>
+        <div class="entry-form" style="margin-bottom: 20px;">
+          <div class="entry-group">
+            <label for="exportSingleDate">เลือกวันที่:</label>
+            <input type="date" id="exportSingleDate">
+          </div>
+        </div>
+        <div class="format-modal-buttons">
+          <button class="btn-display" onclick="processSingleDateExport()">ดำเนินการต่อ</button>
+          <button class="btn-cancel" onclick="closeSingleDateExportModal()">ยกเลิก</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- JavaScript -->
+  <script src="script.js"></script>
+  <script>
+    // ลงทะเบียน Service Worker
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('./service-worker.js')
+          .then(function(registration) {
+            console.log('Service Worker ลงทะเบียนสำเร็จ: ', registration.scope);
+          })
+          .catch(function(error) {
+            console.log('Service Worker ลงทะเบียนล้มเหลว: ', error);
+          });
+      });
+    }
+
+    // ตรวจสอบว่ามีการอัพเดท Service Worker หรือไม่
+    navigator.serviceWorker.addEventListener('controllerchange', function() {
+      console.log('Service Worker ถูกอัพเดทแล้ว');
+      window.location.reload();
+    });
+    
+    // ฟังก์ชันสำหรับการจัดการแบบมือถือ
+    function toggleMobileManagement(actionsId) {
+      const actions = document.getElementById(actionsId);
+      if (actions.style.display === 'flex') {
+        actions.style.display = 'none';
+      } else {
+        actions.style.display = 'flex';
+      }
+    }
+    
+    // อัพเดทฟังก์ชัน checkCustomOption และ checkCustomActivityTypeOption
+    function checkCustomOption(selectElement) {
+      const customInput = document.getElementById('customPersonInput');
+        
+      if (selectElement.value === 'custom') {
+        customInput.style.display = 'block';
+        customInput.focus();
+      } else {
+        customInput.style.display = 'none';
+      }
+    }
+    
+    function checkCustomActivityTypeOption(selectElement) {
+      const customInput = document.getElementById('customActivityTypeInput');
+        
+      if (selectElement.value === 'custom') {
+        customInput.style.display = 'block';
+        customInput.focus();
+      } else {
+        customInput.style.display = 'none';
+      }
+    }
+    
+    // อัพเดทฟังก์ชัน toggleManagementActions สำหรับเดสก์ท็อป
+    function toggleManagementActions(showId) {
+      const showElement = document.getElementById(showId);
+      
+      if (showElement.style.display === 'flex') {
+        showElement.style.display = 'none';
+      } else {
+        showElement.style.display = 'flex';
+      }
+    }
+    // ฟังก์ชันสำหรับแสดง/ซ่อนกิจกรรมทั้งหมด
+    function toggleActivitiesVisibility() {
+        const activitiesSection = document.getElementById('activitiesSection');
+        if (activitiesSection.style.display === 'none') {
+            activitiesSection.style.display = 'block';
+            loadUserActivities();
+        } else {
+            activitiesSection.style.display = 'none';
+        }
+    }
+
+   </script>
 </body>
 </html>

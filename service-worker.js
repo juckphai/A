@@ -1,111 +1,96 @@
 // service-worker.js
-const CACHE_NAME = 'activities-pwa-cache-v4';
-const urlsToCache = [
+const staticCacheName = 'activity-tracker-static-v4';
+const dynamicCacheName = 'activity-tracker-dynamic-v3';
+
+// ไฟล์ที่ต้องการ cache
+const assets = [
   './',
   './index.html',
+  './manifest.json',
   './style.css',
   './script.js',
-  './manifest.json',
-  'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js',
-  'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js'
+  './192.png',
+  './512.png',
+  './service-worker.js'
 ];
 
-// Event: install
-self.addEventListener('install', event => {
-  console.log('Service Worker: Installing...');
-  event.waitUntil(
-    caches.open(CACHE_NAME)
+// Install event
+self.addEventListener('install', evt => {
+  console.log('Service Worker: Installing');
+  evt.waitUntil(
+    caches.open(staticCacheName)
       .then(cache => {
-        console.log('Service Worker: Caching app files');
-        return cache.addAll(urlsToCache);
+        console.log('Caching shell assets');
+        return cache.addAll(assets);
       })
-      .then(() => {
-        console.log('Service Worker: All files cached successfully');
-        return self.skipWaiting();
-      })
-      .catch(error => {
-        console.error('Service Worker: Cache installation failed:', error);
+      .catch(err => {
+        console.log('Cache addAll error:', err);
       })
   );
+  self.skipWaiting();
 });
 
-// Event: activate
-self.addEventListener('activate', event => {
-  console.log('Service Worker: Activating...');
-  event.waitUntil(
-    caches.keys().then(cacheNames => {
+// Activate event
+self.addEventListener('activate', evt => {
+  console.log('Service Worker: Activated');
+  evt.waitUntil(
+    caches.keys().then(keys => {
       return Promise.all(
-        cacheNames.map(cache => {
-          if (cache !== CACHE_NAME) {
-            console.log('Service Worker: Deleting old cache:', cache);
-            return caches.delete(cache);
-          }
-        })
+        keys
+          .filter(key => key !== staticCacheName && key !== dynamicCacheName)
+          .map(key => caches.delete(key))
       );
     })
-    .then(() => {
-      console.log('Service Worker: Activated successfully');
-      return self.clients.claim();
-    })
   );
+  self.clients.claim();
 });
 
-// Event: fetch
-self.addEventListener('fetch', event => {
-  // ตรวจสอบว่าเป็น request ชนิด GET
-  if (event.request.method !== 'GET') {
-    return;
+// Fetch event
+self.addEventListener('fetch', evt => {
+  // ข้ามการ cache สำหรับ external resources และ API calls
+  if (evt.request.url.includes('cdnjs.cloudflare.com') || 
+      evt.request.url.includes('cdn.jsdelivr.net')) {
+    return fetch(evt.request);
   }
 
-  event.respondWith(
-    caches.match(event.request)
-      .then(response => {
-        // ถ้าพบใน cache ให้ส่งคืน
-        if (response) {
-          return response;
-        }
+  // ข้ามการ cache สำหรับ non-GET requests
+  if (evt.request.method !== 'GET') {
+    return fetch(evt.request);
+  }
 
-        // ถ้าไม่พบใน cache ให้ทำการ fetch จาก network
-        return fetch(event.request)
-          .then(networkResponse => {
-            // ตรวจสอบว่าการตอบสนองถูกต้อง
-            if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== 'basic') {
-              return networkResponse;
+  evt.respondWith(
+    caches.match(evt.request)
+      .then(cacheRes => {
+        // ถ้าเจอใน cache ให้ส่งกลับ
+        if (cacheRes) {
+          return cacheRes;
+        }
+        
+        // ถ้าไม่เจอ ให้โหลดจาก network
+        return fetch(evt.request)
+          .then(fetchRes => {
+            // ตรวจสอบว่า response ถูกต้อง
+            if (!fetchRes || fetchRes.status !== 200 || fetchRes.type !== 'basic') {
+              return fetchRes;
             }
 
-            // คัดลอกการตอบสนองและเพิ่มลงใน cache
-            const responseToCache = networkResponse.clone();
-            caches.open(CACHE_NAME)
+            // เก็บใน dynamic cache สำหรับครั้งต่อไป
+            return caches.open(dynamicCacheName)
               .then(cache => {
-                cache.put(event.request, responseToCache);
+                cache.put(evt.request.url, fetchRes.clone());
+                return fetchRes;
               });
-
-            return networkResponse;
           })
-          .catch(error => {
-            console.error('Service Worker: Fetch failed:', error);
-            // สำหรับ HTML requests ถ้า offline ให้แสดงหน้า index.html
-            if (event.request.destination === 'document' || 
-                (event.request.headers.get('accept') && event.request.headers.get('accept').includes('text/html'))) {
+          .catch(() => {
+            // Fallback สำหรับหน้า HTML
+            if (evt.request.destination === 'document') {
               return caches.match('./index.html');
             }
-            // สำหรับ CSS, JS requests
-            if (event.request.destination === 'style' || event.request.destination === 'script') {
-              return caches.match(event.request.url);
+            // Fallback สำหรับรูปภาพ
+            if (evt.request.destination === 'image') {
+              return caches.match('./192.png');
             }
-            return new Response('Network error happened', {
-              status: 408,
-              headers: { 'Content-Type': 'text/plain' }
-            });
           });
       })
   );
-});
-
-// Event: message
-self.addEventListener('message', event => {
-  if (event.data && event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting();
-  }
 });

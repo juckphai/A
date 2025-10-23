@@ -2,8 +2,8 @@
   "relation": ["delegate_permission/common.handle_all_urls"],
   "target": {
     "namespace": "android_app",
-    "package_name": "com.yourdomain.yourapp",  // เปลี่ยนเป็น package name จริง
-    "sha256_cert_fingerprints": 
-    ["YOUR_ACTUAL_SHA256_FINGERPRINT"]  // เปลี่ยนเป็น fingerprint จริง
+    "package_name": "io.github.juckphai.twa",
+    "sha256_cert_fingerprints":
+    ["PLACEHOLDER"]
   }
 }]
