@@ -1,1070 +1,2197 @@
-// === ฟังก์ชันหลักสำหรับระบบบันทึกกิจกรรม ===
-let activities = [];
+// ==============================================
+// ตัวแปร全局
+// ==============================================
+let accounts = [];
+let currentAccount = null;
+let records = [];
 let editingIndex = null;
-let editingActivityId = null;
-let summaryContext = {}; // ใช้เก็บข้อมูล context ของการสรุปปัจจุบัน
-let currentAccount = 'user';
+let accountTypes = new Map();
+let tempTypeValue = '';
 let backupPassword = null;
+let summaryContext = {};
+let singleDateExportContext = {}; 
+let dateRangeExportContext = {};
 
-// === ฟังก์ชันจัดการ Local Storage ===
-function getFromLocalStorage(key) {
-    try {
-        const item = localStorage.getItem(`${currentAccount}_${key}`);
-        return item ? JSON.parse(item) : null;
-    } catch (error) {
-        console.error('Error reading from localStorage:', error);
-        return null;
-    }
-}
+// ==============================================
+// ฟังก์ชันจัดการเมนู
+// ==============================================
 
-function saveToLocalStorage(key, data) {
-    try {
-        localStorage.setItem(`${currentAccount}_${key}`, JSON.stringify(data));
-        return true;
-    } catch (error) {
-        console.error('Error saving to localStorage:', error);
-        showToast('เกิดข้อผิดพลาดในการบันทึกข้อมูล', 'error');
-        return false;
-    }
-}
-
-// === ฟังก์ชันแสดงแจ้งเตือน ===
-function showToast(message, type = 'success') {
-    const toast = document.getElementById('toast');
-    if (!toast) {
-        console.error('❌ ไม่พบ element toast');
+function toggleMainSection(sectionId) { 
+    console.log('toggleMainSection called:', sectionId);
+    
+    const section = document.getElementById(sectionId);
+    if (!section) {
+        console.error('Section not found:', sectionId);
         return;
     }
     
-    // รีเซ็ตสถานะก่อนแสดง
-    toast.style.display = 'none';
-    toast.style.opacity = '0';
-    toast.classList.remove('show');
+    const header = section.previousElementSibling;
     
-    // ตั้งค่าข้อความและประเภท
-    toast.textContent = message;
-    toast.className = `toast-notification ${type}`;
+    // ตรวจสอบว่าเมนูนี้กำลังเปิดอยู่แล้วหรือไม่
+    const isCurrentlyActive = section.classList.contains('active');
     
-    // แสดงแจ้งเตือน
-    setTimeout(() => {
-        toast.style.display = 'block';
-        setTimeout(() => {
-            toast.classList.add('show');
-        }, 10);
-    }, 10);
+    // ซ่อนเมนูใหญ่ทั้งหมดก่อน
+    const allMainSections = document.querySelectorAll('.main-section-content');
+    const allMainHeaders = document.querySelectorAll('.main-section-header');
     
-    // ซ่อนแจ้งเตือนหลังจาก 3 วินาที
-    setTimeout(() => {
-        toast.classList.remove('show');
-        setTimeout(() => {
-            toast.style.display = 'none';
-        }, 300);
-    }, 3000);
+    allMainSections.forEach(section => {
+        section.classList.remove('active');
+    });
     
-    console.log(`🔔 แจ้งเตือน: ${message}`);
+    allMainHeaders.forEach(header => {
+        header.classList.remove('active');
+    });
+    
+    // ถ้าเมนูนี้ยังไม่เปิดอยู่ ให้เปิดมัน (ถ้ากำลังเปิดอยู่แล้ว จะถูกปิดโดยโค้ดด้านบน)
+    if (!isCurrentlyActive) {
+        section.classList.add('active');
+        if (header) header.classList.add('active');
+    }
 }
 
-// === ฟังก์ชันแจ้งเตือนการบันทึกกิจกรรม ===
-function notifyActivitySaved(isUpdate = false) {
-    const message = isUpdate ? 'อัปเดตกิจกรรมเรียบร้อยแล้ว' : 'บันทึกกิจกรรมใหม่เรียบร้อยแล้ว';
-    showToast(message, 'success');
+function toggleSubSection(sectionId) {
+    console.log('toggleSubSection called:', sectionId);
+    
+    const section = document.getElementById(sectionId);
+    if (!section) {
+        console.error('Sub-section not found:', sectionId);
+        return;
+    }
+    
+    const header = section.previousElementSibling;
+    
+    section.classList.toggle('active');
+    if (header) header.classList.toggle('active');
 }
 
-// === ฟังก์ชันแจ้งเตือนการลบกิจกรรม ===
-function notifyActivityDeleted() {
-    showToast('ลบกิจกรรมเรียบร้อยแล้ว', 'success');
+function closeAllMainSections() {
+    const allMainSections = document.querySelectorAll('.main-section-content');
+    const allMainHeaders = document.querySelectorAll('.main-section-header');
+    
+    allMainSections.forEach(section => {
+        section.classList.remove('active');
+    });
+    
+    allMainHeaders.forEach(header => {
+        header.classList.remove('active');
+    });
 }
 
-// === ฟังก์ชันแจ้งเตือนการแก้ไขข้อมูลพื้นฐาน ===
-function notifyDataUpdated(dataType, action) {
-    const messages = {
-        'person': {
-            'add': 'เพิ่มผู้ทำกิจกรรมเรียบร้อยแล้ว',
-            'edit': 'แก้ไขผู้ทำกิจกรรมเรียบร้อยแล้ว',
-            'delete': 'ลบผู้ทำกิจกรรมเรียบร้อยแล้ว',
-            'reset': 'คืนค่าผู้ทำกิจกรรมเรียบร้อยแล้ว'
-        },
-        'activityType': {
-            'add': 'เพิ่มประเภทกิจกรรมเรียบร้อยแล้ว',
-            'edit': 'แก้ไขประเภทกิจกรรมเรียบร้อยแล้ว',
-            'delete': 'ลบประเภทกิจกรรมเรียบร้อยแล้ว',
-            'reset': 'คืนค่าประเภทกิจกรรมเรียบร้อยแล้ว'
+function toggleSection(sectionId) {
+    toggleMainSection(sectionId);
+}
+
+// ==============================================
+// ฟังก์ชันจัดการ Modal
+// ==============================================
+
+function openSummaryModal(htmlContent) {
+    const modal = document.getElementById('summaryModal');
+    const modalBody = document.getElementById('modalBodyContent');
+    modalBody.innerHTML = htmlContent;
+    modal.style.display = 'flex';
+    setupSummaryControlsAndSave();
+}
+
+function closeSummaryModal() { 
+    const modal = document.getElementById('summaryModal'); 
+    modal.style.display = 'none'; 
+}
+
+function openExportOptionsModal() { 
+    document.getElementById('exportOptionsModal').style.display = 'flex'; 
+}
+
+function closeExportOptionsModal() { 
+    document.getElementById('exportOptionsModal').style.display = 'none'; 
+}
+
+function closeSingleDateExportModal() { 
+    document.getElementById('singleDateExportModal').style.display = 'none'; 
+}
+
+function closeSingleDateExportFormatModal() { 
+    document.getElementById('singleDateExportFormatModal').style.display = 'none'; 
+}
+
+function closeFormatModal() { 
+    document.getElementById('formatSelectionModal').style.display = 'none'; 
+}
+
+function closeExportSingleAccountModal() { 
+    document.getElementById('exportSingleAccountModal').style.display = 'none'; 
+}
+
+function openSummaryOutputModal() { 
+    document.getElementById('summaryOutputModal').style.display = 'flex'; 
+}
+
+function closeSummaryOutputModal() { 
+    document.getElementById('summaryOutputModal').style.display = 'none'; 
+    summaryContext = {}; 
+}
+
+function closeDateRangeExportModal() {
+    document.getElementById('dateRangeExportModal').style.display = 'none';
+    dateRangeExportContext = {};
+}
+
+// ==============================================
+// ฟังก์ชันจัดการ Summary Modal
+// ==============================================
+
+function setupSummaryControlsAndSave() {
+    const modalContentContainer = document.querySelector("#summaryModal .modal-content-container");
+    const modalBody = document.getElementById("modalBodyContent");
+    if (!modalBody || !modalContentContainer) return;
+
+    // --- Font Size Controls ---
+    const textElements = modalBody.querySelectorAll('p, h4, strong, th, td, span, div');
+    const fsSlider = document.getElementById("summaryFontSizeSlider");
+    const fsValueSpan = document.getElementById("summaryFontSizeValue");
+
+    textElements.forEach(el => {
+        if (!el.dataset.originalSize) {
+            el.dataset.originalSize = parseFloat(window.getComputedStyle(el).fontSize);
         }
-    };
-    
-    if (messages[dataType] && messages[dataType][action]) {
-        showToast(messages[dataType][action], 'success');
-    }
-}
+    });
 
-// === ฟังก์ชันแจ้งเตือนการจัดการข้อมูล ===
-function notifyDataManagement(action) {
-    const messages = {
-        'backup': 'สำรองข้อมูลเรียบร้อยแล้ว',
-        'restore': 'กู้คืนข้อมูลเรียบร้อยแล้ว',
-        'clean': 'ทำความสะอาดข้อมูลเรียบร้อยแล้ว',
-        'save': 'บันทึกข้อมูลชั่วคราวเรียบร้อยแล้ว',
-        'export': 'ส่งออกข้อมูลเรียบร้อยแล้ว',
-        'deleteByDate': 'ลบกิจกรรมตามวันที่เรียบร้อยแล้ว'
-    };
-    
-    if (messages[action]) {
-        showToast(messages[action], 'success');
-    }
-}
-
-// === ฟังก์ชันเตรียมข้อมูลเริ่มต้น ===
-function initializeDefaultData() {
-    console.log('📂 กำลังเตรียมข้อมูลเริ่มต้น...');
-    
-    // โหลดรหัสผ่านสำรองข้อมูล
-    backupPassword = getFromLocalStorage('backupPassword') || null;
-    
-    // เรียกแสดงสถานะรหัสผ่าน
-    setTimeout(() => {
-        renderBackupPasswordStatus();
-    }, 500);
-    
-    // กำหนดค่าเริ่มต้นสำหรับประเภทกิจกรรม
-    if (!getFromLocalStorage('activityTypes') || getFromLocalStorage('activityTypes').length === 0) {
-        const defaultActivityTypes = [
-            { name: 'ทำงาน' },
-            { name: 'เรียน' },
-            { name: 'ประชุม' }
-        ];
-        saveToLocalStorage('activityTypes', defaultActivityTypes);
-        console.log('✅ สร้างประเภทกิจกรรมเริ่มต้น');
+    function updateFontSize() {
+        const scale = fsSlider.value;
+        textElements.forEach(el => {
+            const originalSize = parseFloat(el.dataset.originalSize);
+            if (originalSize) {
+                el.style.fontSize = (originalSize * scale) + 'px';
+            }
+        });
+        fsValueSpan.textContent = "ขนาด: " + Math.round(scale * 100) + "%";
     }
     
-    // กำหนดค่าเริ่มต้นสำหรับผู้ทำกิจกรรม
-    if (!getFromLocalStorage('persons') || getFromLocalStorage('persons').length === 0) {
-        const defaultPersons = [
-            { name: 'พ่อ' },
-            { name: 'แม่' },
-            { name: 'ลูกชาย' },
-            { name: 'ลูกสาว' }
-        ];
-        saveToLocalStorage('persons', defaultPersons);
-        console.log('✅ สร้างผู้ทำกิจกรรมเริ่มต้น');
+    fsSlider.removeEventListener("input", updateFontSize);
+    fsSlider.addEventListener("input", updateFontSize);
+
+    // --- Line Height Controls ---
+    const lhSlider = document.getElementById("summaryLineHeightSlider");
+    const lhValueSpan = document.getElementById("summaryLineHeightValue");
+
+    function updateLineHeight() {
+        const lineHeight = lhSlider.value;
+        modalBody.style.lineHeight = lineHeight;
+        lhValueSpan.textContent = "ความสูงของบรรทัด: " + lineHeight;
     }
     
-    // โหลดข้อมูลลงใน dropdowns
-    populateActivityTypeDropdowns('activityTypeSelect');
-    populatePersonDropdown('personSelect');
-    populatePersonFilter();
+    lhSlider.removeEventListener("input", updateLineHeight);
+    lhSlider.addEventListener("input", updateLineHeight);
     
-    // ✅ ตั้งค่าวันที่และเวลาเริ่มต้นให้อัตโนมัติ
-    setDefaultDateTime();
-    
-    // ✅ เรียกใช้ฟังก์ชันเลือกอัตโนมัติหลังจากโหลดข้อมูลทั้งหมด
-    setTimeout(() => {
-        console.log('🔄 กำลังตรวจสอบการเลือกอัตโนมัติ...');
-        autoSelectIfSingle();
-        console.log('✅ การเลือกอัตโนมัติเสร็จสิ้น');
-    }, 300);
-}
+    // --- Save as Image Button Logic ---
+    const saveBtn = document.getElementById("saveSummaryAsImageBtn");
+    const newSaveBtn = saveBtn.cloneNode(true);
+    saveBtn.parentNode.replaceChild(newSaveBtn, saveBtn);
 
-// === ฟังก์ชันตั้งค่าวันที่และเวลาเริ่มต้น ===
-function setDefaultDateTime() {
-    const today = new Date().toISOString().split('T')[0];
-    document.getElementById('activity-date').value = today;
-    
-    // ตั้งค่าเวลาเริ่มต้นเป็น 1 ชั่วโมงก่อนเวลาปัจจุบัน
-    const now = new Date();
-    const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
-    
-    // ตั้งค่าเวลาเริ่มต้น (1 ชั่วโมงที่แล้ว) - ไม่ปัดนาที
-    const startHours = oneHourAgo.getHours().toString().padStart(2, '0');
-    const startMinutes = oneHourAgo.getMinutes().toString().padStart(2, '0');
-    
-    const startTime = `${startHours}:${startMinutes}`;
-    document.getElementById('start-time').value = startTime;
-    
-    // ตั้งค่าเวลาสิ้นสุดเป็นเวลาปัจจุบัน - ไม่ปัดนาที
-    const endHours = now.getHours().toString().padStart(2, '0');
-    const endMinutes = now.getMinutes().toString().padStart(2, '0');
-    
-    const endTime = `${endHours}:${endMinutes}`;
-    document.getElementById('end-time').value = endTime;
-    
-    console.log(`⏰ ตั้งค่าเวลาเริ่มต้น: ${startTime} (1 ชั่วโมงที่แล้ว), เวลาสิ้นสุด: ${endTime} (ปัจจุบัน)`);
-    
-    // ✅ รีเซ็ตปุ่มแก้ไข
-    document.getElementById('save-activity-button').classList.remove('hidden');
-    document.getElementById('update-activity-button').classList.add('hidden');
-    document.getElementById('cancel-edit-activity-button').classList.add('hidden');
-}
-
-// === ฟังก์ชันคำนวณระยะเวลา ===
-function calculateDuration(start, end) {
-    const startDate = new Date(`2000-01-01T${start}`);
-    const endDate = new Date(`2000-01-01T${end}`);
-
-    if (isNaN(startDate) || isNaN(endDate)) {
-        return 0;
-    }
-
-    if (endDate < startDate) {
-        endDate.setDate(endDate.getDate() + 1);
-    }
-
-    const diffMilliseconds = endDate - startDate;
-    return diffMilliseconds / (1000 * 60);
-}
-
-function formatDuration(minutes) {
-    if (isNaN(minutes) || minutes < 0) return "เวลาไม่ถูกต้อง";
-    const totalSeconds = Math.round(minutes * 60);
-    const hours = Math.floor(totalSeconds / 3600);
-    const remainingMinutes = Math.floor((totalSeconds % 3600) / 60);
-    const seconds = totalSeconds % 60;
-
-    let parts = [];
-    if (hours > 0) parts.push(`${hours} ชั่วโมง`);
-    if (remainingMinutes > 0) parts.push(`${remainingMinutes} นาที`);
-    if (seconds > 0 && hours === 0 && remainingMinutes === 0) parts.push(`${seconds} วินาที`);
-    
-    if (parts.length === 0) return "0 นาที";
-    return parts.join(' ');
-}
-
-// === ฟังก์ชันจัดการฟอร์มกิจกรรม ===
-function handleActivityFormSubmit(event) {
-    event.preventDefault();
-    
-    let activityName;
-    const activityDropdown = document.getElementById('activityTypeSelect');
-    activityName = activityDropdown.value;
-    
-    if (!activityName) {
-        document.getElementById('activity-message').textContent = 'กรุณาเลือกประเภทกิจกรรม';
-        document.getElementById('activity-message').style.color = 'red';
-        return;
-    }
-
-    let person;
-    const personDropdown = document.getElementById('personSelect');
-    person = personDropdown.value;
-    
-    if (!person) {
-        document.getElementById('activity-message').textContent = 'กรุณาเลือกผู้ทำกิจกรรม';
-        document.getElementById('activity-message').style.color = 'red';
-        return;
-    }
-
-    const date = document.getElementById('activity-date').value;
-    const startTime = document.getElementById('start-time').value;
-    const endTime = document.getElementById('end-time').value;
-    const details = document.getElementById('activity-details').value.trim();
-
-    if (!date || !startTime || !endTime) {
-        document.getElementById('activity-message').textContent = 'กรุณากรอกข้อมูลให้ครบถ้วน';
-        document.getElementById('activity-message').style.color = 'red';
-        return;
-    }
-
-    const duration = calculateDuration(startTime, endTime);
-    if (duration <= 0) {
-        document.getElementById('activity-message').textContent = 'เวลาไม่ถูกต้อง กรุณาตรวจสอบเวลาเริ่มต้นและสิ้นสุด';
-        document.getElementById('activity-message').style.color = 'red';
-        return;
-    }
-
-    const allActivities = getFromLocalStorage('activities') || [];
-    
-    if (editingActivityId) {
-        // อัปเดตกิจกรรมที่มีอยู่
-        const activityIndex = allActivities.findIndex(a => a.id === editingActivityId);
-        if (activityIndex === -1) return;
-
-        allActivities[activityIndex] = {
-            ...allActivities[activityIndex],
-            activityName,
-            person,
-            date,
-            startTime,
-            endTime,
-            details
-        };
+    newSaveBtn.addEventListener("click", function() {
+        const controlsElement = modalContentContainer.querySelector('.modal-controls');
         
-        document.getElementById('activity-message').textContent = 'อัปเดตกิจกรรมเรียบร้อยแล้ว';
-        document.getElementById('activity-message').style.color = 'green';
-        editingActivityId = null;
-        notifyActivitySaved(true);
-    } else {
-        // สร้างกิจกรรมใหม่
-        const newActivity = {
-            id: Date.now().toString(),
-            activityName,
-            person,
-            date,
-            startTime,
-            endTime,
-            details,
-            createdAt: new Date().toISOString()
-        };
+        if (controlsElement) controlsElement.style.display = 'none';
+        modalContentContainer.style.padding = '5px 2px';
 
-        allActivities.push(newActivity);
-        document.getElementById('activity-message').textContent = 'บันทึกกิจกรรมเรียบร้อยแล้ว';
-        document.getElementById('activity-message').style.color = 'green';
-        notifyActivitySaved(false);
-    }
-
-    saveToLocalStorage('activities', allActivities);
+        html2canvas(modalContentContainer, {
+            useCORS: true,
+            scale: 4,
+            backgroundColor: '#FAFAD2'
+        }).then(canvas => {
+            const link = document.createElement('a');
+            const fileName = `สรุป_${currentAccount || 'account'}_${Date.now()}.png`;
+            link.download = fileName;
+            link.href = canvas.toDataURL("image/png");
+            link.click();
+        }).catch(err => {
+            console.error("Error creating image:", err);
+            alert("ขออภัย, ไม่สามารถบันทึกเป็นรูปภาพได้");
+        }).finally(() => {
+            if (controlsElement) controlsElement.style.display = '';
+            modalContentContainer.style.padding = '';
+        });
+    });        
     
-    // รีเซ็ตฟอร์ม
-    resetActivityForm();
-    
-    // โหลดกิจกรรมใหม่
-    loadUserActivities();
-    
-    // รีเฟรชการเลือกอัตโนมัติ
-    setTimeout(() => {
-        autoSelectIfSingle();
-    }, 100);
+    updateFontSize();
+    updateLineHeight();
 }
 
-// === ฟังก์ชันรีเซ็ตฟอร์มกิจกรรม ===
-function resetActivityForm() {
-    // รีเซ็ตเฉพาะฟิลด์ที่จำเป็น
-    document.getElementById('activity-details').value = '';
-    
-    // รีเซ็ตปุ่มแก้ไข
-    document.getElementById('save-activity-button').classList.remove('hidden');
-    document.getElementById('update-activity-button').classList.add('hidden');
-    document.getElementById('cancel-edit-activity-button').classList.add('hidden');
-    
-    // ตั้งค่าวันที่และเวลาเริ่มต้นใหม่
-    setDefaultDateTime();
-    
-    // รีเซ็ตข้อความ
-    document.getElementById('activity-message').textContent = '';
-    
-    editingActivityId = null;
+// ==============================================
+// ฟังก์ชันจัดการบัญชี
+// ==============================================
+
+function addAccount() { 
+    const accountName = prompt("กรุณากรอกชื่อบัญชีใหม่:");
+    if (accountName && !accounts.includes(accountName)) { 
+        accounts.push(accountName); 
+        updateAccountSelect(); 
+        updateMultiAccountSelector(); 
+        alert("เพิ่มบัญชีสำเร็จ"); 
+        saveToLocal(); 
+    } else { 
+        alert("ชื่อบัญชีซ้ำหรือกรอกข้อมูลไม่ถูกต้อง"); 
+    } 
 }
 
-// === ฟังก์ชันยกเลิกการแก้ไข ===
-function cancelEditActivity() {
-    resetActivityForm();
+function updateAccountSelect() { 
+    const accountSelect = document.getElementById('accountSelect'); 
+    accountSelect.innerHTML = '<option value="">เลือกบัญชี</option>'; 
+    accounts.forEach(account => { 
+        const option = document.createElement('option'); 
+        option.value = account; 
+        option.textContent = account; 
+        accountSelect.appendChild(option); 
+    }); 
 }
 
-// === ฟังก์ชันเลือกอัตโนมัติเมื่อมีตัวเลือกเดียว ===
-function autoSelectIfSingle() {
-    console.log('🔍 กำลังตรวจสอบการเลือกอัตโนมัติ...');
+function changeAccount() {
+    currentAccount = document.getElementById('accountSelect').value;
+    document.getElementById('accountName').textContent = currentAccount || "";
+    updateTypeList();
+    displayRecords();
+    updateMultiAccountSelector();
+    updateImportAccountSelect();
     
-    // ตรวจสอบผู้ทำกิจกรรม
-    const allPersons = getFromLocalStorage('persons') || [];
-    const personDropdown = document.getElementById('personSelect');
-    
-    const realPersonOptions = Array.from(personDropdown.options).filter(opt => 
-        opt.value !== '' && opt.value !== 'custom'
-    );
-    
-    if (realPersonOptions.length === 1) {
-        const selectedValue = realPersonOptions[0].value;
-        personDropdown.value = selectedValue;
-        console.log(`✅ เลือกผู้ทำกิจกรรมอัตโนมัติ: ${selectedValue}`);
-        updateCurrentPersonDisplay();
-    }
-    
-    // ตรวจสอบประเภทกิจกรรม
-    const allActivityTypes = getFromLocalStorage('activityTypes') || [];
-    const activityTypeDropdown = document.getElementById('activityTypeSelect');
-    
-    const realActivityTypeOptions = Array.from(activityTypeDropdown.options).filter(opt => 
-        opt.value !== '' && opt.value !== 'custom'
-    );
-    
-    if (realActivityTypeOptions.length === 1) {
-        const selectedValue = realActivityTypeOptions[0].value;
-        activityTypeDropdown.value = selectedValue;
-        console.log(`✅ เลือกประเภทกิจกรรมอัตโนมัติ: ${selectedValue}`);
+    // ✅ เพิ่ม: ตรวจสอบข้อมูลเมื่อเปลี่ยนบัญชี
+    if (currentAccount) {
+        const accountRecords = records.filter(record => record.account === currentAccount);
+        console.log(`Loaded ${accountRecords.length} records for account: ${currentAccount}`);
     }
 }
 
-// === ฟังก์ชันจัดการ Dropdown ===
-function showSelectedValueDisplay(type, value) {
-    const dropdown = document.getElementById(`${type}Select`);
-    const wrapper = dropdown.closest('.select-wrapper');
+function editAccount() { 
+    if (!currentAccount) { 
+        alert("กรุณาเลือกบัญชีที่ต้องการแก้ไข"); 
+        return; 
+    } 
+    const newAccountName = prompt("กรุณากรอกชื่อบัญชีใหม่:", currentAccount); 
+    if (newAccountName && newAccountName !== currentAccount && !accounts.includes(newAccountName)) { 
+        const oldAccountName = currentAccount; 
+        const index = accounts.indexOf(oldAccountName); 
+        if (index > -1) { 
+            accounts[index] = newAccountName; 
+            records.forEach(record => { 
+                if (record.account === oldAccountName) { 
+                    record.account = newAccountName; 
+                } 
+            }); 
+            if (accountTypes.has(oldAccountName)) { 
+                const oldTypes = accountTypes.get(oldAccountName); 
+                accountTypes.set(newAccountName, oldTypes); 
+                accountTypes.delete(oldAccountName); 
+            } 
+            currentAccount = newAccountName; 
+            updateAccountSelect(); 
+            document.getElementById('accountSelect').value = newAccountName; 
+            document.getElementById('accountName').textContent = currentAccount; 
+            displayRecords(); 
+            updateMultiAccountSelector(); 
+            alert("แก้ไขชื่อบัญชีเรียบร้อย"); 
+            saveToLocal(); 
+        } 
+    } else { 
+        alert("ชื่อบัญชีซ้ำหรือกรอกข้อมูลไม่ถูกต้อง"); 
+    } 
+}
+
+function deleteAccount() { 
+    if (currentAccount) { 
+        const confirmDelete = confirm(`คุณแน่ใจว่าจะลบบัญชี "${currentAccount}" และข้อมูลทั้งหมดในบัญชีนี้หรือไม่?`); 
+        if (confirmDelete) { 
+            const accountToDelete = currentAccount; 
+            const index = accounts.indexOf(accountToDelete); 
+            if (index > -1) { 
+                accounts.splice(index, 1); 
+            } 
+            accountTypes.delete(accountToDelete); 
+            records = records.filter(rec => rec.account !== accountToDelete); 
+            currentAccount = null; 
+            document.getElementById('accountSelect').value = ""; 
+            document.getElementById('accountName').textContent = ""; 
+            updateAccountSelect(); 
+            displayRecords(); 
+            updateMultiAccountSelector(); 
+            alert("ลบบัญชีเรียบร้อย"); 
+            saveToLocal(); 
+        } 
+    } else { 
+        alert("กรุณาเลือกบัญชีที่ต้องการลบ"); 
+    } 
+}
+
+// ==============================================
+// ฟังก์ชันจัดการประเภท - เวอร์ชันแก้ไข
+// ==============================================
+
+function initializeAccountTypes(accountName) { 
+    if (!accountTypes.has(accountName)) { 
+        accountTypes.set(accountName, { 
+            "รายรับ": ["ถูกหวย", "เติมทุน"], 
+            "รายจ่าย": ["ชื้อหวย", "โอนกำไร", "ชื้อกับข้าว"] 
+        }); 
+    } 
+}
+
+function updateTypeList() { 
+    const typeList = document.getElementById('typeList'); 
+    const typeInput = document.getElementById('type');
     
-    if (!wrapper) {
-        console.error(`❌ ไม่พบ wrapper สำหรับ ${type}`);
+    if (!currentAccount) { 
+        typeList.innerHTML = ''; 
+        typeInput.value = '';
+        return; 
+    } 
+    
+    initializeAccountTypes(currentAccount); 
+    const types = accountTypes.get(currentAccount); 
+    typeList.innerHTML = ''; 
+    
+    // เพิ่มประเภทรายจ่าย
+    types["รายจ่าย"].forEach(type => { 
+        const option = document.createElement('option'); 
+        option.value = type; 
+        option.textContent = type; 
+        typeList.appendChild(option); 
+    }); 
+    
+    // เพิ่มประเภทรายรับ
+    types["รายรับ"].forEach(type => { 
+        const option = document.createElement('option'); 
+        option.value = type; 
+        option.textContent = type; 
+        typeList.appendChild(option); 
+    }); 
+    
+    console.log('อัพเดทรายการประเภทเรียบร้อย:', types);
+}
+
+function showAllTypes(inputElement) { 
+    tempTypeValue = inputElement.value; 
+    inputElement.value = ''; 
+}
+
+function restoreType(inputElement) { 
+    if (inputElement.value === '') { 
+        inputElement.value = tempTypeValue; 
+    } 
+}
+
+function addNewType() { 
+    if (!currentAccount) { 
+        alert("กรุณาเลือกบัญชีก่อนเพิ่มประเภท"); 
+        return; 
+    } 
+    
+    initializeAccountTypes(currentAccount); 
+    const types = accountTypes.get(currentAccount); 
+    
+    // ใช้ prompt สำหรับชื่อประเภทแทนการดึงจาก input
+    const typeName = prompt("กรุณากรอกชื่อประเภทใหม่:"); 
+    if (!typeName || typeName.trim() === '') {
+        alert("กรุณากรอกชื่อประเภท");
         return;
     }
     
-    // ลบ element เดิมถ้ามี
-    const existingDisplay = wrapper.querySelector('.selected-value-display');
-    if (existingDisplay) {
-        existingDisplay.remove();
+    const category = prompt("เลือกหมวดหมู่ที่จะเพิ่ม (รายรับ/รายจ่าย):"); 
+    if (category !== "รายรับ" && category !== "รายจ่าย") { 
+        alert("กรุณากรอก 'รายรับ' หรือ 'รายจ่าย' เท่านั้น"); 
+        return; 
+    } 
+    
+    const trimmedTypeName = typeName.trim();
+    
+    // ตรวจสอบว่ามีประเภทนี้อยู่แล้วหรือไม่
+    if (types[category].includes(trimmedTypeName)) { 
+        alert("ประเภทนี้มีอยู่แล้วในหมวด '" + category + "'"); 
+        return; 
+    } 
+    
+    // เพิ่มประเภทใหม่
+    types[category].push(trimmedTypeName); 
+    updateTypeList(); 
+    
+    // อัพเดทค่าใน input
+    document.getElementById('type').value = trimmedTypeName;
+    
+    alert(`เพิ่มประเภท "${trimmedTypeName}" ในหมวด "${category}" เรียบร้อย`); 
+    saveToLocal(); 
+}
+
+function editType() { 
+    if (!currentAccount) { 
+        alert("กรุณาเลือกบัญชีก่อนแก้ไขประเภท"); 
+        return; 
+    } 
+    
+    initializeAccountTypes(currentAccount); 
+    const types = accountTypes.get(currentAccount); 
+    const typeInput = document.getElementById('type'); 
+    const currentType = typeInput.value.trim(); 
+    
+    if (!currentType) { 
+        alert("กรุณาเลือกหรือพิมพ์ประเภทที่ต้องการแก้ไข"); 
+        return; 
+    } 
+    
+    // หาหมวดหมู่ของประเภทที่ต้องการแก้ไข
+    let foundCategory = null; 
+    for (const category in types) { 
+        if (types[category].includes(currentType)) { 
+            foundCategory = category; 
+            break; 
+        } 
+    } 
+    
+    if (!foundCategory) { 
+        alert("ไม่พบประเภทที่ต้องการแก้ไข"); 
+        return; 
+    } 
+    
+    const newName = prompt("กรุณากรอกชื่อประเภทใหม่:", currentType); 
+    if (!newName || newName.trim() === '') {
+        alert("กรุณากรอกชื่อประเภทใหม่");
+        return;
     }
     
-    // สร้าง element ใหม่สำหรับแสดงค่าที่เลือก
-    const displayElement = document.createElement('div');
-    displayElement.className = 'selected-value-display';
+    const trimmedNewName = newName.trim();
+    if (trimmedNewName === currentType) {
+        alert("ชื่อประเภทใหม่ต้องแตกต่างจากชื่อเดิม");
+        return;
+    }
     
-    const typeLabel = type === 'person' ? '' : '';
+    // ตรวจสอบว่าชื่อใหม่ซ้ำกับประเภทอื่นหรือไม่
+    for (const category in types) {
+        if (types[category].includes(trimmedNewName)) {
+            alert("มีประเภท '" + trimmedNewName + "' อยู่แล้วในระบบ");
+            return;
+        }
+    }
     
-    displayElement.innerHTML = `
-        <div class="selected-value-container">
-            <span class="selected-value-label">${typeLabel}</span>
-            <span class="selected-value">${value}</span>
-            <span class="selected-value-note"></span>
+    // อัพเดทชื่อประเภท
+    const index = types[foundCategory].indexOf(currentType);
+    types[foundCategory][index] = trimmedNewName;
+    
+    // อัพเดทใน records
+    records.forEach(record => { 
+        if (record.account === currentAccount && record.type === currentType) { 
+            record.type = trimmedNewName; 
+        } 
+    }); 
+    
+    updateTypeList(); 
+    typeInput.value = trimmedNewName; 
+    alert("แก้ไขชื่อประเภทเรียบร้อย"); 
+    saveToLocal(); 
+}
+
+function deleteType() { 
+    if (!currentAccount) { 
+        alert("กรุณาเลือกบัญชีก่อนลบประเภท"); 
+        return; 
+    } 
+    
+    initializeAccountTypes(currentAccount); 
+    const types = accountTypes.get(currentAccount); 
+    const typeInput = document.getElementById('type'); 
+    const currentType = typeInput.value.trim(); 
+    
+    if (!currentType) { 
+        alert("กรุณาเลือกหรือพิมพ์ประเภทที่ต้องการลบ"); 
+        return; 
+    } 
+    
+    // หาหมวดหมู่ของประเภทที่ต้องการลบ
+    let foundCategory = null; 
+    for (const category in types) { 
+        if (types[category].includes(currentType)) { 
+            foundCategory = category; 
+            break; 
+        } 
+    } 
+    
+    if (!foundCategory) { 
+        alert("ไม่พบประเภทที่ต้องการลบ"); 
+        return; 
+    } 
+    
+    // ตรวจสอบว่ามีการใช้งานประเภทนี้ใน records หรือไม่
+    const usedInRecords = records.some(record => 
+        record.account === currentAccount && record.type === currentType
+    );
+    
+    if (usedInRecords) {
+        const confirmDelete = confirm(`ประเภท "${currentType}" ถูกใช้ใน ${records.filter(r => r.account === currentAccount && r.type === currentType).length} รายการ\n\nการลบประเภทนี้อาจทำให้ข้อมูลเดิมแสดงผลไม่ถูกต้อง\nคุณแน่ใจว่าจะลบประเภทนี้หรือไม่?`); 
+        if (!confirmDelete) return;
+    } else {
+        const confirmDelete = confirm(`คุณแน่ใจว่าจะลบประเภท "${currentType}" หรือไม่?`); 
+        if (!confirmDelete) return;
+    }
+    
+    // ลบประเภท
+    const index = types[foundCategory].indexOf(currentType);
+    types[foundCategory].splice(index, 1);
+    
+    updateTypeList(); 
+    typeInput.value = ''; 
+    alert("ลบประเภทเรียบร้อย"); 
+    saveToLocal(); 
+}
+
+// ฟังก์ชันเสริมสำหรับการจัดการประเภท
+function showTypeManagement() {
+    if (!currentAccount) {
+        alert("กรุณาเลือกบัญชีก่อน");
+        return;
+    }
+    
+    initializeAccountTypes(currentAccount);
+    const types = accountTypes.get(currentAccount);
+    
+    let typeListHTML = `
+        <h3>จัดการประเภท - บัญชี: ${currentAccount}</h3>
+        <div style="display: flex; gap: 20px;">
+            <div>
+                <h4>รายรับ</h4>
+                <ul id="incomeTypesList" style="min-height: 100px; border: 1px solid #ccc; padding: 10px;">
+    `;
+    
+    types["รายรับ"].forEach(type => {
+        typeListHTML += `<li>${type} <button onclick="quickDeleteType('รายรับ', '${type}')">ลบ</button></li>`;
+    });
+    
+    typeListHTML += `
+                </ul>
+                <button onclick="quickAddType('รายรับ')">เพิ่มรายรับ</button>
+            </div>
+            <div>
+                <h4>รายจ่าย</h4>
+                <ul id="expenseTypesList" style="min-height: 100px; border: 1px solid #ccc; padding: 10px;">
+    `;
+    
+    types["รายจ่าย"].forEach(type => {
+        typeListHTML += `<li>${type} <button onclick="quickDeleteType('รายจ่าย', '${type}')">ลบ</button></li>`;
+    });
+    
+    typeListHTML += `
+                </ul>
+                <button onclick="quickAddType('รายจ่าย')">เพิ่มรายจ่าย</button>
+            </div>
         </div>
     `;
     
-    // แทรกก่อน dropdown
-    wrapper.insertBefore(displayElement, dropdown);
-    
-    // ซ่อน dropdown แต่ยังคงใช้งานได้
-    wrapper.classList.add('hide-dropdown');
-    
-    console.log(`✅ แสดงค่าที่เลือกสำหรับ ${type}: ${value}`);
-    
-    // ✅ อัปเดตการแสดงผลผู้ทำกิจกรรมปัจจุบัน
-    if (type === 'person') {
-        updateCurrentPersonDisplay();
-    }
+    openSummaryModal(typeListHTML);
 }
 
-function showDropdown(type) {
-    const dropdown = document.getElementById(`${type}Select`);
-    const wrapper = dropdown.closest('.select-wrapper');
+function quickAddType(category) {
+    const typeName = prompt(`กรุณากรอกชื่อประเภท${category}:`);
+    if (!typeName || typeName.trim() === '') return;
     
-    if (!wrapper) return;
+    const trimmedTypeName = typeName.trim();
+    initializeAccountTypes(currentAccount);
+    const types = accountTypes.get(currentAccount);
     
-    // ลบ element ที่แสดงค่าที่เลือก
-    const displayElement = wrapper.querySelector('.selected-value-display');
-    if (displayElement) {
-        displayElement.remove();
-    }
-    
-    // แสดง dropdown
-    wrapper.classList.remove('hide-dropdown');
-    
-    console.log(`✅ แสดง dropdown ปกติสำหรับ ${type}`);
-    
-    // ✅ อัปเดตการแสดงผลผู้ทำกิจกรรมปัจจุบัน
-    if (type === 'person') {
-        updateCurrentPersonDisplay();
-    }
-}
-
-function resetAutoSelectionDisplay(type) {
-    console.log(`🔄 รีเซ็ตการแสดงผลสำหรับ ${type}`);
-    showDropdown(type);
-    
-    // เรียกใช้ฟังก์ชันเลือกอัตโนมัติใหม่หลังจากรีเฟรชข้อมูล
-    setTimeout(() => {
-        autoSelectIfSingle();
-    }, 100);
-}
-
-// === ฟังก์ชันจัดการ Dropdown ผู้ทำกิจกรรม ===
-function populatePersonDropdown(dropdownId) {
-    const dropdown = document.getElementById(dropdownId);
-    if (!dropdown) return;
-
-    const allPersons = getFromLocalStorage('persons') || [];
-    
-    // ✅ เพิ่มการจัดเรียงผู้ทำกิจกรรมตามชื่อ (เรียง A-Z)
-    allPersons.sort((a, b) => a.name.localeCompare(b.name, 'th'));
-
-    // เก็บค่าเดิมที่เลือกไว้
-    const selectedValue = dropdown.value;
-    
-    // ล้าง options ทั้งหมดยกเว้น option แรก
-    while (dropdown.options.length > 1) {
-        dropdown.remove(1);
-    }
-    
-    // เพิ่มตัวเลือกจากฐานข้อมูล
-    allPersons.forEach(person => {
-        const option = document.createElement('option');
-        option.value = person.name;
-        option.textContent = person.name;
-        dropdown.appendChild(option);
-    });
-    
-    // เพิ่มตัวเลือก "อื่นๆ" เฉพาะเมื่อมีตัวเลือกมากกว่า 1
-    if (allPersons.length > 1) {
-        const customOption = document.createElement('option');
-        customOption.value = 'custom';
-        customOption.textContent = 'อื่นๆ (กรุณากรอกเอง)';
-        dropdown.appendChild(customOption);
-    }
-    
-    // ✅ เรียกใช้ฟังก์ชันเลือกอัตโนมัติหลังจากโหลดข้อมูลเสร็จ
-    setTimeout(() => {
-        autoSelectIfSingle();
-    }, 0);
-    
-    // ✅ อัปเดตการแสดงผลผู้ทำกิจกรรมปัจจุบัน
-    updateCurrentPersonDisplay();
-    
-    // คืนค่าที่เลือกไว้เดิม (ถ้ายังมีอยู่)
-    if (selectedValue && Array.from(dropdown.options).some(opt => opt.value === selectedValue)) {
-        dropdown.value = selectedValue;
-        updateCurrentPersonDisplay();
-    }
-}
-
-// === ฟังก์ชันจัดการ Dropdown ประเภทกิจกรรม ===
-function populateActivityTypeDropdowns(dropdownId) {
-    const dropdown = document.getElementById(dropdownId);
-    if (!dropdown) return;
-
-    const allActivityTypes = getFromLocalStorage('activityTypes') || [];
-    
-    // ✅ เพิ่มการจัดเรียงประเภทกิจกรรมตามชื่อ (เรียง A-Z)
-    allActivityTypes.sort((a, b) => a.name.localeCompare(b.name, 'th'));
-
-    // เก็บค่าเดิมที่เลือกไว้
-    const selectedValue = dropdown.value;
-    
-    // ล้าง options ทั้งหมดยกเว้น option แรก
-    while (dropdown.options.length > 1) {
-        dropdown.remove(1);
-    }
-    
-    // เพิ่มตัวเลือกจากฐานข้อมูล
-    allActivityTypes.forEach(type => {
-        const option = document.createElement('option');
-        option.value = type.name;
-        option.textContent = type.name;
-        dropdown.appendChild(option);
-    });
-    
-    // เพิ่มตัวเลือก "อื่นๆ" เฉพาะเมื่อมีตัวเลือกมากกว่า 1
-    if (allActivityTypes.length > 1) {
-        const customOption = document.createElement('option');
-        customOption.value = 'custom';
-        customOption.textContent = 'อื่นๆ (กรุณากรอกเอง)';
-        dropdown.appendChild(customOption);
-    }
-    
-    // ✅ เรียกใช้ฟังก์ชันเลือกอัตโนมัติหลังจากโหลดข้อมูลเสร็จ
-    setTimeout(() => {
-        autoSelectIfSingle();
-    }, 0);
-    
-    // คืนค่าที่เลือกไว้เดิม (ถ้ายังมีอยู่)
-    if (selectedValue && Array.from(dropdown.options).some(opt => opt.value === selectedValue)) {
-        dropdown.value = selectedValue;
-    }
-}
-
-// === ฟังก์ชันจัดการผู้ทำกิจกรรม ===
-function addPerson() {
-    document.getElementById('personModalTitle').textContent = 'เพิ่มผู้ทำกิจกรรม';
-    document.getElementById('modalPersonName').value = '';
-    document.getElementById('personEditValue').value = '';
-    document.getElementById('personModal').style.display = 'flex';
-}
-
-function editPerson() {
-    const dropdown = document.getElementById('personSelect');
-    const selectedValue = dropdown.value;
-    
-    if (!selectedValue || selectedValue === 'custom') {
-        alert('กรุณาเลือกผู้ทำกิจกรรมที่ต้องการแก้ไข');
+    if (types[category].includes(trimmedTypeName)) {
+        alert("ประเภทนี้มีอยู่แล้ว");
         return;
     }
     
-    document.getElementById('personModalTitle').textContent = 'แก้ไขผู้ทำกิจกรรม';
-    document.getElementById('modalPersonName').value = selectedValue;
-    document.getElementById('personEditValue').value = selectedValue;
-    document.getElementById('personModal').style.display = 'flex';
+    types[category].push(trimmedTypeName);
+    updateTypeList();
+    saveToLocal();
+    
+    // รีเฟรช modal
+    showTypeManagement();
 }
 
-function deletePerson() {
-    const dropdown = document.getElementById('personSelect');
-    const selectedValue = dropdown.value;
+function quickDeleteType(category, typeName) {
+    if (!confirm(`ลบประเภท "${typeName}" จากหมวด "${category}"?`)) return;
     
-    if (!selectedValue || selectedValue === 'custom') {
-        alert('กรุณาเลือกผู้ทำกิจกรรมที่ต้องการลบ');
-        return;
-    }
+    initializeAccountTypes(currentAccount);
+    const types = accountTypes.get(currentAccount);
+    const index = types[category].indexOf(typeName);
     
-    // ตรวจสอบว่ามีกิจกรรมที่ใช้ผู้ทำกิจกรรมนี้อยู่หรือไม่
-    const isUsed = checkPersonUsage(selectedValue);
-    
-    let confirmMessage = `คุณแน่ใจว่าต้องการลบ "${selectedValue}" ใช่หรือไม่?`;
-    if (isUsed) {
-        confirmMessage += `\n\n⚠️  คำเตือน: มีกิจกรรมที่ใช้ผู้ทำกิจกรรมนี้อยู่ ${getActivityCountByPerson(selectedValue)} รายการ กิจกรรมเหล่านี้จะยังคงแสดงชื่อ "${selectedValue}" แต่อาจไม่สามารถกรองหรือสรุปได้อย่างถูกต้อง`;
-    }
-    
-    if (!confirm(confirmMessage)) {
-        return;
-    }
-    
-    let allPersons = getFromLocalStorage('persons') || [];
-    allPersons = allPersons.filter(person => person.name !== selectedValue);
-    saveToLocalStorage('persons', allPersons);
-    
-    populatePersonDropdown('personSelect');
-    
-    // ✅ อัพเดทการแสดงผลในหน้าสรุปด้วย
-    updatePersonFilterAfterChange();
-    
-    notifyDataUpdated('person', 'delete');
-    
-    // ✅ รีเซ็ตการแสดงผลอัตโนมัติ
-    resetAutoSelectionDisplay('person');
-}
-
-function savePerson() {
-    const personName = document.getElementById('modalPersonName').value.trim();
-    const editValue = document.getElementById('personEditValue').value;
-    
-    if (!personName) {
-        alert('กรุณากรอกชื่อผู้ทำกิจกรรม');
-        return;
-    }
-    
-    let allPersons = getFromLocalStorage('persons') || [];
-    
-    if (editValue) {
-        // โหมดแก้ไข
-        const oldName = editValue;
+    if (index > -1) {
+        types[category].splice(index, 1);
+        updateTypeList();
+        saveToLocal();
         
-        // ตรวจสอบว่าชื่อมีการเปลี่ยนแปลงหรือไม่
-        if (oldName !== personName) {
-            // อัปเดตในฐานข้อมูลผู้ทำกิจกรรม
-            const personIndex = allPersons.findIndex(p => p.name === oldName);
-            if (personIndex !== -1) {
-                allPersons[personIndex].name = personName;
-            }
-            
-            // 🔥 อัปเดตกิจกรรมทั้งหมดที่ใช้ชื่อเดิม
-            const activitiesUpdated = updateAllActivitiesForPerson(oldName, personName);
-            
-            if (activitiesUpdated) {
-                notifyDataUpdated('person', 'edit');
-            } else {
-                notifyDataUpdated('person', 'edit');
-            }
-            
-            // โหลดกิจกรรมใหม่เพื่อแสดงข้อมูลที่อัปเดต
-            loadUserActivities();
-        } else {
-            // ชื่อไม่เปลี่ยนแปลง
-            showToast('ไม่มีการเปลี่ยนแปลงข้อมูล', 'info');
-        }
+        // รีเฟรช modal
+        showTypeManagement();
+    }
+}
+
+// ==============================================
+// ฟังก์ชันจัดการรายการ
+// ==============================================
+
+function addEntry() {
+    let entryDateInput = document.getElementById('entryDate').value;
+    let entryTimeInput = document.getElementById('entryTime').value;
+    const typeInput = document.getElementById('type');
+    const typeText = typeInput.value.trim();
+    const description = document.getElementById('description').value;
+    const amount = parseFloat(document.getElementById('amount').value);
+    let datePart, timePart;
+    
+    if (!entryDateInput || !entryTimeInput) {
+        const now = new Date();
+        const y = now.getFullYear();
+        const m = String(now.getMonth() + 1).padStart(2, '0');
+        const d = String(now.getDate()).padStart(2, '0');
+        datePart = !entryDateInput ? `${y}-${m}-${d}` : entryDateInput;
+        const hh = String(now.getHours()).padStart(2, '0');
+        const mm = String(now.getMinutes()).padStart(2, '0');
+        timePart = !entryTimeInput ? `${hh}:${mm}` : entryTimeInput;
     } else {
-        // โหมดเพิ่ม
-        if (allPersons.some(p => p.name === personName)) {
-            alert('มีผู้ทำกิจกรรมนี้อยู่แล้ว');
+        datePart = entryDateInput;
+        timePart = entryTimeInput;
+    }
+    
+    const dateTime = `${datePart} ${timePart}`;
+    if (!currentAccount) { alert("กรุณาเลือกบัญชีก่อนเพิ่มรายการ"); return; }
+    if (!typeText) { alert("กรุณากรอกประเภท"); return; }
+    if (!description) { alert("กรุณากรอกรายละเอียด"); return; }
+    if (isNaN(amount) || amount <= 0) { alert("กรุณากรอกจำนวนเงินที่ถูกต้อง"); return; }
+    
+    initializeAccountTypes(currentAccount);
+    const types = accountTypes.get(currentAccount);
+    let entryCategory = 'expense';
+    if (types["รายรับ"].includes(typeText)) {
+        entryCategory = 'income';
+    }
+    
+    if (editingIndex !== null) {
+        records[editingIndex] = { dateTime, type: typeText, description, amount, account: currentAccount };
+        editingIndex = null;
+    } else {
+        records.push({ dateTime, type: typeText, description, amount, account: currentAccount });
+        const selectedCheckboxes = document.querySelectorAll('#multiAccountCheckboxes input:checked');
+        selectedCheckboxes.forEach(checkbox => {
+            const targetAccount = checkbox.value;
+            records.push({ dateTime, type: typeText, description, amount, account: targetAccount });
+        });
+    }
+    
+    displayRecords();
+    document.getElementById('description').value = '';
+    document.getElementById('amount').value = '';
+    document.getElementById('entryDate').value = '';
+    document.getElementById('entryTime').value = '';
+    typeInput.value = '';
+    document.querySelectorAll('#multiAccountCheckboxes input:checked').forEach(checkbox => {
+        checkbox.checked = false;
+    });
+    saveDataAndShowToast(entryCategory);
+    updateMultiAccountSelector();
+}
+
+function displayRecords() { 
+    const recordBody = document.getElementById('recordBody'); 
+    recordBody.innerHTML = ""; 
+    const filteredRecords = records.filter(record => record.account === currentAccount) 
+    .sort((a, b) => parseLocalDateTime(b.dateTime) - parseLocalDateTime(a.dateTime)); 
+    
+    filteredRecords.forEach((record, index) => { 
+        const originalIndex = records.findIndex(r => r === record); 
+        const { formattedDate, formattedTime } = formatDateForDisplay(record.dateTime);
+        
+        const row = document.createElement('tr'); 
+        row.innerHTML = ` 
+        <td>${formattedDate}</td> 
+        <td>${formattedTime}</td> 
+        <td>${record.type}</td> 
+        <td>${record.description}</td> 
+        <td>${record.amount.toLocaleString()} บาท</td> 
+        <td> 
+        <button onclick="editRecord(${originalIndex})">แก้ไข</button> 
+        <button onclick="deleteRecord(${originalIndex})">ลบ</button> 
+        </td> 
+        `; 
+        recordBody.appendChild(row); 
+    }); 
+    
+    if (filteredRecords.length === 0) { 
+        const row = document.createElement('tr'); 
+        row.innerHTML = `<td colspan="6" style="text-align: center;">ไม่มีข้อมูล</td>`; 
+        recordBody.appendChild(row); 
+    } 
+}
+
+function editRecord(index) {
+    const record = records[index];
+    document.getElementById('type').value = record.type;
+    document.getElementById('description').value = record.description;
+    document.getElementById('amount').value = record.amount;
+    const [datePart, timePart] = record.dateTime.split(' ');
+    document.getElementById('entryDate').value = datePart;
+    document.getElementById('entryTime').value = timePart;
+    editingIndex = index;
+    updateMultiAccountSelector();
+}
+
+function deleteRecord(index) { 
+    if (confirm("คุณแน่ใจว่าจะลบรายการนี้หรือไม่?")) { 
+        records.splice(index, 1); 
+        displayRecords(); 
+        saveDataAndShowToast(); 
+    } 
+}
+
+function toggleRecordsVisibility() { 
+    const detailsSection = document.getElementById('detailsSection'); 
+    if (detailsSection.style.display === 'none' || detailsSection.style.display === '') { 
+        detailsSection.style.display = 'block'; 
+    } else { 
+        detailsSection.style.display = 'none'; 
+    } 
+}
+
+function deleteRecordsByDate() {
+    const dateInput = document.getElementById('deleteByDateInput');
+    const selectedDate = dateInput.value;
+    if (!currentAccount) {
+        alert("กรุณาเลือกบัญชีที่ต้องการลบข้อมูลก่อน");
+        return;
+    }
+    if (!selectedDate) {
+        alert("กรุณาเลือกวันที่ที่ต้องการลบข้อมูล");
+        return;
+    }
+    
+    const recordsToDelete = records.filter(record => {
+        if (record.account !== currentAccount) return false;
+        const recordDateOnly = record.dateTime.split(' ')[0];
+        return recordDateOnly === selectedDate;
+    });
+    
+    if (recordsToDelete.length === 0) {
+        alert(`ไม่พบข้อมูลในบัญชี "${currentAccount}" ของวันที่ ${selectedDate}`);
+        return;
+    }
+    
+    const confirmDelete = confirm(
+        `คุณแน่ใจหรือไม่ว่าจะลบข้อมูลทั้งหมด ${recordsToDelete.length} รายการ ของวันที่ ${selectedDate} ในบัญชี "${currentAccount}"?\n\n*** การกระทำนี้ไม่สามารถย้อนกลับได้! ***`
+    );
+    
+    if (confirmDelete) {
+        records = records.filter(record => !recordsToDelete.includes(record));
+        displayRecords();
+        saveDataAndShowToast();
+        alert(`ลบข้อมูล ${recordsToDelete.length} รายการของวันที่ ${selectedDate} เรียบร้อยแล้ว`);
+        dateInput.value = ''; 
+    }
+}
+
+// ==============================================
+// ฟังก์ชันจัดการบัญชีหลายบัญชี
+// ==============================================
+
+function updateMultiAccountSelector() { 
+    const selectorDiv = document.getElementById('multiAccountSelector'); 
+    const checkboxesDiv = document.getElementById('multiAccountCheckboxes'); 
+    checkboxesDiv.innerHTML = ''; 
+    if (accounts.length > 1 && editingIndex === null) { 
+        selectorDiv.style.display = 'block'; 
+        accounts.forEach(acc => { 
+            if (acc !== currentAccount) { 
+                const itemDiv = document.createElement('div'); 
+                itemDiv.className = 'checkbox-item'; 
+                const checkbox = document.createElement('input'); 
+                checkbox.type = 'checkbox'; 
+                checkbox.id = `acc-check-${acc}`; 
+                checkbox.value = acc; 
+                const label = document.createElement('label'); 
+                label.htmlFor = `acc-check-${acc}`; 
+                label.textContent = acc; 
+                itemDiv.appendChild(checkbox); 
+                itemDiv.appendChild(label); 
+                checkboxesDiv.appendChild(itemDiv); 
+            } 
+        }); 
+    } else { 
+        selectorDiv.style.display = 'none'; 
+    } 
+}
+
+// ==============================================
+// ฟังก์ชันนำเข้าข้อมูลจากบัญชีอื่น
+// ==============================================
+
+function updateImportAccountSelect() {
+    const importSelect = document.getElementById('importAccountSelect');
+    const importButton = document.querySelector('#import-from-account-section button');
+    importSelect.innerHTML = '';
+    const otherAccounts = accounts.filter(acc => acc !== currentAccount);
+    
+    if (otherAccounts.length === 0 || !currentAccount) {
+        importSelect.innerHTML = '<option value="">ไม่มีบัญชีอื่นให้เลือก</option>';
+        importSelect.disabled = true;
+        if (importButton) importButton.disabled = true;
+    } else {
+        importSelect.disabled = false;
+        if (importButton) importButton.disabled = false;
+        importSelect.innerHTML = '<option value="">-- เลือกบัญชี --</option>';
+        otherAccounts.forEach(acc => {
+            const option = document.createElement('option');
+            option.value = acc;
+            option.textContent = acc;
+            importSelect.appendChild(option);
+        });
+    }
+}
+
+function importEntriesFromAccount() {
+    const sourceAccount = document.getElementById('importAccountSelect').value;
+    const importDateStr = document.getElementById('importDate').value;
+
+    if (!currentAccount) {
+        alert("กรุณาเลือกบัญชีปัจจุบัน (บัญชีปลายทาง) ก่อน");
+        return;
+    }
+    if (!sourceAccount) {
+        alert("กรุณาเลือกบัญชีต้นทางที่ต้องการดึงข้อมูล");
+        return;
+    }
+    if (!importDateStr) {
+        alert("กรุณาเลือกวันที่ของข้อมูลที่ต้องการดึง");
+        return;
+    }
+
+    const recordsToImport = records.filter(record => {
+        return record.account === sourceAccount && record.dateTime.startsWith(importDateStr);
+    });
+
+    if (recordsToImport.length === 0) {
+        alert(`ไม่พบข้อมูลในบัญชี "${sourceAccount}" ของวันที่ ${importDateStr}`);
+        return;
+    }
+
+    const confirmImport = confirm(`พบ ${recordsToImport.length} รายการในบัญชี "${sourceAccount}" ของวันที่ ${importDateStr}\n\nคุณต้องการคัดลอกรายการทั้งหมดมายังบัญชี "${currentAccount}" หรือไม่? (ข้อมูลซ้ำจะถูกข้าม)`);
+
+    if (confirmImport) {
+        let importedCount = 0;
+        let skippedCount = 0;
+        recordsToImport.forEach(recordToAdd => {
+            const isDuplicate = records.some(existingRecord => 
+                existingRecord.account === currentAccount &&
+                existingRecord.dateTime === recordToAdd.dateTime &&
+                existingRecord.amount === recordToAdd.amount &&
+                existingRecord.description === recordToAdd.description &&
+                existingRecord.type === recordToAdd.type
+            );
+            if (!isDuplicate) {
+                const newEntry = { ...recordToAdd, account: currentAccount };
+                records.push(newEntry);
+                importedCount++;
+            } else {
+                skippedCount++;
+            }
+        });
+        displayRecords();
+        saveDataAndShowToast();
+        alert(`คัดลอกข้อมูลสำเร็จ!\nเพิ่ม ${importedCount} รายการใหม่\nข้าม ${skippedCount} รายการที่ซ้ำซ้อน`);
+    }
+}
+
+// ==============================================
+// ฟังก์ชันจัดการข้อมูลสรุป
+// ==============================================
+
+function parseDateInput(dateStr) {
+    if (!dateStr || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+        return null;
+    }
+    const [year, month, day] = dateStr.split('-');
+    return new Date(year, month - 1, day);
+}
+
+// ==============================================
+// ฟังก์ชันเสริมสำหรับจัดการ Time Zone
+// ==============================================
+
+function parseLocalDateTime(dateTimeStr) {
+    if (!dateTimeStr) return new Date();
+    
+    try {
+        const [datePart, timePart] = dateTimeStr.split(' ');
+        const [year, month, day] = datePart.split('-').map(Number);
+        const [hours, minutes] = timePart.split(':').map(Number);
+        
+        return new Date(year, month - 1, day, hours, minutes);
+    } catch (error) {
+        console.error('Error parsing date:', dateTimeStr, error);
+        return new Date();
+    }
+}
+
+function formatDateForDisplay(dateTimeStr) {
+    const date = parseLocalDateTime(dateTimeStr);
+    const formattedDate = `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`;
+    const formattedTime = `${String(date.getHours()).padStart(2, '0')}.${String(date.getMinutes()).padStart(2, '0')} น.`;
+    return { formattedDate, formattedTime };
+}
+
+function generateSummaryData(startDate, endDate) {
+    if (!currentAccount) { 
+        console.error("❌ ไม่มีบัญชีปัจจุบันในการสรุปข้อมูล");
+        alert("ไม่พบบัญชีที่เลือก"); 
+        return null; 
+    }
+    
+    if (!accountTypes.has(currentAccount)) {
+        console.log(`⚠️ สร้างประเภทบัญชีใหม่สำหรับ: ${currentAccount}`);
+        initializeAccountTypes(currentAccount);
+    }
+    
+    const summary = { 
+        income: {}, 
+        expense: {}, 
+        totalIncome: 0, 
+        totalExpense: 0, 
+        incomeCount: 0, 
+        expenseCount: 0 
+    };
+    
+    const periodRecords = []; 
+    let totalBalance = 0; 
+    const accountSpecificTypes = accountTypes.get(currentAccount);
+    
+    console.log(`🔍 เริ่มสรุปข้อมูลสำหรับบัญชี: ${currentAccount}`);
+    console.log(`📅 ช่วงวันที่: ${startDate} ถึง ${endDate}`);
+    
+    // ✅ คำนวณยอดคงเหลือทั้งหมด (ถึงวันที่สิ้นสุด)
+    records.forEach(record => {
+        if (record.account !== currentAccount) return;
+        
+        const recordDate = parseLocalDateTime(record.dateTime);
+        if (recordDate <= endDate) {
+            if (accountSpecificTypes["รายรับ"].includes(record.type)) { 
+                totalBalance += record.amount; 
+            } else if (accountSpecificTypes["รายจ่าย"].includes(record.type)) { 
+                totalBalance -= record.amount; 
+            }
+        }
+    });
+    
+    // ✅ คำนวณสรุปในช่วงวันที่เลือก
+    records.forEach(record => {
+        if (record.account !== currentAccount) return;
+        
+        const recordDate = parseLocalDateTime(record.dateTime);
+        if (!(recordDate >= startDate && recordDate <= endDate)) return;
+        
+        periodRecords.push(record);
+        
+        if (accountSpecificTypes["รายรับ"].includes(record.type)) {
+            summary.totalIncome += record.amount; 
+            summary.incomeCount++;
+            
+            if (!summary.income[record.type]) {
+                summary.income[record.type] = { amount: 0, count: 0 };
+            }
+            summary.income[record.type].amount += record.amount; 
+            summary.income[record.type].count++;
+            
+        } else if (accountSpecificTypes["รายจ่าย"].includes(record.type)) {
+            summary.totalExpense += record.amount; 
+            summary.expenseCount++;
+            
+            if (!summary.expense[record.type]) {
+                summary.expense[record.type] = { amount: 0, count: 0 };
+            }
+            summary.expense[record.type].amount += record.amount; 
+            summary.expense[record.type].count++;
+        }
+    });
+    
+    // ✅ เรียงลำดับรายการตามเวลา
+    periodRecords.sort((a, b) => parseLocalDateTime(a.dateTime) - parseLocalDateTime(b.dateTime));
+    
+    console.log(`✅ สรุปข้อมูลสำเร็จ: ${periodRecords.length} รายการ`);
+    console.log(`💰 รายรับ: ${summary.totalIncome}, รายจ่าย: ${summary.totalExpense}`);
+    
+    return { summary, periodRecords, totalBalance };
+}
+
+function buildOriginalSummaryHtml(context) {
+    const { summaryResult, title, dateString, remark, transactionDaysInfo, type, thaiDateString, headerLine1, headerLine2, headerLine3 } = context;
+    const { summary, periodRecords, totalBalance } = summaryResult;
+    
+    let incomeHTML = ''; 
+    for (const type in summary.income) { 
+        incomeHTML += `<p>- ${type} : ${summary.income[type].count} ครั้ง เป็นเงิน ${summary.income[type].amount.toLocaleString()} บาท</p>`; 
+    }
+    
+    let expenseHTML = ''; 
+    for (const type in summary.expense) { 
+        expenseHTML += `<p>- ${type} : ${summary.expense[type].count} ครั้ง เป็นเงิน ${summary.expense[type].amount.toLocaleString()} บาท</p>`; 
+    }
+    
+    let recordsHTML = '';
+    if ((type === 'today' || type === 'byDayMonth') && periodRecords.length > 0) {
+        recordsHTML = ` 
+        <div style="margin-top: 20px;"> 
+        <h4 style="border-bottom: 1px solid #ddd; padding-bottom: 5px;">${headerLine3}</h4> 
+        <table style="width: 100%; border-collapse: collapse; margin-top: 10px;"> 
+        <thead><tr style="background-color: #f2f2f2;">
+        <th style="padding: 8px; border: 1px solid #ddd; text-align: center;">เวลา</th>
+        <th style="padding: 8px; border: 1px solid #ddd; text-align: center;">ประเภท</th>
+        <th style="padding: 8px; border: 1px solid #ddd; text-align: center;">รายละเอียด</th>
+        <th style="padding: 8px; border: 1px solid #ddd; text-align: center;">จำนวนเงิน</th>
+        </tr></thead> 
+        <tbody> 
+        ${periodRecords.map(record => {
+            const { formattedTime } = formatDateForDisplay(record.dateTime);
+            const isIncome = accountTypes.get(currentAccount)["รายรับ"].includes(record.type); 
+            const color = isIncome ? "#4CAF50" : "#F44336";
+            return `<tr>
+            <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${formattedTime}</td>
+            <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${record.type}</td>
+            <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${record.description}</td>
+            <td style="padding: 8px; border: 1px solid #ddd; text-align: center; color: ${color}; font-weight: bold;">${record.amount.toLocaleString()}</td>
+            </tr>`;
+        }).join('')} 
+        </tbody> 
+        </table> 
+        </div>`;
+    }
+    
+    let comparisonText = ''; let comparisonColor = ''; let differenceAmount = 0;
+    if (summary.totalIncome > summary.totalExpense) {
+        differenceAmount = summary.totalIncome - summary.totalExpense;
+        comparisonText = `รายได้มากกว่ารายจ่าย = ${differenceAmount.toLocaleString()} บาท`;
+        comparisonColor = 'blue';
+    } else if (summary.totalIncome < summary.totalExpense) {
+        differenceAmount = summary.totalExpense - summary.totalIncome;
+        comparisonText = `รายจ่ายมากกว่ารายได้ = ${differenceAmount.toLocaleString()} บาท`;
+        comparisonColor = 'red';
+    } else {
+        comparisonText = 'รายได้เท่ากับรายจ่าย';
+        comparisonColor = 'black';
+    }
+    
+    let summaryLineHTML;
+    if (summary.totalIncome === 0 && summary.totalExpense === 0) {
+         summaryLineHTML = `<p style="color: green; font-weight: bold;">${headerLine1} ไม่มีธุระกรรมการเงิน</p>`;
+    } else {
+         summaryLineHTML = `<p style="color: ${comparisonColor}; font-weight: bold;">${headerLine1} ${comparisonText}</p>`;
+    }
+    
+    let totalBalanceLine;
+    if (type === 'range' || type === 'all') {
+        totalBalanceLine = `<p><span style="color: blue; font-size: 14px; font-weight: bold;">${headerLine2} = </span><span style="color: ${totalBalance >= 0 ? 'green' : 'red'}; font-size: 16px; font-weight: bold;">${totalBalance.toLocaleString()}</span> บาท</p>`
+    } else {
+        totalBalanceLine = `<p><span style="color: blue; font-size: 14px; font-weight: bold;">เงินในบัญชีถึงวันนี้มี = </span><span style="color: ${totalBalance >= 0 ? 'green' : 'red'}; font-size: 16px; font-weight: bold;">${totalBalance.toLocaleString()}</span> บาท</p>`
+    }
+    
+    const summaryDateTime = new Date().toLocaleString("th-TH", { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'}) + ' น.';
+    
+    return ` 
+    <p><strong>ชื่อบัญชี:</strong> ${currentAccount}</p> 
+    <p><strong>สรุปเมื่อวันที่ : </strong> ${summaryDateTime}</p> 
+    <p><strong>${title} : </strong> ${thaiDateString}</p> 
+    ${transactionDaysInfo ? transactionDaysInfo : ''} 
+    <hr style="border: 0.5px solid green;">
+    <p><strong>รายรับ : </strong> ${summary.incomeCount} ครั้ง เป็นเงิน ${summary.totalIncome.toLocaleString()} บาท</p>${incomeHTML} 
+    <hr style="border: 0.5px solid green;">
+    <p><strong>รายจ่าย : </strong> ${summary.expenseCount} ครั้ง เป็นเงิน ${summary.totalExpense.toLocaleString()} บาท</p>${expenseHTML} 
+    <hr style="border: 0.5px solid green;">
+    ${summaryLineHTML} 
+    ${totalBalanceLine} 
+    <p>ข้อความเพิ่ม : <span style="color: orange;">${remark}</span></p> 
+    ${recordsHTML}`;
+}
+
+function buildPdfSummaryHtml(context) {
+    const { summaryResult, title, dateString, remark, transactionDaysInfo, type, thaiDateString, headerLine1, headerLine2, headerLine3 } = context;
+    const { summary, periodRecords, totalBalance } = summaryResult;
+    
+    let incomeHTML = ''; 
+    for (const type in summary.income) { 
+        incomeHTML += `<p style="margin-left: 15px; line-height: 0.5;">- ${type} : ${summary.income[type].count} ครั้ง เป็นเงิน ${summary.income[type].amount.toLocaleString()} บาท</p>`; 
+    }
+    
+    let expenseHTML = ''; 
+    for (const type in summary.expense) { 
+        expenseHTML += `<p style="margin-left: 15px; line-height: 0.5;">- ${type} : ${summary.expense[type].count} ครั้ง เป็นเงิน ${summary.expense[type].amount.toLocaleString()} บาท</p>`; 
+    }
+    
+    let recordsHTML = '';
+    if (periodRecords.length > 0) {
+        recordsHTML = ` 
+        <div style="margin-top: 20px;"> 
+        <h4>รายละเอียดธุรกรรม</h4> 
+        <table style="width: 100%; border-collapse: collapse; margin-top: 10px; text-align: center;">
+        <thead>
+        <tr style="background-color: #f2f2f2;">
+        <th style="width: 15%; padding: 4px; border: 1px solid #ddd;">วันเดือนปี</th>
+        <th style="width: 10%; padding: 4px; border: 1px solid #ddd;">เวลา</th>
+        <th style="width: 15%; padding: 4px; border: 1px solid #ddd;">ประเภท</th>
+        <th style="width: 30%; padding: 4px; border: 1px solid #ddd;">รายละเอียด</th>
+        <th style="width: 15%; padding: 4px; border: 1px solid #ddd;">จำนวนเงิน</th>
+        </tr>
+        </thead>
+        <tbody>
+        ${periodRecords.map(record => {
+            const { formattedDate, formattedTime } = formatDateForDisplay(record.dateTime);
+            const isIncome = accountTypes.get(currentAccount)["รายรับ"].includes(record.type); 
+            const color = isIncome ? "#4CAF50" : "#F44336";
+            
+            return `
+            <tr>
+            <td style="padding: 4px; border: 1px solid #ddd; word-wrap: break-word;">${formattedDate}</td>
+            <td style="padding: 4px; border: 1px solid #ddd; word-wrap: break-word;">${formattedTime}</td>
+            <td style="padding: 4px; border: 1px solid #ddd; word-wrap: break-word;">${record.type}</td>
+            <td style="padding: 4px; border: 1px solid #ddd; word-wrap: break-word;">${record.description}</td>
+            <td style="padding: 4px; border: 1px solid #ddd; color: ${color}; font-weight: bold; word-wrap: break-word;">${record.amount.toLocaleString()}</td>
+            </tr>`;
+        }).join('')} 
+        </tbody> 
+        </table> 
+        </div>`;
+    }
+    
+    let comparisonText = ''; let comparisonColor = ''; let differenceAmount = 0;
+    if (summary.totalIncome > summary.totalExpense) {
+        differenceAmount = summary.totalIncome - summary.totalExpense;
+        comparisonText = `รายได้มากกว่ารายจ่าย = ${differenceAmount.toLocaleString()} บาท`;
+        comparisonColor = 'blue';
+    } else if (summary.totalIncome < summary.totalExpense) {
+        differenceAmount = summary.totalExpense - summary.totalIncome;
+        comparisonText = `รายจ่ายมากกว่ารายได้ = ${differenceAmount.toLocaleString()} บาท`;
+        comparisonColor = 'red';
+    } else {
+        comparisonText = 'รายได้เท่ากับรายจ่าย';
+        comparisonColor = 'black';
+    }
+    
+    let summaryLineHTML;
+    if (summary.totalIncome === 0 && summary.totalExpense === 0) {
+        summaryLineHTML = `<p style="color: green; font-weight: bold; line-height: 0.5;">${headerLine1} ไม่มีธุรกรรมการเงิน</p>`;
+    } else {
+        summaryLineHTML = `<p style="color: ${comparisonColor}; font-weight: bold; line-height: 0.5;">${headerLine1} ${comparisonText}</p>`;
+    }
+    
+    let totalBalanceLine;
+    if (type === 'range' || type === 'all') {
+        totalBalanceLine = `<p style="line-height: 0.5;"><b>${headerLine2} = </b><b style="color: ${totalBalance >= 0 ? 'green' : 'red'}; font-size: 1.1em;">${totalBalance.toLocaleString()}</b> บาท</p>`
+    } else {
+        totalBalanceLine = `<p style="line-height: 0.5;"><b>เงินในบัญชีถึงวันนี้มี = </b><b style="color: ${totalBalance >= 0 ? 'green' : 'red'}; font-size: 1.1em;">${totalBalance.toLocaleString()}</b> บาท</p>`
+    }
+    
+    const summaryDateTime = new Date().toLocaleString("th-TH", { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit'}) + ' น.';
+    
+    return ` 
+    <p style="line-height: 0.5;"><strong>ชื่อบัญชี:</strong> ${currentAccount}</p> 
+    <p style="line-height: 0.5;"><strong>สรุปเมื่อวันที่ : </strong> ${summaryDateTime}</p> 
+    <p style="line-height: 0.5;"><strong>${title} : </strong> ${thaiDateString}</p> 
+    ${transactionDaysInfo ? transactionDaysInfo.replace(/<p/g, '<p style="line-height: 0.5;"') : ''} 
+    <hr style="border: 0.5px solid green;">
+    <p style="line-height: 0.5;"><strong>รายรับ : </strong> ${summary.incomeCount} ครั้ง เป็นเงิน ${summary.totalIncome.toLocaleString()} บาท</p>
+    ${incomeHTML} 
+    <hr style="border: 0.5px solid green;">
+    <p style="line-height: 0.5;"><strong>รายจ่าย : </strong> ${summary.expenseCount} ครั้ง เป็นเงิน ${summary.totalExpense.toLocaleString()} บาท</p>
+    ${expenseHTML} 
+    <hr style="border: 0.5px solid green;">
+    ${summaryLineHTML} 
+    ${totalBalanceLine} 
+    <p style="line-height: 0.5;"><b>ข้อความเพิ่ม : </b><span style="color: orange;">${remark}</span></p> 
+    ${recordsHTML}
+    `;
+}
+
+function handleSummaryOutput(choice) {
+    if (!summaryContext || !summaryContext.summaryResult) {
+        console.error("Summary context is missing. Cannot proceed.");
+        closeSummaryOutputModal();
+        return;
+    }
+    
+    if (choice === 'display') {
+        const htmlForDisplay = buildOriginalSummaryHtml(summaryContext);
+        openSummaryModal(htmlForDisplay);
+    } else if (choice === 'xlsx') {
+        const { summaryResult, title, dateString, remark, transactionDaysInfo, periodName } = summaryContext;
+        exportSummaryToXlsx(summaryResult, title, dateString, remark, transactionDaysInfo, periodName);
+    } else if (choice === 'pdf') {
+        const printContainer = document.getElementById('print-container');
+        if (printContainer) {
+            const htmlWithDetailsForPdf = buildPdfSummaryHtml(summaryContext);
+            printContainer.innerHTML = `<div class="summaryResult">${htmlWithDetailsForPdf}</div>`;
+            setTimeout(() => { window.print(); }, 250);
+        }
+    }
+    closeSummaryOutputModal();
+}
+
+function summarizeToday() {
+    if (!currentAccount) { alert("กรุณาเลือกบัญชีก่อน"); return; }
+    const startDate = new Date(new Date().setHours(0, 0, 0, 0));
+    const endDate = new Date(new Date().setHours(23, 59, 59, 999));
+    const summaryResult = generateSummaryData(startDate, endDate);
+    if (!summaryResult) return;
+    const remarkInput = prompt("กรุณากรอกหมายเหตุ (ถ้าไม่กรอกจะใช้ 'No comment'):", "No comment") || "No comment";
+    const thaiDate = new Date(startDate);
+    const thaiDateString = `${thaiDate.getDate()} ${thaiDate.toLocaleString('th-TH', { month: 'long' })} ${thaiDate.getFullYear() + 543}`;
+    summaryContext = {
+        summaryResult, type: 'today', title: "สรุปข้อมูลของวันที่", dateString: new Date(startDate).toLocaleDateString('en-CA'), thaiDateString: thaiDateString, remark: remarkInput, periodName: 'วันนี้', headerLine1: 'สรุปวันนี้ :', headerLine3: `รายละเอียดวันนี้ : ${thaiDateString}`
+    };
+    openSummaryOutputModal();
+}
+
+function summarizeByDayMonth() {
+    if (!currentAccount) { alert("กรุณาเลือกบัญชีก่อน"); return; }
+    const dayMonthInput = document.getElementById('customDayMonth').value;
+    const selectedDate = parseDateInput(dayMonthInput);
+    if (!selectedDate) { alert("กรุณาเลือกวันที่ให้ถูกต้อง"); return; }
+    const startDate = new Date(selectedDate.setHours(0, 0, 0, 0));
+    const endDate = new Date(selectedDate.setHours(23, 59, 59, 999));
+    const summaryResult = generateSummaryData(startDate, endDate);
+    if (!summaryResult) return;
+    const remarkInput = prompt("กรุณากรอกหมายเหตุ (ถ้าไม่กรอกจะใช้ 'No comment'):", "No comment") || "No comment";
+    const thaiDate = new Date(startDate);
+    const thaiDateString = `${thaiDate.getDate()} ${thaiDate.toLocaleString('th-TH', { month: 'long' })} ${thaiDate.getFullYear() + 543}`;
+    summaryContext = {
+        summaryResult, type: 'byDayMonth', title: "สรุปข้อมูลของวันที่", dateString: dayMonthInput, thaiDateString: thaiDateString, remark: remarkInput, periodName: dayMonthInput.replace(/-/g, '_'), headerLine1: 'สรุป :', headerLine3: `รายละเอียดวันที่เลือก : ${thaiDateString}`
+    };
+    openSummaryOutputModal();
+}
+
+function summarize() {
+    if (!currentAccount) { alert("กรุณาเลือกบัญชีก่อน"); return; }
+    const startDateStr = document.getElementById('startDate').value;
+    const endDateStr = document.getElementById('endDate').value;
+    const startDate = parseDateInput(startDateStr); 
+    const endDate = parseDateInput(endDateStr);
+    if (!startDate || !endDate) { alert("กรุณาเลือกวันที่ให้ครบถ้วน"); return; }
+    if (startDate > endDate) { alert("วันที่เริ่มต้นต้องมาก่อนวันที่สิ้นสุด"); return; }
+const adjustedEndDate = new Date(endDate);
+adjustedEndDate.setHours(23, 59, 59, 999);
+const summaryResult = generateSummaryData(startDate, adjustedEndDate);
+    if (!summaryResult) return;
+    const daysDiff = Math.floor((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+    const transactionDays = new Set(summaryResult.periodRecords.map(r => parseLocalDateTime(r.dateTime).toDateString()));
+    const transactionDaysInfo = `<p style="font-size: 16px; color: blue; font-weight: bold;">จำนวน ${daysDiff} วัน</p><p style="font-size: 16px; color: #333; font-weight: bold;">ทำธุรกรรม ${transactionDays.size} วัน, ไม่ได้ทำ ${daysDiff - transactionDays.size} วัน</p>`;
+    const remarkInput = prompt("กรุณากรอกหมายเหตุ (ถ้าไม่กรอกจะใช้ 'No comment'):", "No comment") || "No comment";
+    const thaiDateString = `${startDate.toLocaleDateString('th-TH', {day: 'numeric', month: 'long', year: 'numeric'})} ถึง ${endDate.toLocaleDateString('th-TH', {day: 'numeric', month: 'long', year: 'numeric'})}`;
+    summaryContext = {
+        summaryResult, type: 'range', title: "สรุปวันที่", dateString: `${startDateStr} to ${endDateStr}`, thaiDateString: thaiDateString, remark: remarkInput, transactionDaysInfo: transactionDaysInfo, periodName: `จาก${startDateStr.replace(/-/g, '_')}_ถึง${endDateStr.replace(/-/g, '_')}`, headerLine1: 'สรุป :', headerLine2: 'เงินในบัญชีถึงวันนี้มี'
+    };
+    openSummaryOutputModal();
+}
+
+function summarizeAll() {
+    if (!currentAccount) { alert("กรุณาเลือกบัญชีก่อน"); return; }
+    const accountRecords = records.filter(r => r.account === currentAccount);
+    if (accountRecords.length === 0) { alert("ไม่มีข้อมูลในบัญชีนี้ให้สรุป"); return; }
+    const allDates = accountRecords.map(r => parseLocalDateTime(r.dateTime));
+    const startDate = new Date(Math.min.apply(null, allDates)); 
+    const endDate = new Date(Math.max.apply(null, allDates));
+    startDate.setHours(0, 0, 0, 0); 
+const adjustedEndDate = new Date(endDate);
+adjustedEndDate.setHours(23, 59, 59, 999);
+const summaryResult = generateSummaryData(startDate, adjustedEndDate);
+    if (!summaryResult) return;
+    const daysDiff = Math.floor((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+    const transactionDays = new Set(summaryResult.periodRecords.map(r => parseLocalDateTime(r.dateTime).toDateString()));
+    const transactionDaysInfo = `<p style="font-size: 16px; color: blue; font-weight: bold;">รวมเป็นเวลา ${daysDiff} วัน</p><p style="font-size: 16px; color: #333; font-weight: bold;">ทำธุรกรรม ${transactionDays.size} วัน, ไม่ได้ทำ ${daysDiff - transactionDays.size} วัน</p>`;
+    const remarkInput = prompt("กรุณากรอกหมายเหตุ (ถ้าไม่กรอกจะใช้ 'No comment'):", "No comment") || "No comment";
+    const startDateStr = `${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, '0')}-${String(startDate.getDate()).padStart(2, '0')}`;
+    const endDateStr = `${endDate.getFullYear()}-${String(endDate.getMonth() + 1).padStart(2, '0')}-${String(endDate.getDate()).padStart(2, '0')}`;
+    const thaiDateString = `${startDate.toLocaleDateString('th-TH', {day: 'numeric', month: 'long', year: 'numeric'})} ถึง ${endDate.toLocaleDateString('th-TH', {day: 'numeric', month: 'long', year: 'numeric'})}`;
+    summaryContext = {
+        summaryResult, type: 'all', title: "สรุปข้อมูลทั้งหมดตั้งแต่", dateString: `${startDateStr} to ${endDateStr}`, thaiDateString: thaiDateString, remark: remarkInput, transactionDaysInfo: transactionDaysInfo, periodName: 'ทั้งหมด', headerLine1: 'สรุป :', headerLine2: 'เงินคงเหลือในบัญชีทั้งหมด'
+    };
+    openSummaryOutputModal();
+}
+
+// ==============================================
+// ฟังก์ชันจัดการการส่งออกข้อมูล
+// ==============================================
+
+function saveToFile() { 
+    closeExportOptionsModal(); 
+    if (accounts.length === 0) { 
+        alert("ไม่มีบัญชีให้บันทึก"); 
+        return; 
+    } 
+    document.getElementById('formatSelectionModal').style.display = 'flex'; 
+}
+
+function exportSelectedAccount() { 
+    closeExportOptionsModal(); 
+    if (!currentAccount) { 
+        alert("กรุณาเลือกบัญชีที่ต้องการบันทึกก่อน"); 
+        return; 
+    } 
+    document.getElementById('exportSingleAccountModal').style.display = 'flex'; 
+}
+
+function initiateSingleDateExport() {
+    if (!currentAccount) {
+        alert("กรุณาเลือกบัญชีที่ต้องการบันทึกก่อน");
+        return;
+    }
+    closeExportOptionsModal();
+    document.getElementById('singleDateAccountName').textContent = currentAccount;
+    document.getElementById('exportSingleDate').value = new Date().toISOString().slice(0, 10);
+    document.getElementById('singleDateExportModal').style.display = 'flex';
+}
+
+function processSingleDateExport() {
+    const selectedDateStr = document.getElementById('exportSingleDate').value;
+    if (!selectedDateStr) {
+        alert("กรุณาเลือกวันที่ที่ต้องการบันทึก");
+        return;
+    }
+    const filteredRecords = records.filter(record => {
+        return record.account === currentAccount && record.dateTime.startsWith(selectedDateStr);
+    });
+    if (filteredRecords.length === 0) {
+        alert(`ไม่พบข้อมูลในบัญชี "${currentAccount}" ในวันที่ ${selectedDateStr}`);
+        return;
+    }
+    singleDateExportContext = {
+        records: filteredRecords,
+        selectedDate: selectedDateStr,
+    };
+    closeSingleDateExportModal();
+    document.getElementById('singleDateExportFormatModal').style.display = 'flex';
+}
+
+function initiateDateRangeExport() {
+    if (!currentAccount) {
+        alert("กรุณาเลือกบัญชีที่ต้องการบันทึกก่อน");
+        return;
+    }
+    
+    closeExportOptionsModal();
+    setupDateRangeModal();
+    document.getElementById('dateRangeExportModal').style.display = 'flex';
+}
+
+function setupDateRangeModal() {
+    document.getElementById('dateRangeAccountName').textContent = currentAccount;
+    
+    const accountRecords = records.filter(record => record.account === currentAccount);
+    let startDateValue = new Date().toISOString().slice(0, 10);
+    
+    if (accountRecords.length > 0) {
+        const dates = accountRecords.map(record => parseLocalDateTime(record.dateTime));
+        const minDate = new Date(Math.min(...dates));
+        startDateValue = minDate.toISOString().slice(0, 10);
+    }
+    
+    document.getElementById('exportStartDate').value = startDateValue;
+    document.getElementById('exportEndDate').value = new Date().toISOString().slice(0, 10);
+}
+
+function processDateRangeExport() {
+    const validationResult = validateDateRangeInput();
+    if (!validationResult.isValid) {
+        alert(validationResult.message);
+        return;
+    }
+    
+    const { startDateStr, endDateStr, startDate, endDate } = validationResult;
+    
+    const filteredRecords = filterRecordsByDateRange(startDate, endDate);
+    
+    if (filteredRecords.length === 0) {
+        showNoDataAlert(startDateStr, endDateStr);
+        return;
+    }
+    
+    exportDateRangeAsJson(filteredRecords, startDateStr, endDateStr);
+    closeDateRangeExportModal();
+}
+
+async function exportDateRangeAsJson(filteredRecords, startDate, endDate) {
+    const defaultFileName = `${currentAccount}_${startDate}_ถึง_${endDate}`;
+    const fileName = prompt("กรุณากรอกชื่อไฟล์ (ไม่ต้องใส่นามสกุล):", defaultFileName);
+    
+    if (!fileName) {
+        alert("ยกเลิกการบันทึกไฟล์");
+        return;
+    }
+    
+    // ✅ บันทึกข้อมูลประเภทบัญชีด้วย
+    const accountTypesData = accountTypes.get(currentAccount) || { "รายรับ": [], "รายจ่าย": [] };
+    
+    const exportData = {
+        accountName: currentAccount,
+        isDateRangeExport: true,
+        exportStartDate: startDate,
+        exportEndDate: endDate,
+        exportTimestamp: new Date().toISOString(),
+        recordCount: filteredRecords.length,
+        records: filteredRecords,
+        // ✅ เพิ่มข้อมูลประเภทบัญชี
+        accountTypes: accountTypesData
+    };
+    
+    let dataString = JSON.stringify(exportData, null, 2);
+    
+    if (backupPassword) {
+        alert('กำลังเข้ารหัสข้อมูล...');
+        try {
+            const encryptedObject = await encryptData(dataString, backupPassword);
+            dataString = JSON.stringify(encryptedObject, null, 2);
+        } catch (e) {
+            alert('การเข้ารหัสล้มเหลว!');
             return;
         }
+    }
+    
+    try {
+        const blob = new Blob([dataString], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${fileName}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
         
-        allPersons.push({ name: personName });
-        notifyDataUpdated('person', 'add');
+        alert(`บันทึกข้อมูลช่วงวันที่ ${startDate} ถึง ${endDate} เป็น JSON เรียบร้อย\n\nไฟล์: ${fileName}.json\nจำนวนรายการ: ${filteredRecords.length} รายการ\n✅ บันทึกข้อมูลประเภทบัญชีเรียบร้อยแล้ว`);
+    } catch (error) {
+        console.error("Error downloading file:", error);
+        alert("เกิดข้อผิดพลาดในการบันทึกไฟล์: " + error.message);
     }
-    
-    saveToLocalStorage('persons', allPersons);
-    populatePersonDropdown('personSelect');
-    
-    // ✅ อัพเดทการแสดงผลในหน้าสรุปด้วย
-    updatePersonFilterAfterChange();
-    
-    // ✅ รีเซ็ตการแสดงผลอัตโนมัติ
-    resetAutoSelectionDisplay('person');
-    
-    closePersonModal();
-    
-    // ✅ รีเฟรชการเลือกอัตโนมัติ
-    setTimeout(() => {
-        autoSelectIfSingle();
-    }, 100);
 }
 
-function resetPerson() {
-    if (!confirm('คุณแน่ใจว่าต้องการคืนค่าผู้ทำกิจกรรมเป็นค่าเริ่มต้น? การกระทำนี้จะลบผู้ทำกิจกรรมทั้งหมดที่คุณเพิ่มไว้')) {
+// ==============================================
+// ฟังก์ชันจัดการไฟล์ (บันทึก/โหลด)
+// ==============================================
+
+function saveDataAndShowToast(entryCategory = 'neutral') { 
+    const dataToSave = { 
+        accounts: [...accounts], 
+        currentAccount: currentAccount, 
+        records: [...records], 
+        accountTypes: Array.from(accountTypes.entries()), 
+        backupPassword: backupPassword 
+    }; 
+    try { 
+        localStorage.setItem('accountData', JSON.stringify(dataToSave)); 
+    } catch (error) { 
+        console.error("บันทึกข้อมูลไม่สำเร็จ:", error); 
+        alert("⚠️ เกิดข้อผิดพลาดในการบันทึกข้อมูล"); 
+        return; 
+    } 
+    const toast = document.getElementById('toast'); 
+    toast.textContent = '✓ บันทึกข้อมูลสำเร็จแล้ว'; 
+    if (entryCategory === 'income') { 
+        toast.style.backgroundColor = '#28a745'; 
+    } else if (entryCategory === 'expense') { 
+        toast.style.backgroundColor = '#dc3545'; 
+    } else { 
+        toast.style.backgroundColor = '#007bff'; 
+    } 
+    toast.className = "toast-notification show"; 
+    setTimeout(function(){ 
+        toast.className = toast.className.replace("show", ""); 
+    }, 2500); 
+}
+
+function saveToLocal(fromPasswordSave = false) {
+    const dataToSave = {
+        accounts: [...accounts],
+        currentAccount: currentAccount,
+        records: [...records],
+        accountTypes: Array.from(accountTypes.entries()),
+        backupPassword: backupPassword
+    };
+    try {
+        localStorage.setItem('accountData', JSON.stringify(dataToSave));
+        if (!fromPasswordSave) {
+             alert('✓ บันทึกข้อมูลชั่วคราวในเบราว์เซอร์เรียบร้อยแล้ว');
+        }
+    } catch (error) {
+        console.error("บันทึกข้อมูลชั่วคราวไม่สำเร็จ:", error);
+        alert("⚠️ เกิดข้อผิดพลาดในการบันทึกข้อมูลชั่วคราว: " + error.message);
+    }
+}
+
+function loadFromLocal() {
+    const data = localStorage.getItem('accountData');
+    if (data) {
+        try {
+            const parsed = JSON.parse(data);
+            accounts = parsed.accounts || [];
+            currentAccount = parsed.currentAccount || null;
+            records = parsed.records || [];
+            accountTypes = new Map(parsed.accountTypes || []);
+            backupPassword = parsed.backupPassword || null; 
+            renderBackupPasswordStatus();
+            updateAccountSelect();
+            if (currentAccount) {
+                document.getElementById('accountSelect').value = currentAccount;
+            }
+            changeAccount();
+        } catch (error) {
+            console.error("โหลดข้อมูลจาก LocalStorage ไม่สำเร็จ", error);
+        }
+    }
+    updateMultiAccountSelector();
+}
+
+async function handleSaveAs(format) {
+    closeFormatModal();
+    const formatLower = format.toLowerCase().trim();
+    const fileName = prompt("กรุณากรอกชื่อไฟล์สำหรับสำรองข้อมูล (ไม่ต้องใส่นามสกุล):", "สำรองทุกบัญชี");
+    if (!fileName) return;
+    const now = new Date();
+    const dateTimeString = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`;
+    
+    if (formatLower === 'json') {
+        const fullFileName = `${fileName}_${dateTimeString}.json`;
+        const data = { accounts, currentAccount, records, accountTypes: Array.from(accountTypes.entries()), backupPassword: null };
+        let dataString = JSON.stringify(data, null, 2);
+        if (backupPassword) {
+            alert('กำลังเข้ารหัสข้อมูล...');
+            try {
+                const encryptedObject = await encryptData(dataString, backupPassword);
+                dataString = JSON.stringify(encryptedObject, null, 2);
+            } catch (e) {
+                alert('การเข้ารหัสล้มเหลว!'); return;
+            }
+        }
+        const blob = new Blob([dataString], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = fullFileName; a.click();
+        URL.revokeObjectURL(url);
+    } else if (formatLower === 'csv') {
+        const fullFileName = `${fileName}_${dateTimeString}.csv`;
+        let csvData = [];
+        csvData.push(['###ALL_ACCOUNTS_BACKUP_CSV###']);
+        csvData.push(['###ACCOUNTS_LIST###', ...accounts]);
+        csvData.push(['###ACCOUNT_TYPES_START###']);
+        for (const [accName, typesObj] of accountTypes.entries()) {
+            initializeAccountTypes(accName);
+            const currentTypes = accountTypes.get(accName);
+            if (currentTypes.รายรับ && currentTypes.รายรับ.length > 0) csvData.push([accName, 'รายรับ', ...currentTypes.รายรับ]);
+            if (currentTypes.รายจ่าย && currentTypes.รายจ่าย.length > 0) csvData.push([accName, 'รายจ่าย', ...currentTypes.รายจ่าย]);
+        }
+        csvData.push(['###ACCOUNT_TYPES_END###']);
+        csvData.push(['###DATA_START###']);
+        csvData.push(["วันที่", "เวลา", "ประเภท", "รายละเอียด", "จำนวนเงิน (บาท)", "บัญชี"]);
+        const allSortedRecords = [...records].sort((a, b) => parseLocalDateTime(a.dateTime) - parseLocalDateTime(b.dateTime));
+        allSortedRecords.forEach(record => {
+            const { formattedDate, formattedTime } = formatDateForDisplay(record.dateTime);
+            csvData.push([formattedDate, formattedTime, record.type, record.description, record.amount, record.account]);
+        });
+        let csvContent = Papa.unparse(csvData, { header: false });
+        const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
+        const link = document.createElement("a");
+        link.href = URL.createObjectURL(blob);
+        link.download = fullFileName;
+        link.click();
+        URL.revokeObjectURL(link.href);
+        alert(`บันทึกข้อมูลทั้งหมดลงในไฟล์ CSV "${fullFileName}" เรียบร้อยแล้ว`);
+    }
+}
+
+async function handleExportSelectedAs(format) {
+    closeExportSingleAccountModal();
+    if (!currentAccount) {
+        alert("เกิดข้อผิดพลาด: ไม่พบบัญชีที่เลือก");
         return;
     }
+    const fileName = prompt(`กรุณากรอกชื่อไฟล์สำหรับบัญชี ${currentAccount} (ไม่ต้องใส่นามสกุล):`, currentAccount);
+    if (!fileName) return;
+    const now = new Date();
+    const dateTimeString = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`;
     
-    const defaultPersons = [
-        { name: 'พ่อ' },
-        { name: 'แม่' },
-        { name: 'ลูกชาย' },
-        { name: 'ลูกสาว' }
-    ];
-    
-    saveToLocalStorage('persons', defaultPersons);
-    populatePersonDropdown('personSelect');
-    
-    // ✅ อัพเดทการแสดงผลในหน้าสรุปด้วย
-    updatePersonFilterAfterChange();
-    
-    notifyDataUpdated('person', 'reset');
-    
-    // ✅ เรียกใช้ฟังก์ชันเลือกอัตโนมัติหลังจากรีเซ็ต
-    setTimeout(() => {
-        autoSelectIfSingle();
-    }, 100);
+    if (format === 'json') {
+        const fullFileName = `${fileName}_${dateTimeString}.json`;
+        const accountData = {
+            accountName: currentAccount,
+            records: records.filter(record => record.account === currentAccount),
+            accountTypes: accountTypes.get(currentAccount) || { "รายรับ": [], "รายจ่าย": [] }
+        };
+        let dataString = JSON.stringify(accountData, null, 2);
+        if (backupPassword) {
+            alert('กำลังเข้ารหัสข้อมูล...');
+            try {
+                const encryptedObject = await encryptData(dataString, backupPassword);
+                dataString = JSON.stringify(encryptedObject, null, 2);
+            } catch (e) {
+                alert('การเข้ารหัสล้มเหลว!'); return;
+            }
+        }
+        const blob = new Blob([dataString], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = fullFileName; a.click();
+        URL.revokeObjectURL(url);
+    } else if (format === 'csv') {
+        const fullFileName = `${fileName}_${dateTimeString}.csv`;
+        initializeAccountTypes(currentAccount);
+        const accountCurrentTypes = accountTypes.get(currentAccount);
+        let excelData = [];
+        excelData.push([`ชื่อบัญชี: ${currentAccount}`]);
+        excelData.push(['###ACCOUNT_TYPES###']);
+        excelData.push(['รายรับ', ...(accountCurrentTypes['รายรับ'] || [])]);
+        excelData.push(['รายจ่าย', ...(accountCurrentTypes['รายจ่าย'] || [])]);
+        excelData.push(['###DATA_START###']);
+        excelData.push(["วันที่", "เวลา", "ประเภท", "รายละเอียด", "จำนวนเงิน (บาท)"]);
+        const filteredRecords = records.filter(record => record.account === currentAccount).sort((a, b) => parseLocalDateTime(a.dateTime) - parseLocalDateTime(b.dateTime));
+        filteredRecords.forEach(record => {
+            const { formattedDate, formattedTime } = formatDateForDisplay(record.dateTime);
+            excelData.push([formattedDate, formattedTime, record.type, record.description, record.amount]);
+        });
+        let csvContent = Papa.unparse(excelData, { header: false });
+        const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
+        const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = fullFileName; link.click();
+        setTimeout(() => URL.revokeObjectURL(link.href), 100);
+        alert(`บันทึกบัญชี "${currentAccount}" เป็น CSV เรียบร้อย\n\nไฟล์: ${fullFileName}`);
+    }
 }
 
-function closePersonModal() {
-    document.getElementById('personModal').style.display = 'none';
-}
-
-// === ฟังก์ชันจัดการประเภทกิจกรรม ===
-function addActivityType() {
-    document.getElementById('activityTypeModalTitle').textContent = 'เพิ่มประเภทกิจกรรม';
-    document.getElementById('modalActivityTypeName').value = '';
-    document.getElementById('activityTypeEditValue').value = '';
-    document.getElementById('activityTypeModal').style.display = 'flex';
-}
-
-function editActivityType() {
-    const dropdown = document.getElementById('activityTypeSelect');
-    const selectedValue = dropdown.value;
+async function handleSingleDateExportAs(format) {
+    closeSingleDateExportFormatModal();
+    const { records: filteredRecords, selectedDate } = singleDateExportContext;
     
-    if (!selectedValue || selectedValue === 'custom') {
-        alert('กรุณาเลือกประเภทกิจกรรมที่ต้องการแก้ไข');
+    if (!filteredRecords || filteredRecords.length === 0) {
+        alert("เกิดข้อผิดพลาด: ไม่พบข้อมูลที่จะบันทึก");
         return;
     }
+    const fileName = prompt(`กรุณากรอกชื่อไฟล์ (ไม่ต้องใส่นามสกุล):`, `${currentAccount}_${selectedDate}`);
+    if (!fileName) return;
+    const fullFileName = `${fileName}.${format}`;
     
-    document.getElementById('activityTypeModalTitle').textContent = 'แก้ไขประเภทกิจกรรม';
-    document.getElementById('modalActivityTypeName').value = selectedValue;
-    document.getElementById('activityTypeEditValue').value = selectedValue;
-    document.getElementById('activityTypeModal').style.display = 'flex';
-}
+    if (format === 'json') {
+        const exportData = {
+            accountName: currentAccount,
+            isDailyExport: true,
+            exportDate: selectedDate,
+            records: filteredRecords
+        };
+        let dataString = JSON.stringify(exportData, null, 2);
+        if (backupPassword) {
+            alert('กำลังเข้ารหัสข้อมูล...');
+            try {
+                const encryptedObject = await encryptData(dataString, backupPassword);
+                dataString = JSON.stringify(encryptedObject, null, 2);
+            } catch (e) {
+                alert('การเข้ารหัสล้มเหลว!'); return;
+            }
+        }
+        const blob = new Blob([dataString], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = fullFileName; a.click();
+        URL.revokeObjectURL(url);
+        alert(`บันทึกข้อมูลวันที่ ${selectedDate} เป็น JSON เรียบร้อย\n\nไฟล์: ${fullFileName}`);
 
-function deleteActivityType() {
-    const dropdown = document.getElementById('activityTypeSelect');
-    const selectedValue = dropdown.value;
-    
-    if (!selectedValue || selectedValue === 'custom') {
-        alert('กรุณาเลือกประเภทกิจกรรมที่ต้องการลบ');
-        return;
-    }
-    
-    // ตรวจสอบว่ามีกิจกรรมที่ใช้ประเภทกิจกรรมนี้อยู่หรือไม่
-    const isUsed = checkActivityTypeUsage(selectedValue);
-    
-    let confirmMessage = `คุณแน่ใจว่าต้องการลบ "${selectedValue}" ใช่หรือไม่?`;
-    if (isUsed) {
-        confirmMessage += `\n\n⚠️  คำเตือน: มีกิจกรรมที่ใช้ประเภทกิจกรรมนี้อยู่ ${getActivityCountByType(selectedValue)} รายการ กิจกรรมเหล่านี้จะยังคงแสดงประเภท "${selectedValue}" แต่อาจไม่สามารถกรองหรือสรุปได้อย่างถูกต้อง`;
-    }
-    
-    if (!confirm(confirmMessage)) {
-        return;
-    }
-    
-    let allActivityTypes = getFromLocalStorage('activityTypes') || [];
-    allActivityTypes = allActivityTypes.filter(type => type.name !== selectedValue);
-    saveToLocalStorage('activityTypes', allActivityTypes);
-    
-    populateActivityTypeDropdowns('activityTypeSelect');
-    notifyDataUpdated('activityType', 'delete');
-    
-    // ✅ รีเซ็ตการแสดงผลอัตโนมัติ
-    resetAutoSelectionDisplay('activityType');
-}
-
-function saveActivityType() {
-    const activityTypeName = document.getElementById('modalActivityTypeName').value.trim();
-    const editValue = document.getElementById('activityTypeEditValue').value;
-    
-    if (!activityTypeName) {
-        alert('กรุณากรอกชื่อประเภทกิจกรรม');
-        return;
-    }
-    
-    let allActivityTypes = getFromLocalStorage('activityTypes') || [];
-    
-    if (editValue) {
-        // โหมดแก้ไข
-        const oldName = editValue;
+    } else if (format === 'xlsx') {
+        const wb = XLSX.utils.book_new();
         
-        // ตรวจสอบว่าชื่อมีการเปลี่ยนแปลงหรือไม่
-        if (oldName !== activityTypeName) {
-            // อัปเดตในฐานข้อมูลประเภทกิจกรรม
-            const typeIndex = allActivityTypes.findIndex(t => t.name === oldName);
-            if (typeIndex !== -1) {
-                allActivityTypes[typeIndex].name = activityTypeName;
+        let excelData = [];
+        
+        excelData.push([`ชื่อบัญชี: ${currentAccount}`]);
+        excelData.push([`วันที่ส่งออก: ${selectedDate}`]);
+        excelData.push([]);
+        
+        excelData.push(["วันที่", "เวลา", "ประเภท", "รายละเอียด", "จำนวนเงิน (บาท)"]);
+        
+        const sortedRecords = [...filteredRecords].sort((a, b) => parseLocalDateTime(a.dateTime) - parseLocalDateTime(b.dateTime));
+        
+        sortedRecords.forEach(record => {
+            const { formattedDate, formattedTime } = formatDateForDisplay(record.dateTime);
+            excelData.push([formattedDate, formattedTime, record.type, record.description, record.amount]);
+        });
+        
+        const ws = XLSX.utils.aoa_to_sheet(excelData);
+        
+        const colWidths = [
+            {wch: 12},
+            {wch: 10},
+            {wch: 15},
+            {wch: 30},
+            {wch: 15}
+        ];
+        ws['!cols'] = colWidths;
+        
+        ws['!pageSetup'] = {
+            orientation: 'landscape',
+            paperSize: 9,
+            fitToPage: true,
+            fitToWidth: 1,
+            fitToHeight: 0,
+            margins: {
+                left: 0.7, right: 0.7,
+                top: 0.75, bottom: 0.75,
+                header: 0.3, footer: 0.3
             }
-            
-            // 🔥 อัปเดตกิจกรรมทั้งหมดที่ใช้ประเภทกิจกรรมเดิม
-            const activitiesUpdated = updateAllActivitiesForActivityType(oldName, activityTypeName);
-            
-            if (activitiesUpdated) {
-                notifyDataUpdated('activityType', 'edit');
-            } else {
-                notifyDataUpdated('activityType', 'edit');
+        };
+        
+        XLSX.utils.book_append_sheet(wb, ws, "ข้อมูลบัญชี");
+        
+        XLSX.writeFile(wb, fullFileName);
+        alert(`บันทึกข้อมูลวันที่ ${selectedDate} เป็น XLSX เรียบร้อย\n\nไฟล์: ${fullFileName}`);
+    }
+    singleDateExportContext = {};
+}
+
+// ==============================================
+// ฟังก์ชันจัดการการนำเข้าไฟล์
+// ==============================================
+
+async function loadFromFile(event) {
+    const file = event.target.files[0]; 
+    if (!file) { return; }
+    const reader = new FileReader();
+    const fileName = file.name.toLowerCase();
+
+    if (fileName.endsWith('.csv')) {
+        reader.onload = (e) => loadFromCsv(e.target.result);
+        reader.readAsText(file, 'UTF-8');
+    } else if (fileName.endsWith('.json')) {
+        reader.onload = async (e) => {
+            try {
+                const importedData = JSON.parse(e.target.result);
+                let finalDataToMerge = null;
+                
+                // ตรวจสอบการเข้ารหัส
+                if (importedData && importedData.isEncrypted === true) {
+                    const password = prompt("ไฟล์นี้ถูกเข้ารหัส กรุณากรอกรหัสผ่านเพื่อถอดรหัส:");
+                    if (!password) { 
+                        alert("ยกเลิกการนำเข้าไฟล์"); 
+                        event.target.value = ''; 
+                        return; 
+                    }
+                    alert('กำลังถอดรหัส...');
+                    const decryptedString = await decryptData(importedData, password);
+                    if (decryptedString) {
+                        finalDataToMerge = JSON.parse(decryptedString);
+                        alert('ถอดรหัสสำเร็จ!');
+                    } else {
+                        alert("ถอดรหัสล้มเหลว! รหัสผ่านอาจไม่ถูกต้อง"); 
+                        event.target.value = ''; 
+                        return;
+                    }
+                } else {
+                    finalDataToMerge = importedData;
+                }
+                
+                // ✅ การประมวลผลไฟล์ตามประเภท
+                if (finalDataToMerge.accounts && Array.isArray(finalDataToMerge.accounts)) {
+                    // ไฟล์สำรองข้อมูลทั้งหมด
+                    if(confirm("ไฟล์นี้เป็นไฟล์สำรองข้อมูล JSON ทั้งหมด ต้องการโหลดข้อมูลทั้งหมดทับของเดิมหรือไม่?")) {
+                        accounts = finalDataToMerge.accounts;
+                        records = finalDataToMerge.records;
+                        accountTypes = new Map(finalDataToMerge.accountTypes);
+                        currentAccount = finalDataToMerge.currentAccount;
+                        alert("โหลดข้อมูลทั้งหมดจาก JSON สำเร็จ");
+                    }
+                } else if (finalDataToMerge.isDailyExport === true) {
+                    // ไฟล์ข้อมูลรายวัน
+                    const { accountName, exportDate, records: recordsToAdd } = finalDataToMerge;
+                    const confirmMsg = `ไฟล์นี้มีข้อมูลของวันที่ ${exportDate} จำนวน ${recordsToAdd.length} รายการ สำหรับบัญชี "${accountName}"\n\nกด OK เพื่อ "เพิ่ม" รายการเหล่านี้ลงในบัญชี (ข้อมูลซ้ำจะถูกข้าม)\nกด Cancel เพื่อยกเลิก`;
+                    if (confirm(confirmMsg)) {
+                        processDateRangeImport(finalDataToMerge);
+                    }
+                } else if (finalDataToMerge.isDateRangeExport === true) {
+                    // ✅ ไฟล์ข้อมูลตามช่วงวันที่ - แก้ไขให้รองรับข้อมูลประเภท
+                    const { accountName, exportStartDate, exportEndDate, records: recordsToAdd, accountTypes: importedAccountTypes } = finalDataToMerge;
+                    const confirmMsg = `ไฟล์นี้มีข้อมูลของบัญชี "${accountName}" ระหว่างวันที่ ${exportStartDate} ถึง ${exportEndDate} จำนวน ${recordsToAdd.length} รายการ\n\n✅ ไฟล์นี้มีข้อมูลประเภทบัญชีพร้อมใช้งาน\n\nกด OK เพื่อ "เพิ่ม" รายการเหล่านี้ลงในบัญชี (ข้อมูลซ้ำจะถูกข้าม)\nกด Cancel เพื่อยกเลิก`;
+                    
+                    if (confirm(confirmMsg)) {
+                        processDateRangeImport({
+                            accountName: accountName,
+                            exportStartDate: exportStartDate,
+                            exportEndDate: exportEndDate,
+                            records: recordsToAdd,
+                            accountTypes: importedAccountTypes
+                        });
+                    }
+                } else if (finalDataToMerge.accountName) {
+                    // ไฟล์ข้อมูลบัญชีเดียว
+                    const confirmMsg = `ไฟล์นี้เป็นข้อมูลของบัญชี "${finalDataToMerge.accountName}"\n\nกด OK เพื่อ "แทนที่" ข้อมูลทั้งหมดของบัญชีนี้\nกด Cancel เพื่อยกเลิก`;
+                    if (confirm(confirmMsg)) {
+                        if (!accounts.includes(finalDataToMerge.accountName)) {
+                            accounts.push(finalDataToMerge.accountName);
+                        }
+                        records = records.filter(r => r.account !== finalDataToMerge.accountName);
+                        records.push(...(finalDataToMerge.records || []));
+                        accountTypes.set(finalDataToMerge.accountName, finalDataToMerge.accountTypes || { "รายรับ": [], "รายจ่าย": [] });
+                        currentAccount = finalDataToMerge.accountName;
+                        alert(`แทนที่ข้อมูลบัญชี "${finalDataToMerge.accountName}" สำเร็จ`);
+                    }
+                } else {
+                    throw new Error("รูปแบบไฟล์ JSON ไม่ถูกต้อง");
+                }
+                
+                // ✅ อัพเดท UI หลังโหลดข้อมูล
+                updateAccountSelect();
+                if (currentAccount) {
+                    document.getElementById('accountSelect').value = currentAccount;
+                }
+                changeAccount();
+                saveToLocal();
+                updateMultiAccountSelector();
+               
+                
+            } catch (error) {
+                alert("ไฟล์ JSON ไม่ถูกต้องหรือเสียหาย: " + error.message);
             }
-            
-            // โหลดกิจกรรมใหม่เพื่อแสดงข้อมูลที่อัปเดต
-            loadUserActivities();
+        };
+        reader.readAsText(file);
+    } else {
+        alert("กรุณาเลือกไฟล์ .json หรือ .csv เท่านั้น");
+    }
+    reader.onerror = () => alert("เกิดข้อผิดพลาดในการอ่านไฟล์");
+    event.target.value = '';
+}
+
+function processDateRangeImport(importedData) {
+    const { accountName, exportStartDate, exportEndDate, records: recordsToAdd, accountTypes: importedAccountTypes } = importedData;
+    
+    console.log(`🔄 กำลังนำเข้าข้อมูลสำหรับบัญชี: ${accountName}`);
+    
+    // ✅ ตรวจสอบและสร้างบัญชีหากไม่มี
+    if (!accounts.includes(accountName)) {
+        accounts.push(accountName);
+        console.log(`✅ สร้างบัญชีใหม่: ${accountName}`);
+    }
+    
+    // ✅ บันทึกข้อมูลประเภทบัญชี (สำคัญ!)
+    if (importedAccountTypes) {
+        accountTypes.set(accountName, importedAccountTypes);
+        console.log(`✅ บันทึกข้อมูลประเภทสำหรับบัญชี: ${accountName}`, importedAccountTypes);
+    } else {
+        // ถ้าไม่มีข้อมูลประเภท ให้สร้างใหม่
+        initializeAccountTypes(accountName);
+        console.log(`⚠️ ไม่มีข้อมูลประเภท, สร้างใหม่สำหรับ: ${accountName}`);
+    }
+    
+    let addedCount = 0;
+    let skippedCount = 0;
+    
+    // ✅ เพิ่มข้อมูลทีละรายการ (ข้ามข้อมูลซ้ำ)
+    recordsToAdd.forEach(recordToAdd => {
+        const isDuplicate = records.some(existingRecord =>
+            existingRecord.account === accountName &&
+            existingRecord.dateTime === recordToAdd.dateTime &&
+            existingRecord.amount === recordToAdd.amount &&
+            existingRecord.description === recordToAdd.description &&
+            existingRecord.type === recordToAdd.type
+        );
+        
+        if (!isDuplicate) {
+            records.push({ ...recordToAdd, account: accountName });
+            addedCount++;
         } else {
-            // ชื่อไม่เปลี่ยนแปลง
-            showToast('ไม่มีการเปลี่ยนแปลงข้อมูล', 'info');
+            skippedCount++;
         }
-    } else {
-        // โหมดเพิ่ม
-        if (allActivityTypes.some(t => t.name === activityTypeName)) {
-            alert('มีประเภทกิจกรรมนี้อยู่แล้ว');
-            return;
-        }
+    });
+    
+    // ✅ อัพเดทบัญชีปัจจุบัน
+    currentAccount = accountName;
+    
+    // ✅ อัพเดท UI
+    updateAccountSelect();
+    document.getElementById('accountSelect').value = currentAccount;
+    changeAccount();
+    
+    // ✅ บันทึกข้อมูล
+    saveToLocal();
+    
+    alert(`เติมข้อมูลสำเร็จ!\nเพิ่ม ${addedCount} รายการใหม่\nข้าม ${skippedCount} รายการที่ซ้ำซ้อน\n✅ โหลดข้อมูลประเภทบัญชีเรียบร้อยแล้ว`);
+    
+}
+
+function createImportConfirmationMessage(accountName, startDate, endDate, recordCount) {
+    return `ไฟล์นี้มีข้อมูลของบัญชี "${accountName}" ระหว่างวันที่ ${startDate} ถึง ${endDate} จำนวน ${recordCount} รายการ\n\nกด OK เพื่อ "เพิ่ม" รายการเหล่านี้ลงในบัญชี (ข้อมูลซ้ำจะถูกข้าม)\nกด Cancel เพื่อยกเลิก`;
+}
+
+function mergeImportedRecords(accountName, recordsToAdd) {
+    if (!accounts.includes(accountName)) {
+        accounts.push(accountName);
+    }
+    
+    let addedCount = 0;
+    let skippedCount = 0;
+    
+    recordsToAdd.forEach(recordToAdd => {
+        const isDuplicate = isRecordDuplicate(accountName, recordToAdd);
         
-        allActivityTypes.push({ name: activityTypeName });
-        notifyDataUpdated('activityType', 'add');
-    }
-    
-    saveToLocalStorage('activityTypes', allActivityTypes);
-    populateActivityTypeDropdowns('activityTypeSelect');
-    
-    // ✅ รีเซ็ตการแสดงผลอัตโนมัติ
-    resetAutoSelectionDisplay('activityType');
-    
-    closeActivityTypeModal();
-    
-    // ✅ รีเฟรชการเลือกอัตโนมัติ
-    setTimeout(() => {
-        autoSelectIfSingle();
-    }, 100);
-}
-
-function resetActivityType() {
-    if (!confirm('คุณแน่ใจว่าต้องการคืนค่าประเภทกิจกรรมเป็นค่าเริ่มต้น? การกระทำนี้จะลบประเภทกิจกรรมทั้งหมดที่คุณเพิ่มไว้')) {
-        return;
-    }
-    
-    const defaultActivityTypes = [
-        { name: 'ทำงาน' },
-        { name: 'เรียน' },
-        { name: 'นั่งสมาธิ' },
-        { name: 'อื่นๆ' }
-    ];
-    
-    saveToLocalStorage('activityTypes', defaultActivityTypes);
-    populateActivityTypeDropdowns('activityTypeSelect');
-    notifyDataUpdated('activityType', 'reset');
-    
-    // ✅ เรียกใช้ฟังก์ชันเลือกอัตโนมัติหลังจากรีเซ็ต
-    setTimeout(() => {
-        autoSelectIfSingle();
-    }, 100);
-}
-
-function closeActivityTypeModal() {
-    document.getElementById('activityTypeModal').style.display = 'none';
-}
-
-// === ฟังก์ชันจัดการการแสดงผลปุ่มการจัดการ ===
-function toggleManagementActions(actionsId, otherActionsId) {
-    const actions = document.getElementById(actionsId);
-    const otherActions = document.getElementById(otherActionsId);
-    
-    if (!actions) {
-        console.error(`❌ ไม่พบ element: ${actionsId}`);
-        return;
-    }
-    
-    // ปิดการแสดงผลของอีกฝั่ง
-    if (otherActions) {
-        otherActions.style.display = 'none';
-        otherActions.classList.remove('active');
-    }
-    
-    // สลับการแสดงผลของฝั่งนี้
-    if (actions.style.display === 'flex' || actions.classList.contains('active')) {
-        actions.style.display = 'none';
-        actions.classList.remove('active');
-    } else {
-        actions.style.display = 'flex';
-        actions.classList.add('active');
-        
-        // บนมือถือ: เลื่อนไปยังส่วนที่กำลังเปิด
-        if (window.innerWidth <= 768) {
-            setTimeout(() => {
-                actions.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            }, 100);
+        if (!isDuplicate) {
+            records.push({ ...recordToAdd, account: accountName });
+            addedCount++;
+        } else {
+            skippedCount++;
         }
-    }
+    });
     
-    console.log(`🔄 สลับการแสดงผล ${actionsId}: ${actions.style.display}`);
+    return { addedCount, skippedCount };
 }
 
-// === ฟังก์ชันจัดการประเภทกิจกรรม (รูปแบบฟันเฟือง) ===
-function checkCustomActivityTypeOption(select) {
-    if (select.value === 'custom') {
-        document.getElementById('customActivityTypeInput').style.display = 'block';
-    } else {
-        document.getElementById('customActivityTypeInput').style.display = 'none';
-    }
+function isRecordDuplicate(accountName, recordToCheck) {
+    return records.some(existingRecord =>
+        existingRecord.account === accountName &&
+        existingRecord.dateTime === recordToCheck.dateTime &&
+        existingRecord.amount === recordToCheck.amount &&
+        existingRecord.description === recordToCheck.description &&
+        existingRecord.type === recordToCheck.type
+    );
 }
 
-// === ฟังก์ชันจัดการผู้ทำกิจกรรม (รูปแบบฟันเฟือง) ===
-function checkCustomOption(select) {
-    if (select.value === 'custom') {
-        document.getElementById('customPersonInput').style.display = 'block';
-    } else {
-        document.getElementById('customPersonInput').style.display = 'none';
-    }
+function showImportResult(result, accountName) {
+    const { addedCount, skippedCount } = result;
+    currentAccount = accountName;
+    
+    alert(`เติมข้อมูลสำเร็จ!\nเพิ่ม ${addedCount} รายการใหม่\nข้าม ${skippedCount} รายการที่ซ้ำซ้อน`);
 }
 
-// === ฟังก์ชันจัดการกิจกรรม ===
-function loadUserActivities() {
-    const activities = getFromLocalStorage('activities') || [];
-    const tbody = document.getElementById('activityBody');
-    
-    if (!tbody) return;
-    
-    tbody.innerHTML = '';
-    
-    if (activities.length === 0) {
-        const row = document.createElement('tr');
-        row.innerHTML = `<td colspan="7" style="text-align: center; padding: 20px;">ไม่มีกิจกรรมที่บันทึกไว้</td>`;
-        tbody.appendChild(row);
+function updateAccountSelection(accountName) {
+    updateAccountSelect();
+    document.getElementById('accountSelect').value = accountName;
+    changeAccount();
+}
+
+function importFromFileForMerging(event) {
+    const file = event.target.files[0];
+    if (!file) { return; }
+    if (!currentAccount) {
+        alert("กรุณาเลือกบัญชีปัจจุบัน (บัญชีปลายทาง) ก่อน");
+        event.target.value = '';
         return;
     }
+
+    const reader = new FileReader();
+    const fileName = file.name.toLowerCase();
+
+    const processAndMerge = async (dataString) => {
+        try {
+            let parsedData = JSON.parse(dataString);
+            let finalDataToMerge = null;
+
+            if (parsedData && parsedData.isEncrypted === true) {
+                const password = prompt("ไฟล์นี้ถูกเข้ารหัส กรุณากรอกรหัสผ่านเพื่อถอดรหัส:");
+                if (!password) { alert("ยกเลิกการนำเข้าไฟล์"); return; }
+                alert('กำลังถอดรหัส...');
+                const decryptedString = await decryptData(parsedData, password);
+                if (decryptedString) {
+                    finalDataToMerge = JSON.parse(decryptedString);
+                    alert('ถอดรหัสสำเร็จ!');
+                } else {
+                    alert("ถอดรหัสล้มเหลว! รหัสผ่านอาจไม่ถูกต้อง"); return;
+                }
+            } else {
+                finalDataToMerge = parsedData;
+            }
+
+            if (finalDataToMerge && finalDataToMerge.isDailyExport === true) {
+                const { exportDate, records: recordsToAdd } = finalDataToMerge;
+                
+                let addedCount = 0;
+                let skippedCount = 0;
+
+                recordsToAdd.forEach(recordToAdd => {
+                    const isDuplicate = records.some(existingRecord =>
+                        existingRecord.account === currentAccount &&
+                        existingRecord.dateTime === recordToAdd.dateTime &&
+                        existingRecord.amount === recordToAdd.amount &&
+                        existingRecord.description === recordToAdd.description &&
+                        existingRecord.type === recordToAdd.type
+                    );
+                    if (!isDuplicate) {
+                        records.push({ ...recordToAdd, account: currentAccount });
+                        addedCount++;
+                    } else {
+                        skippedCount++;
+                    }
+                });
+
+                alert(`เติมข้อมูลสำเร็จ!\nเพิ่ม ${addedCount} รายการใหม่\nข้าม ${skippedCount} รายการที่ซ้ำซ้อน`);
+                displayRecords();
+                saveDataAndShowToast();
+
+            } else {
+                alert("ไฟล์ที่เลือกไม่ใช่ไฟล์ข้อมูลรายวันที่ถูกต้อง\nกรุณาใช้ไฟล์ที่ได้จากการ 'บันทึกเฉพาะวันที่เลือก' เท่านั้น");
+            }
+        } catch (error) {
+            alert("ไฟล์ JSON ไม่ถูกต้องหรือเสียหาย: " + error.message);
+        }
+    };
     
-    // เรียงลำดับกิจกรรมตามวันที่และเวลาเริ่มต้น (ใหม่ไปเก่า)
-    activities.sort((a, b) => {
-        const dateCompare = b.date.localeCompare(a.date);
-        if (dateCompare !== 0) return dateCompare;
-        return b.startTime.localeCompare(a.startTime);
+    if (fileName.endsWith('.json')) {
+        reader.onload = (e) => processAndMerge(e.target.result);
+        reader.readAsText(file);
+    } else {
+        alert("ฟังก์ชันนี้รองรับเฉพาะไฟล์ .json เท่านั้น");
+    }
+    
+    reader.onerror = () => alert("เกิดข้อผิดพลาดในการอ่านไฟล์");
+    event.target.value = '';
+}
+
+function loadFromCsv(csvText) {
+    let csvImportData = { 
+        isFullBackup: false, 
+        isDailyExport: false, 
+        isDateRangeExport: false,
+        accountName: '', 
+        exportDate: '', 
+        exportStartDate: '',
+        exportEndDate: '',
+        types: { "รายรับ": [], "รายจ่าย": [] }, 
+        records: [] 
+    };
+    let inTypesSection = false;
+    let inDataSection = false;
+    let dataHeaderPassed = false;
+    
+    Papa.parse(csvText, {
+        skipEmptyLines: true,
+        step: function(results) {
+            const row = results.data;
+            const firstCell = (row[0] || '').trim();
+            
+            if (firstCell === '###ALL_ACCOUNTS_BACKUP_CSV###') {
+                csvImportData.isFullBackup = true;
+                return;
+            }
+            
+            if (firstCell.startsWith('isDailyExport:')) {
+                csvImportData.isDailyExport = true;
+                csvImportData.exportDate = firstCell.split(':')[1].trim();
+                return;
+            }
+            
+            // ✅ เพิ่มการตรวจจับไฟล์ CSV ที่บันทึกตามช่วงวันที่
+            if (firstCell.startsWith('isDateRangeExport:')) {
+                csvImportData.isDateRangeExport = true;
+                const dateRange = firstCell.split(':')[1].trim();
+                const [startDate, endDate] = dateRange.split(' to ');
+                csvImportData.exportStartDate = startDate;
+                csvImportData.exportEndDate = endDate;
+                return;
+            }
+            
+            if (firstCell === '###ACCOUNT_TYPES_START###') {
+                inTypesSection = true;
+                return;
+            }
+            
+            if (firstCell === '###ACCOUNT_TYPES_END###') {
+                inTypesSection = false;
+                return;
+            }
+            
+            if (firstCell === '###DATA_START###') {
+                inDataSection = true;
+                return;
+            }
+            
+            if (inTypesSection && row.length >= 3) {
+                const accName = row[0];
+                const category = row[1];
+                const types = row.slice(2).filter(t => t.trim() !== '');
+                
+                if (!csvImportData.accountName) {
+                    csvImportData.accountName = accName;
+                }
+                
+                if (category === 'รายรับ' || category === 'รายจ่าย') {
+                    csvImportData.types[category] = types;
+                }
+                return;
+            }
+            
+            if (inDataSection) {
+                if (!dataHeaderPassed) {
+                    dataHeaderPassed = true;
+                    return;
+                }
+                
+                if (row.length >= 5) {
+                    const [dateStr, timeStr, type, description, amountStr] = row;
+                    const amount = parseFloat(amountStr.replace(/[^\d.-]/g, ''));
+                    
+                    if (!isNaN(amount)) {
+                        const [day, month, year] = dateStr.split('/');
+                        const formattedDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+                        const timeParts = timeStr.replace(' น.', '').split('.');
+                        const formattedTime = `${timeParts[0].padStart(2, '0')}:${timeParts[1].padStart(2, '0')}`;
+                        const dateTime = `${formattedDate} ${formattedTime}`;
+                        
+                        csvImportData.records.push({
+                            dateTime,
+                            type,
+                            description,
+                            amount,
+                            account: csvImportData.accountName
+                        });
+                    }
+                }
+            }
+        },
+        complete: function() {
+            if (csvImportData.isFullBackup) {
+                // ... โค้ดเดิม ...
+            } else if (csvImportData.isDailyExport) {
+                // ... โค้ดเดิม ...
+            } else if (csvImportData.isDateRangeExport) {
+                // ✅ การประมวลผลไฟล์ CSV ที่บันทึกตามช่วงวันที่
+                const { accountName, exportStartDate, exportEndDate, records: recordsToAdd } = csvImportData;
+                const confirmMsg = `ไฟล์ CSV นี้มีข้อมูลของบัญชี "${accountName}" ระหว่างวันที่ ${exportStartDate} ถึง ${exportEndDate} จำนวน ${recordsToAdd.length} รายการ\n\nกด OK เพื่อ "เพิ่ม" รายการเหล่านี้ (ข้อมูลซ้ำจะถูกข้าม)`;
+                
+                if (confirm(confirmMsg)) {
+                    processDateRangeImport({
+                        accountName: accountName,
+                        exportStartDate: exportStartDate,
+                        exportEndDate: exportEndDate,
+                        records: recordsToAdd
+                    });
+                }
+            } else if (csvImportData.accountName) {
+                // ... โค้ดเดิม ...
+            } else {
+                alert('ไม่สามารถประมวลผลไฟล์ CSV ได้ รูปแบบอาจไม่ถูกต้อง');
+            }
+        }
     });
-    
-    activities.forEach((activity, index) => {
-        const row = document.createElement('tr');
-        const duration = calculateDuration(activity.startTime, activity.endTime);
-        const formattedDuration = formatDuration(duration);
-        
-        row.innerHTML = `
-            <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${formatDateForDisplay(activity.date)}</td>
-            <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${activity.startTime} - ${activity.endTime}</td>
-            <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${activity.person}</td>
-            <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${activity.activityName}</td>
-            <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${formattedDuration}</td>
-            <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">${activity.details || '-'}</td>
-            <td style="padding: 8px; border: 1px solid #ddd; text-align: center;">
-                <button onclick="editActivity('${activity.id}')" style="background-color: #ffc107; color: black; margin: 2px;">แก้ไข</button>
-                <button onclick="deleteActivity('${activity.id}')" style="background-color: #dc3545; margin: 2px;">ลบ</button>
-            </td>
-        `;
-        tbody.appendChild(row);
-    });
 }
 
-function formatDateForDisplay(dateString) {
-    const date = new Date(dateString);
-    if (isNaN(date)) return dateString;
-    
-    const day = date.getDate().toString().padStart(2, '0');
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const year = (date.getFullYear() + 543).toString(); // แปลงจาก ค.ศ. เป็น พ.ศ.
-    
-    return `${day}/${month}/${year}`;
-}
+// ==============================================
+// ฟังก์ชันจัดการรหัสผ่าน
+// ==============================================
 
-function editActivity(activityId) {
-    const allActivities = getFromLocalStorage('activities') || [];
-    const activity = allActivities.find(a => a.id === activityId);
-    
-    if (!activity) return;
-    
-    // เติมข้อมูลลงในฟอร์ม
-    document.getElementById('personSelect').value = activity.person;
-    document.getElementById('activityTypeSelect').value = activity.activityName;
-    document.getElementById('activity-date').value = activity.date;
-    document.getElementById('start-time').value = activity.startTime;
-    document.getElementById('end-time').value = activity.endTime;
-    document.getElementById('activity-details').value = activity.details || '';
-    
-    // สลับปุ่ม
-    document.getElementById('save-activity-button').classList.add('hidden');
-    document.getElementById('update-activity-button').classList.remove('hidden');
-    document.getElementById('cancel-edit-activity-button').classList.remove('hidden');
-    
-    editingActivityId = activityId;
-    
-    // เลื่อนไปยังส่วนเพิ่มกิจกรรม
-    document.getElementById('add-activity-section').scrollIntoView({ behavior: 'smooth' });
-}
-
-function deleteActivity(activityId) {
-    if (!confirm('คุณแน่ใจว่าต้องการลบกิจกรรมนี้?')) {
+function saveBackupPassword(e) {
+    e.preventDefault();
+    const newPassword = document.getElementById('backup-password').value;
+    const confirmPassword = document.getElementById('backup-password-confirm').value;
+    if (newPassword !== confirmPassword) {
+        alert('รหัสผ่านไม่ตรงกัน กรุณากรอกใหม่อีกครั้ง');
         return;
     }
-    
-    let allActivities = getFromLocalStorage('activities') || [];
-    allActivities = allActivities.filter(a => a.id !== activityId);
-    saveToLocalStorage('activities', allActivities);
-    
-    loadUserActivities();
-    notifyActivityDeleted();
+    backupPassword = newPassword.trim() || null;
+    saveToLocal(true); 
+    alert('บันทึกรหัสผ่านสำหรับไฟล์สำรองเรียบร้อยแล้ว');
+    document.getElementById('backup-password').value = '';
+    document.getElementById('backup-password-confirm').value = '';
+    renderBackupPasswordStatus();
 }
 
-// === ฟังก์ชันอัปเดตกิจกรรมทั้งหมดเมื่อมีการเปลี่ยนแปลงผู้ทำกิจกรรม ===
-function updateAllActivitiesForPerson(oldName, newName) {
-    let allActivities = getFromLocalStorage('activities') || [];
-    let updated = false;
-    
-    allActivities = allActivities.map(activity => {
-        if (activity.person === oldName) {
-            updated = true;
-            return { ...activity, person: newName };
-        }
-        return activity;
-    });
-    
-    if (updated) {
-        saveToLocalStorage('activities', allActivities);
-        console.log(`✅ อัปเดตกิจกรรมจาก "${oldName}" เป็น "${newName}" เรียบร้อยแล้ว`);
+function renderBackupPasswordStatus() {
+    const statusEl = document.getElementById('password-status');
+    if (backupPassword) {
+        statusEl.textContent = 'สถานะ: มีการตั้งรหัสผ่านแล้ว';
+        statusEl.style.color = 'green';
+    } else {
+        statusEl.textContent = 'สถานะ: ยังไม่มีการตั้งรหัสผ่าน (ไฟล์สำรองจะไม่ถูกเข้ารหัส)';
+        statusEl.style.color = '#f5a623';
     }
-    
-    return updated;
 }
 
-// === ฟังก์ชันอัปเดตกิจกรรมทั้งหมดเมื่อมีการเปลี่ยนแปลงประเภทกิจกรรม ===
-function updateAllActivitiesForActivityType(oldName, newName) {
-    let allActivities = getFromLocalStorage('activities') || [];
-    let updated = false;
-    
-    allActivities = allActivities.map(activity => {
-        if (activity.activityName === oldName) {
-            updated = true;
-            return { ...activity, activityName: newName };
-        }
-        return activity;
-    });
-    
-    if (updated) {
-        saveToLocalStorage('activities', allActivities);
-        console.log(`✅ อัปเดตประเภทกิจกรรมจาก "${oldName}" เป็น "${newName}" เรียบร้อยแล้ว`);
-    }
-    
-    return updated;
-}
+// ==============================================
+// ฟังก์ชันการเข้ารหัส
+// ==============================================
 
-// === ฟังก์ชันตรวจสอบว่ามีกิจกรรมที่ใช้ผู้ทำกิจกรรมนี้อยู่หรือไม่ ===
-function checkPersonUsage(personName) {
-    const allActivities = getFromLocalStorage('activities') || [];
-    return allActivities.some(activity => activity.person === personName);
-}
-
-// === ฟังก์ชันตรวจสอบว่ามีกิจกรรมที่ใช้ประเภทกิจกรรมนี้อยู่หรือไม่ ===
-function checkActivityTypeUsage(activityTypeName) {
-    const allActivities = getFromLocalStorage('activities') || [];
-    return allActivities.some(activity => activity.activityName === activityTypeName);
-}
-
-// === ฟังก์ชันนับจำนวนกิจกรรมตามผู้ทำกิจกรรม ===
-function getActivityCountByPerson(personName) {
-    const allActivities = getFromLocalStorage('activities') || [];
-    return allActivities.filter(activity => activity.person === personName).length;
-}
-
-// === ฟังก์ชันนับจำนวนกิจกรรมตามประเภทกิจกรรม ===
-function getActivityCountByType(activityTypeName) {
-    const allActivities = getFromLocalStorage('activities') || [];
-    return allActivities.filter(activity => activity.activityName === activityTypeName).length;
-}
-
-// === ฟังก์ชันการเข้ารหัสและถอดรหัส ===
 function arrayBufferToBase64(buffer) { 
     let binary = ''; 
     const bytes = new Uint8Array(buffer); 
@@ -1096,7 +2223,10 @@ async function deriveKey(password, salt) {
     }, keyMaterial, { 
         "name": 'AES-GCM', 
         "length": 256 
-    }, true, [ "encrypt", "decrypt" ] ); 
+    }, true, [ 
+        "encrypt", 
+        "decrypt" 
+    ] ); 
 }
 
 async function encryptData(dataString, password) { 
@@ -1135,2530 +2265,248 @@ async function decryptData(encryptedPayload, password) {
     } 
 }
 
-// === ฟังก์ชันจัดการรหัสผ่านสำรองข้อมูล ===
-function saveBackupPassword(e) {
-    if (e) e.preventDefault();
-    
-    const newPassword = document.getElementById('backup-password').value;
-    const confirmPassword = document.getElementById('backup-password-confirm').value;
-    
-    if (!newPassword) {
-        // ถ้าไม่กรอกรหัสผ่าน = ลบรหัสผ่านเดิม
-        backupPassword = null;
-        saveToLocalStorage('backupPassword', null);
-        showToast('ลบรหัสผ่านสำรองข้อมูลเรียบร้อยแล้ว', 'success');
-        
-        // เคลียร์ช่อง input
-        document.getElementById('backup-password').value = '';
-        document.getElementById('backup-password-confirm').value = '';
-        
-        renderBackupPasswordStatus();
-        return;
-    }
-    
-    if (newPassword !== confirmPassword) {
-        alert('รหัสผ่านไม่ตรงกัน กรุณากรอกใหม่อีกครั้ง');
-        return;
-    }
-    
-    if (newPassword.length < 4) {
-        alert('รหัสผ่านต้องมีความยาวอย่างน้อย 4 ตัวอักษร');
-        return;
-    }
-    
-    backupPassword = newPassword;
-    saveToLocalStorage('backupPassword', backupPassword);
-    showToast('บันทึกรหัสผ่านสำรองข้อมูลเรียบร้อยแล้ว', 'success');
-    
-    // เคลียร์ช่อง input
-    document.getElementById('backup-password').value = '';
-    document.getElementById('backup-password-confirm').value = '';
-    
-    renderBackupPasswordStatus();
-}
+// ==============================================
+// ฟังก์ชันส่งออก Summary เป็น XLSX
+// ==============================================
 
-function renderBackupPasswordStatus() {
-    const statusEl = document.getElementById('password-status');
-    if (!statusEl) {
-        console.error('❌ ไม่พบ element password-status');
-        return;
+function exportSummaryToXlsx(summaryResult, title, dateString, remark, transactionDaysInfo = null, periodName) {
+    const { summary, periodRecords, totalBalance } = summaryResult;
+    
+    const wb = XLSX.utils.book_new();
+    
+    let excelData = [];
+    
+    const summaryDateTime = new Date().toLocaleString("th-TH", { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric', 
+        hour: '2-digit', 
+        minute: '2-digit'
+    }) + ' น.';
+    
+    excelData.push(['สรุปข้อมูลบัญชี']);
+    excelData.push(['ชื่อบัญชี:', currentAccount]);
+    excelData.push(['สรุปเมื่อวันที่:', summaryDateTime]);
+    excelData.push([`${title} :`, dateString]);
+    excelData.push([]);
+    
+    if (transactionDaysInfo) {
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = transactionDaysInfo;
+        const pElements = tempDiv.querySelectorAll('p');
+        pElements.forEach(p => {
+            excelData.push([p.innerText]);
+        });
+        excelData.push([]);
     }
     
-    // โหลดรหัสผ่านจาก localStorage
-    backupPassword = getFromLocalStorage('backupPassword') || null;
+    excelData.push(['รายรับ :', `${summary.incomeCount} ครั้ง เป็นเงิน ${summary.totalIncome.toLocaleString()} บาท`]);
+    for (const type in summary.income) {
+        excelData.push([`- ${type} : ${summary.income[type].count} ครั้ง เป็นเงิน ${summary.income[type].amount.toLocaleString()} บาท`]);
+    }
+    excelData.push([]);
     
-    if (backupPassword) {
-        statusEl.textContent = 'สถานะ: มีการตั้งรหัสผ่านแล้ว (ไฟล์สำรองจะถูกเข้ารหัส)';
-        statusEl.style.color = 'green';
+    excelData.push(['รายจ่าย :', `${summary.expenseCount} ครั้ง เป็นเงิน ${summary.totalExpense.toLocaleString()} บาท`]);
+    for (const type in summary.expense) {
+        excelData.push([`- ${type} : ${summary.expense[type].count} ครั้ง เป็นเงิน ${summary.expense[type].amount.toLocaleString()} บาท`]);
+    }
+    excelData.push([]);
+    
+    const netAmount = summary.totalIncome - summary.totalExpense;
+    let comparisonText = '';
+    let comparisonColor = 'black';
+    
+    if (summary.totalIncome > summary.totalExpense) {
+        comparisonText = `รายได้มากกว่ารายจ่าย = ${netAmount.toLocaleString()} บาท`;
+        comparisonColor = 'blue';
+    } else if (summary.totalIncome < summary.totalExpense) {
+        comparisonText = `รายจ่ายมากกว่ารายได้ = ${Math.abs(netAmount).toLocaleString()} บาท`;
+        comparisonColor = 'red';
     } else {
-        statusEl.textContent = 'สถานะ: ยังไม่มีการตั้งรหัสผ่าน (ไฟล์สำรองจะไม่ถูกเข้ารหัส)';
-        statusEl.style.color = '#f5a623';
-    }
-}
-
-async function verifyBackupPassword(password) {
-    if (!backupPassword) return true; // ถ้าไม่มีรหัสผ่าน ให้ผ่านเลย
-    
-    // ตัวอย่างการตรวจสอบรหัสผ่านโดยการลองเข้ารหัสข้อความทดสอบ
-    try {
-        const testData = "test";
-        const encrypted = await encryptData(testData, password);
-        const decrypted = await decryptData(encrypted, password);
-        return decrypted === testData;
-    } catch (error) {
-        return false;
-    }
-}
-
-function clearBackupPassword() {
-    if (!confirm('คุณแน่ใจว่าต้องการลบรหัสผ่านสำรองข้อมูล?')) {
-        return;
+        comparisonText = 'รายได้เท่ากับรายจ่าย';
     }
     
-    backupPassword = null;
-    saveToLocalStorage('backupPassword', null);
-    showToast('ลบรหัสผ่านสำรองข้อมูลเรียบร้อยแล้ว', 'success');
-    renderBackupPasswordStatus();
+    if (summary.totalIncome === 0 && summary.totalExpense === 0) {
+        excelData.push(['สรุป :', 'ไม่มีธุรกรรมการเงิน']);
+    } else {
+        excelData.push(['สรุป :', comparisonText]);
+    }
     
-    // เคลียร์ช่อง input
-    const backupPwdInput = document.getElementById('backup-password');
-    const backupPwdConfirm = document.getElementById('backup-password-confirm');
-    if (backupPwdInput) backupPwdInput.value = '';
-    if (backupPwdConfirm) backupPwdConfirm.value = '';
-}
-
-// === ฟังก์ชันบันทึกและกู้คืนข้อมูล ===
-function saveToLocal() {
-    try {
-        // บันทึกข้อมูลทั้งหมดลง localStorage
-        const allActivities = getFromLocalStorage('activities') || [];
-        const allPersons = getFromLocalStorage('persons') || [];
-        const allActivityTypes = getFromLocalStorage('activityTypes') || [];
+    if (periodName === 'ทั้งหมด' || periodName.includes('ถึง')) {
+        excelData.push(['เงินในบัญชีถึงวันนี้มี =', `${totalBalance.toLocaleString()} บาท`]);
+    } else {
+        excelData.push(['เงินคงเหลือในบัญชีทั้งหมด =', `${totalBalance.toLocaleString()} บาท`]);
+    }
+    
+    excelData.push(['ข้อความเพิ่ม :', remark]);
+    excelData.push([]);
+    
+    if (periodRecords.length > 0) {
+        excelData.push(['--- รายการธุรกรรม ---']);
+        excelData.push(['วันที่', 'เวลา', 'ประเภท', 'รายละเอียด', 'จำนวนเงิน (บาท)']);
         
-        // บันทึกข้อมูลทั้งหมด
-        saveToLocalStorage('activities', allActivities);
-        saveToLocalStorage('persons', allPersons);
-        saveToLocalStorage('activityTypes', allActivityTypes);
-        
-        // แสดงผลสรุป
-        const summary = `
-            บันทึกข้อมูลชั่วคราวเรียบร้อยแล้ว!
+        periodRecords.forEach(record => {
+            const { formattedDate, formattedTime } = formatDateForDisplay(record.dateTime);
             
-            สถิติข้อมูล:
-            • กิจกรรม: ${allActivities.length} รายการ
-            • ผู้ทำกิจกรรม: ${allPersons.length} คน
-            • ประเภทกิจกรรม: ${allActivityTypes.length} ประเภท
-        `;
-        
-        alert(summary);
-        showToast('บันทึกข้อมูลชั่วคราวเรียบร้อยแล้ว', 'success');
-        console.log('💾 บันทึกข้อมูลชั่วคราวเรียบร้อย');
-        
-    } catch (error) {
-        console.error('❌ เกิดข้อผิดพลาดในการบันทึกข้อมูลชั่วคราว:', error);
-        showToast('เกิดข้อผิดพลาดในการบันทึกข้อมูล', 'error');
-    }
-}
-
-function saveDataAndShowToast() {
-    const allActivities = getFromLocalStorage('activities') || [];
-    const allPersons = getFromLocalStorage('persons') || [];
-    const allActivityTypes = getFromLocalStorage('activityTypes') || [];
-    
-    saveToLocalStorage('activities', allActivities);
-    saveToLocalStorage('persons', allPersons);
-    saveToLocalStorage('activityTypes', allActivityTypes);
-    
-    showToast('บันทึกข้อมูลเรียบร้อยแล้ว', 'success');
-}
-
-// === ฟังก์ชันบันทึกข้อมูลทั้งหมด (ทุกบัญชี) - แก้ไขใหม่ ===
-function saveToFile() { 
-    closeExportOptionsModal(); 
-    
-    // ตรวจสอบว่ามีข้อมูลกิจกรรมหรือไม่
-    const allActivities = getFromLocalStorage('activities') || [];
-    const allPersons = getFromLocalStorage('persons') || [];
-    const allActivityTypes = getFromLocalStorage('activityTypes') || [];
-    
-    if (allActivities.length === 0 && allPersons.length === 0 && allActivityTypes.length === 0) { 
-        alert("ไม่มีข้อมูลให้บันทึก"); 
-        return; 
-    } 
-    
-    // ถามชื่อไฟล์
-    const fileName = prompt("กรุณากรอกชื่อไฟล์สำหรับสำรองข้อมูล (ไม่ต้องใส่นามสกุล):", "สำรองกิจกรรม");
-    if (!fileName) return;
-    
-    // บันทึกเป็น JSON โดยตรง
-    handleSaveAs('json', fileName);
-}
-
-// === ฟังก์ชันบันทึกข้อมูลทั้งหมด (ปรับปรุงใหม่) ===
-async function handleSaveAs(format, fileName) {
-    const now = new Date();
-    const dateTimeString = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`;
-    
-    if (format === 'json') {
-        const fullFileName = `${fileName}_${dateTimeString}.json`;
-        
-        // รวบรวมข้อมูลทั้งหมด
-        const allActivities = getFromLocalStorage('activities') || [];
-        const allPersons = getFromLocalStorage('persons') || [];
-        const allActivityTypes = getFromLocalStorage('activityTypes') || [];
-        
-        const data = { 
-            activities: allActivities, 
-            persons: allPersons, 
-            activityTypes: allActivityTypes, 
-            backupDate: new Date().toISOString(),
-            version: '2.0',
-            appName: 'บันทึกกิจกรรมประจำวัน'
-        };
-        
-        let dataString = JSON.stringify(data, null, 2);
-        
-        // ⭐ ส่วนที่ตรวจสอบและเข้ารหัสข้อมูล
-        if (backupPassword) {
-            alert('กำลังเข้ารหัสข้อมูล...');
-            try {
-                const encryptedObject = await encryptData(dataString, backupPassword);
-                
-                // สร้างโครงสร้างที่ถูกต้องสำหรับไฟล์เข้ารหัส
-                const encryptedData = {
-                    isEncrypted: true,
-                    encryptedVersion: '1.0',
-                    salt: encryptedObject.salt,
-                    iv: encryptedObject.iv,
-                    encryptedData: encryptedObject.encryptedData,
-                    backupDate: new Date().toISOString(),
-                    appName: 'บันทึกกิจกรรมประจำวัน'
-                };
-                
-                dataString = JSON.stringify(encryptedData, null, 2);
-            } catch (e) {
-                alert('การเข้ารหัสล้มเหลว!'); 
-                return;
-            }
-        }
-        
-        const blob = new Blob([dataString], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a'); 
-        a.href = url; 
-        a.download = fullFileName; 
-        a.click();
-        URL.revokeObjectURL(url);
-        
-        notifyDataManagement('export');
-        
-        if (backupPassword) {
-            showToast('ส่งออกข้อมูลแบบเข้ารหัสเรียบร้อยแล้ว', 'success');
-        } else {
-            showToast('ส่งออกข้อมูลเรียบร้อยแล้ว', 'success');
-        }
-    }
-}
-
-// === ฟังก์ชันบันทึกบัญชีที่เลือก (ทั้งหมด) - แก้ไขใหม่ ===
-function exportSelectedAccount() { 
-    closeExportOptionsModal(); 
-    
-    // ตรวจสอบว่ามีข้อมูลกิจกรรมหรือไม่
-    const allActivities = getFromLocalStorage('activities') || [];
-    const allPersons = getFromLocalStorage('persons') || [];
-    const allActivityTypes = getFromLocalStorage('activityTypes') || [];
-    
-    if (allActivities.length === 0 && allPersons.length === 0 && allActivityTypes.length === 0) { 
-        alert("ไม่มีข้อมูลให้บันทึก"); 
-        return; 
-    } 
-    
-    // ถามชื่อไฟล์
-    const fileName = prompt("กรุณากรอกชื่อไฟล์สำหรับบันทึกบัญชีนี้ (ไม่ต้องใส่นามสกุล):", "กิจกรรมบัญชีปัจจุบัน");
-    if (!fileName) return;
-    
-    // บันทึกเป็น JSON โดยตรง
-    handleExportSelectedAs('json', fileName);
-}
-
-// === ฟังก์ชันจัดการการบันทึกบัญชีที่เลือกรูปแบบต่างๆ - แก้ไขใหม่ ===
-async function handleExportSelectedAs(format, fileName) {
-    const allActivities = getFromLocalStorage('activities') || [];
-    const allPersons = getFromLocalStorage('persons') || [];
-    const allActivityTypes = getFromLocalStorage('activityTypes') || [];
-    
-    if (allActivities.length === 0 && allPersons.length === 0 && allActivityTypes.length === 0) {
-        alert("ไม่มีข้อมูลให้บันทึก");
-        return;
+            excelData.push([
+                formattedDate, 
+                formattedTime, 
+                record.type, 
+                record.description, 
+                record.amount.toLocaleString()
+            ]);
+        });
     }
     
-    const now = new Date();
-    const dateTimeString = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`;
+    const ws = XLSX.utils.aoa_to_sheet(excelData);
     
-    if (format === 'json') {
-        const fullFileName = `${fileName}_${dateTimeString}.json`;
-        
-        // รวบรวมข้อมูลทั้งหมดของบัญชีปัจจุบัน
-        const data = { 
-            activities: allActivities, 
-            persons: allPersons, 
-            activityTypes: allActivityTypes,
-            accountName: currentAccount,
-            exportDate: new Date().toISOString(),
-            version: '2.0',
-            appName: 'บันทึกกิจกรรมประจำวัน',
-            exportType: 'single_account'
-        };
-        
-        let dataString = JSON.stringify(data, null, 2);
-        
-        // ถ้ามีรหัสผ่าน ให้เข้ารหัสข้อมูล
-        if (backupPassword) {
-            alert('กำลังเข้ารหัสข้อมูล...');
-            try {
-                const encryptedObject = await encryptData(dataString, backupPassword);
-                dataString = JSON.stringify(encryptedObject, null, 2);
-            } catch (e) {
-                alert('การเข้ารหัสล้มเหลว!'); 
-                return;
-            }
-        }
-        
-        const blob = new Blob([dataString], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a'); 
-        a.href = url; 
-        a.download = fullFileName; 
-        a.click();
-        URL.revokeObjectURL(url);
-        
-        notifyDataManagement('export');
-        showToast('บันทึกข้อมูลบัญชีปัจจุบันเรียบร้อยแล้ว', 'success');
-    }
-}
-
-// === ฟังก์ชันสำหรับบันทึกเฉพาะวันที่ - แก้ไขใหม่ ===
-function initiateSingleDateExport() {
-    // ตรวจสอบว่ามีข้อมูลกิจกรรมหรือไม่
-    const allActivities = getFromLocalStorage('activities') || [];
-    
-    if (allActivities.length === 0) {
-        alert("ไม่มีข้อมูลกิจกรรมให้บันทึก");
-        return;
-    }
-    
-    closeExportOptionsModal();
-    
-    const selectedDate = prompt("กรุณากรอกวันที่ที่ต้องการบันทึก (รูปแบบ: YYYY-MM-DD):", new Date().toISOString().slice(0, 10));
-    
-    if (!selectedDate) {
-        return;
-    }
-    
-    // กรองกิจกรรมตามวันที่เลือก
-    const filteredActivities = allActivities.filter(activity => activity.date === selectedDate);
-    const allPersons = getFromLocalStorage('persons') || [];
-    const allActivityTypes = getFromLocalStorage('activityTypes') || [];
-    
-    if (filteredActivities.length === 0) {
-        alert(`ไม่มีกิจกรรมในวันที่ ${formatDateForDisplay(selectedDate)}`);
-        return;
-    }
-    
-    // ถามชื่อไฟล์
-    const fileName = prompt("กรุณากรอกชื่อไฟล์สำหรับบันทึกข้อมูลวันที่นี้ (ไม่ต้องใส่นามสกุล):", `กิจกรรมวันที่_${formatDateForDisplay(selectedDate)}`);
-    if (!fileName) return;
-    
-    const backupData = {
-        activities: filteredActivities,
-        persons: allPersons,
-        activityTypes: allActivityTypes,
-        backupDate: new Date().toISOString(),
-        version: '2.0',
-        appName: 'บันทึกกิจกรรมประจำวัน',
-        backupType: 'single_date',
-        selectedDate: selectedDate
-    };
-    
-    // บันทึกเป็น JSON โดยตรง
-    handleSingleDateExportAs('json', fileName, backupData);
-}
-
-// === ฟังก์ชันบันทึกข้อมูลเฉพาะวันที่แบบเข้ารหัส - แก้ไขใหม่ ===
-async function handleSingleDateExportAs(format, fileName, backupData) {
-    const now = new Date();
-    const dateTimeString = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`;
-    
-    if (format === 'json') {
-        const fullFileName = `${fileName}_${dateTimeString}.json`;
-        let dataString = JSON.stringify(backupData, null, 2);
-        
-        // ⭐ ส่วนเข้ารหัสสำหรับข้อมูลรายวัน
-        if (backupPassword) {
-            alert('กำลังเข้ารหัสข้อมูล...');
-            try {
-                const encryptedObject = await encryptData(dataString, backupPassword);
-                dataString = JSON.stringify(encryptedObject, null, 2);
-            } catch (e) {
-                alert('การเข้ารหัสล้มเหลว!'); return;
-            }
-        }
-        
-        const blob = new Blob([dataString], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a'); 
-        a.href = url; 
-        a.download = fullFileName; 
-        a.click();
-        URL.revokeObjectURL(url);
-        
-        showToast(`บันทึกข้อมูลวันที่ ${backupData.selectedDate} เรียบร้อยแล้ว`, 'success');
-    }
-}
-
-function exportActivities() {
-    const allActivities = getFromLocalStorage('activities') || [];
-    
-    if (allActivities.length === 0) {
-        alert('ไม่มีกิจกรรมที่บันทึกไว้');
-        return;
-    }
-    
-    // สร้างชื่อไฟล์ในรูปแบบ DDMMYYYYHHMM (ใช้ปี พ.ศ.)
-    const now = new Date();
-    const day = now.getDate().toString().padStart(2, '0');
-    const month = (now.getMonth() + 1).toString().padStart(2, '0');
-    const year = (now.getFullYear() + 543).toString(); // แปลงเป็น พ.ศ.
-    const hours = now.getHours().toString().padStart(2, '0');
-    const minutes = now.getMinutes().toString().padStart(2, '0');
-    
-    const timestamp = day + month + year + hours + minutes;
-
-    const dataStr = JSON.stringify(allActivities, null, 2);
-    const dataBlob = new Blob([dataStr], { type: 'application/json' });
-    
-    const url = URL.createObjectURL(dataBlob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `สำรองกิจกรรม${timestamp}.json`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    
-    notifyDataManagement('export');
-}
-
-// === ฟังก์ชันกู้คืนข้อมูลแบบอัพเดท (รองรับการเข้ารหัส) ===
-function restoreData(file) {
-    if (!file) return;
-    
-    const reader = new FileReader();
-    
-    reader.onload = async function(e) {
-        try {
-            let content = e.target.result;
-            let backupData;
-            
-            console.log('ไฟล์ที่อ่านได้:', content.substring(0, 200)); // สำหรับ debug
-            
-            // ลองอ่านเป็น JSON ธรรมดาก่อน
-            try {
-                backupData = JSON.parse(content);
-                console.log('อ่านไฟล์สำเร็จแบบไม่เข้ารหัส');
-            } catch (jsonError) {
-                console.log('ไม่ใช่ JSON ธรรมดา:', jsonError);
-                throw new Error('รูปแบบไฟล์ไม่ถูกต้อง');
-            }
-            
-            let finalDataToMerge = null;
-            
-            // ⭐ ส่วนที่ตรวจสอบและถอดรหัสข้อมูลที่ถูกเข้ารหัส
-            if (backupData && backupData.isEncrypted === true) {
-                console.log('ตรวจพบไฟล์ที่ถูกเข้ารหัส');
-                const password = prompt("ไฟล์นี้ถูกเข้ารหัส กรุณากรอกรหัสผ่านเพื่อถอดรหัส:");
-                if (!password) { 
-                    alert("ยกเลิกการนำเข้าไฟล์"); 
-                    document.getElementById('restoreFile').value = ''; 
-                    return; 
-                }
-                
-                alert('กำลังถอดรหัส...');
-                try {
-                    const decryptedString = await decryptData(backupData, password);
-                    if (decryptedString) {
-                        finalDataToMerge = JSON.parse(decryptedString);
-                        console.log('ถอดรหัสสำเร็จ!');
-                    } else {
-                        alert("ถอดรหัสล้มเหลว! รหัสผ่านอาจไม่ถูกต้อง"); 
-                        document.getElementById('restoreFile').value = ''; 
-                        return;
-                    }
-                } catch (decryptError) {
-                    console.error('ข้อผิดพลาดในการถอดรหัส:', decryptError);
-                    alert("ถอดรหัสล้มเหลว! รหัสผ่านอาจไม่ถูกต้อง"); 
-                    document.getElementById('restoreFile').value = ''; 
-                    return;
-                }
-            } else {
-                // ไม่ได้เข้ารหัส
-                finalDataToMerge = backupData;
-            }
-            
-            // ตรวจสอบโครงสร้างข้อมูล
-            if (!finalDataToMerge || typeof finalDataToMerge !== 'object') {
-                throw new Error('ไม่พบข้อมูลในไฟล์ หรือรูปแบบไม่ถูกต้อง');
-            }
-            
-            // ตรวจสอบว่าเป็นไฟล์สำรองข้อมูลของเรา (ตรวจสอบแบบยืดหยุ่นมากขึ้น)
-            const isValidBackup = isValidBackupFile(finalDataToMerge);
-            
-            if (!isValidBackup) {
-                throw new Error('ไฟล์นี้ไม่ใช่ไฟล์สำรองข้อมูลของแอปบันทึกกิจกรรม');
-            }
-            
-            if (!confirm('การกู้คืนข้อมูลจะเพิ่มข้อมูลใหม่เข้าไปในข้อมูลปัจจุบัน คุณแน่ใจหรือไม่?')) {
-                document.getElementById('restoreFile').value = '';
-                return;
-            }
-            
-            // เริ่มกระบวนการกู้คืนแบบอัพเดท
-            updateDataWithBackup(finalDataToMerge);
-            
-        } catch (error) {
-            console.error('Error restoring data:', error);
-            alert('ไม่สามารถกู้คืนข้อมูลได้: ' + error.message);
-            document.getElementById('restoreFile').value = '';
-        }
-    };
-    
-    reader.onerror = function() {
-        alert('เกิดข้อผิดพลาดในการอ่านไฟล์');
-        document.getElementById('restoreFile').value = '';
-    };
-    
-    reader.readAsText(file);
-}
-
-function isValidBackupFile(data) {
-    if (!data || typeof data !== 'object') {
-        return false;
-    }
-    
-    // ตรวจสอบโครงสร้างต่างๆ ที่เป็นไปได้
-    const possibleStructures = [
-        // โครงสร้างมาตรฐาน
-        () => data.activities !== undefined && Array.isArray(data.activities),
-        // โครงสร้างที่มี persons และ activityTypes
-        () => data.persons !== undefined && data.activityTypes !== undefined,
-        // โครงสร้างที่มี appName และ version
-        () => data.appName === 'บันทึกกิจกรรมประจำวัน',
-        // โครงสร้างที่มี backupDate
-        () => data.backupDate !== undefined,
-        // หรือเป็น array ของกิจกรรมโดยตรง
-        () => Array.isArray(data) && data.length > 0 && data[0].activityName !== undefined,
-        // หรือเป็นไฟล์ที่ถูกเข้ารหัส
-        () => data.isEncrypted === true && data.encryptedData !== undefined
+    const colWidths = [
+        {wch: 15},
+        {wch: 30},
+        {wch: 15},
+        {wch: 30},
+        {wch: 20}
     ];
+    ws['!cols'] = colWidths;
     
-    // ถ้ามีโครงสร้างใดโครงสร้างหนึ่งที่ตรง ก็ถือว่าเป็นไฟล์สำรองข้อมูลที่ถูกต้อง
-    return possibleStructures.some(check => {
-        try {
-            return check();
-        } catch (e) {
-            return false;
+    ws['!pageSetup'] = {
+        orientation: 'portrait',
+        paperSize: 9,
+        fitToPage: true,
+        fitToWidth: 1,
+        fitToHeight: 0,
+        margins: {
+            left: 0.7, right: 0.7,
+            top: 0.75, bottom: 0.75,
+            header: 0.3, footer: 0.3
         }
-    });
-}
-
-function updateDataWithBackup(backupData) {
-    let updatedCount = {
-        activities: 0,
-        persons: 0,
-        activityTypes: 0
     };
     
-    // 1. อัพเดทข้อมูลกิจกรรม
-    if (backupData.activities && Array.isArray(backupData.activities)) {
-        const currentActivities = getFromLocalStorage('activities') || [];
-        const mergedActivities = mergeActivities(currentActivities, backupData.activities);
-        saveToLocalStorage('activities', mergedActivities);
-        updatedCount.activities = mergedActivities.length - currentActivities.length;
-    }
+    if (!ws['!merges']) ws['!merges'] = [];
+    ws['!merges'].push({s: {r: 0, c: 0}, e: {r: 0, c: 4}});
     
-    // 2. อัพเดทข้อมูลผู้ทำกิจกรรม
-    if (backupData.persons && Array.isArray(backupData.persons)) {
-        const currentPersons = getFromLocalStorage('persons') || [];
-        const mergedPersons = mergePersons(currentPersons, backupData.persons);
-        saveToLocalStorage('persons', mergedPersons);
-        updatedCount.persons = mergedPersons.length - currentPersons.length;
-    }
+    XLSX.utils.book_append_sheet(wb, ws, "สรุปข้อมูลบัญชี");
     
-    // 3. อัพเดทข้อมูลประเภทกิจกรรม
-    if (backupData.activityTypes && Array.isArray(backupData.activityTypes)) {
-        const currentActivityTypes = getFromLocalStorage('activityTypes') || [];
-        const mergedActivityTypes = mergeActivityTypes(currentActivityTypes, backupData.activityTypes);
-        saveToLocalStorage('activityTypes', mergedActivityTypes);
-        updatedCount.activityTypes = mergedActivityTypes.length - currentActivityTypes.length;
-    }
+    const fileName = `สรุป_${currentAccount}_${periodName}_${new Date().getTime()}.xlsx`;
     
-    // กรณีที่ไฟล์เป็น array ของกิจกรรมโดยตรง
-    if (Array.isArray(backupData)) {
-        const currentActivities = getFromLocalStorage('activities') || [];
-        const mergedActivities = mergeActivities(currentActivities, backupData);
-        saveToLocalStorage('activities', mergedActivities);
-        updatedCount.activities = mergedActivities.length - currentActivities.length;
-    }
-    
-    // โหลดข้อมูลใหม่
-    loadUserActivities();
-    populateActivityTypeDropdowns('activityTypeSelect');
-    populatePersonDropdown('personSelect');
-    populatePersonFilter();
-    
-    // แสดงผลสรุปการกู้คืน
-    showRestoreSummary(updatedCount);
-    
-    // รีเซ็ต input file
-    document.getElementById('restoreFile').value = '';
+    XLSX.writeFile(wb, fileName);
 }
 
-function mergeActivities(currentActivities, newActivities) {
-    const merged = [...currentActivities];
-    const existingIds = new Set(currentActivities.map(a => a.id));
+function applyExcelStyles(ws, data) {
+    if (!ws['!merges']) ws['!merges'] = [];
     
-    newActivities.forEach(newActivity => {
-        // ถ้าไม่มี ID ซ้ำ ให้เพิ่มกิจกรรมใหม่
-        if (!existingIds.has(newActivity.id)) {
-            merged.push(newActivity);
-            existingIds.add(newActivity.id);
-        }
-        // ถ้ามี ID ซ้ำ แต่เป็นกิจกรรมของคนอื่น ให้เพิ่มเป็นกิจกรรมใหม่ด้วย ID ใหม่
-        else if (newActivity.person && !currentActivities.some(a => a.id === newActivity.id && a.person === newActivity.person)) {
-            const newActivityWithNewId = {
-                ...newActivity,
-                id: Date.now().toString() + Math.random().toString(36).substr(2, 9)
-            };
-            merged.push(newActivityWithNewId);
-        }
-    });
+    ws['!merges'].push({s: {r: 0, c: 0}, e: {r: 0, c: 4}});
     
-    return merged;
+    if (!ws['!cols']) ws['!cols'] = [];
+    ws['!cols'][0] = {wch: 25};
+    ws['!cols'][1] = {wch: 35};
+    ws['!cols'][2] = {wch: 15};
+    ws['!cols'][3] = {wch: 30};
+    ws['!cols'][4] = {wch: 20};
+    
+    return ws;
 }
 
-function mergePersons(currentPersons, newPersons) {
-    const merged = [...currentPersons];
-    const existingNames = new Set(currentPersons.map(p => p.name));
-    
-    newPersons.forEach(newPerson => {
-        if (!existingNames.has(newPerson.name)) {
-            merged.push(newPerson);
-            existingNames.add(newPerson.name);
-        }
-    });
-    
-    return merged;
+// ==============================================
+// ฟังก์ชันจัดการ PWA
+// ==============================================
+
+function hideInstallPrompt() { 
+    const installGuide = document.getElementById('install-guide'); 
+    if (installGuide) { 
+        installGuide.style.display = 'none'; 
+    } 
 }
 
-function mergeActivityTypes(currentTypes, newTypes) {
-    const merged = [...currentTypes];
-    const existingNames = new Set(currentTypes.map(t => t.name));
-    
-    newTypes.forEach(newType => {
-        if (!existingNames.has(newType.name)) {
-            merged.push(newType);
-            existingNames.add(newType.name);
-        }
-    });
-    
-    return merged;
-}
+// ==============================================
+// ฟังก์ชันเสริมสำหรับการส่งออกตามช่วงวันที่
+// ==============================================
 
-function showRestoreSummary(updatedCount) {
-    let summaryMessage = 'กู้คืนข้อมูลเรียบร้อยแล้ว!\n\n';
+function validateDateRangeInput() {
+    const startDateStr = document.getElementById('exportStartDate').value;
+    const endDateStr = document.getElementById('exportEndDate').value;
     
-    if (updatedCount.activities > 0) {
-        summaryMessage += `• เพิ่มกิจกรรมใหม่: ${updatedCount.activities} รายการ\n`;
-    } else {
-        summaryMessage += `• ไม่มีกิจกรรมใหม่\n`;
+    if (!startDateStr || !endDateStr) {
+        return { isValid: false, message: "กรุณาเลือกวันที่เริ่มต้นและวันที่สิ้นสุด" };
     }
     
-    if (updatedCount.persons > 0) {
-        summaryMessage += `• เพิ่มผู้ทำกิจกรรมใหม่: ${updatedCount.persons} คน\n`;
-    } else {
-        summaryMessage += `• ไม่มีผู้ทำกิจกรรมใหม่\n`;
+    const startDate = new Date(startDateStr);
+    const endDate = new Date(endDateStr);
+    
+    if (startDate > endDate) {
+        return { isValid: false, message: "วันที่เริ่มต้นต้องมาก่อนวันที่สิ้นสุด" };
     }
     
-    if (updatedCount.activityTypes > 0) {
-        summaryMessage += `• เพิ่มประเภทกิจกรรมใหม่: ${updatedCount.activityTypes} ประเภท\n`;
-    } else {
-        summaryMessage += `• ไม่มีประเภทกิจกรรมใหม่\n`;
-    }
-    
-    alert(summaryMessage);
-    notifyDataManagement('restore');
-}
-
-function deleteActivitiesByDate() {
-    const dateToDelete = document.getElementById('deleteByDateInput').value;
-    
-    if (!dateToDelete) {
-        alert('กรุณาเลือกวันที่ต้องการลบ');
-        return;
-    }
-    
-    if (!confirm(`คุณแน่ใจว่าต้องการลบกิจกรรมทั้งหมดในวันที่ ${formatDateForDisplay(dateToDelete)}?`)) {
-        return;
-    }
-    
-    let allActivities = getFromLocalStorage('activities') || [];
-    const initialLength = allActivities.length;
-    
-    allActivities = allActivities.filter(activity => activity.date !== dateToDelete);
-    
-    if (allActivities.length === initialLength) {
-        alert('ไม่พบกิจกรรมในวันที่เลือก');
-        return;
-    }
-    
-    saveToLocalStorage('activities', allActivities);
-    loadUserActivities();
-    document.getElementById('deleteByDateInput').value = '';
-    notifyDataManagement('deleteByDate');
-}
-
-// === ฟังก์ชันจัดการสรุปกิจกรรม ===
-function loadSummaryData() {
-    const summaryType = document.getElementById('summary-type-select').value;
-    const datePicker = document.getElementById('summary-date-picker');
-    const dateRangePicker = document.getElementById('summary-date-range');
-    
-    // ✅ อัพเดทการแสดงผลผู้ทำกิจกรรมทุกครั้งที่โหลดข้อมูลสรุป
-    updateSummaryPersonDisplay();
-    
-    // ซ่อนทั้งหมดก่อน
-    datePicker.classList.add('hidden');
-    dateRangePicker.classList.add('hidden');
-    
-    // แสดงตามประเภทที่เลือก
-    switch(summaryType) {
-        case 'single-day':
-            datePicker.classList.remove('hidden');
-            break;
-        case 'date-range':
-            dateRangePicker.classList.remove('hidden');
-            break;
-        case 'brief-summary':
-        case 'all-time':
-            // ไม่ต้องแสดง input วันที่
-            break;
-    }
-    
-    console.log(`📊 โหลดการตั้งค่าสรุป: ${summaryType}`);
-}
-
-function viewSummary() {
-    const summaryType = document.getElementById('summary-type-select').value;
-    const datePicker = document.getElementById('summary-date');
-    const startDatePicker = document.getElementById('summary-start-date');
-    const endDatePicker = document.getElementById('summary-end-date');
-
-    let startDate, endDate;
-    
-    // ✅ ตรวจสอบว่ามีผู้ทำกิจกรรมแค่คนเดียวในระบบหรือไม่
-    const allPersons = getFromLocalStorage('persons') || [];
-    let actualPersonFilter = 'all';
-    
-    if (allPersons.length === 1) {
-        actualPersonFilter = allPersons[0].name;
-        console.log(`✅ มีผู้ทำกิจกรรมแค่คนเดียว: ${actualPersonFilter}, เลือกอัตโนมัติ`);
-    } else {
-        const personFilter = document.getElementById('personFilter');
-        actualPersonFilter = personFilter ? personFilter.value : 'all';
-    }
-    
-    switch(summaryType) {
-        case 'single-day':
-            if (!datePicker.value) {
-                alert('กรุณาเลือกวันที่');
-                return;
-            }
-            startDate = endDate = datePicker.value;
-            break;
-        case 'date-range':
-            if (!startDatePicker.value || !endDatePicker.value) {
-                alert('กรุณาเลือกช่วงวันที่ให้ครบถ้วน');
-                return;
-            }
-            startDate = startDatePicker.value;
-            endDate = endDatePicker.value;
-            
-            if (startDate > endDate) {
-                alert('วันที่เริ่มต้นต้องไม่เกินวันที่สิ้นสุด');
-                return;
-            }
-            break;
-        case 'all-time':
-        case 'brief-summary':
-            startDate = null;
-            endDate = null;
-            break;
-    }
-
-    generateSummary(startDate, endDate, summaryType, actualPersonFilter);
-}
-
-function generateSummary(startDate, endDate, summaryType, personFilter = 'all') {
-    const allActivities = getFromLocalStorage('activities') || [];
-    const allPersons = getFromLocalStorage('persons') || [];
-    
-    // ✅ ตรวจสอบว่ามีผู้ทำกิจกรรมแค่คนเดียวในระบบหรือไม่
-    let actualPersonFilter = personFilter;
-    if (allPersons.length === 1 && personFilter === 'all') {
-        actualPersonFilter = allPersons[0].name;
-        console.log(`✅ มีผู้ทำกิจกรรมแค่คนเดียว: ${actualPersonFilter}, เลือกอัตโนมัติ`);
-    }
-    
-    // กรองกิจกรรมตามวันที่
-    let filteredActivities = allActivities;
-    
-    if (startDate && endDate) {
-        filteredActivities = allActivities.filter(activity => {
-            return activity.date >= startDate && activity.date <= endDate;
-        });
-    } else if (startDate) {
-        filteredActivities = allActivities.filter(activity => activity.date === startDate);
-    }
-    
-    // กรองตามผู้ทำกิจกรรม (ใช้ actualPersonFilter แทน personFilter)
-    if (actualPersonFilter !== 'all') {
-        filteredActivities = filteredActivities.filter(activity => activity.person === actualPersonFilter);
-    }
-    
-    if (filteredActivities.length === 0) {
-        let message = 'ไม่มีกิจกรรมในช่วงที่เลือก';
-        if (actualPersonFilter !== 'all') {
-            message += ` สำหรับผู้ทำกิจกรรม: ${actualPersonFilter}`;
-        }
-        alert(message);
-        return;
-    }
-    
-    // เก็บข้อมูล context สำหรับการส่งออก
-    summaryContext = {
-        type: summaryType,
-        startDate: startDate,
-        endDate: endDate,
-        personFilter: actualPersonFilter, // ใช้ actualPersonFilter
-        activities: filteredActivities
-    };
-    
-    // เปิด modal เลือกรูปแบบการแสดงผล
-    document.getElementById('summaryOutputModal').style.display = 'flex';
-    
-    console.log(`📊 สรุปข้อมูล: ${summaryType}, กิจกรรม: ${filteredActivities.length} รายการ, ผู้ทำกิจกรรม: ${actualPersonFilter}`);
-}
-
-function handleSummaryOutput(outputType) {
-    closeSummaryOutputModal();
-    
-    switch (outputType) {
-        case 'display':
-            displaySummary();
-            break;
-        case 'xlsx':
-            // ตรวจสอบว่ามีไลบรารี XLSX หรือไม่
-            if (typeof XLSX === 'undefined') {
-                alert('ไม่สามารถส่งออกไฟล์ XLSX ได้ เนื่องจากไลบรารีไม่พร้อมใช้งาน');
-                return;
-            }
-            exportSummaryToXLSX();
-            break;
-        case 'pdf':
-            exportSummaryToPDF();
-            break;
-    }
-}
-
-function displaySummary() {
-    const { type, activities, startDate, endDate, personFilter } = summaryContext;
-    
-    if (!activities || activities.length === 0) {
-        alert('ไม่มีข้อมูลกิจกรรมที่จะแสดง');
-        return;
-    }
-
-    // คำนวณข้อมูลสรุป
-    const totalDurationAll = activities.reduce((total, activity) => {
-        return total + calculateDuration(activity.startTime, activity.endTime);
-    }, 0);
-
-    // จัดกลุ่มกิจกรรมตามประเภท
-    const typeTotals = {};
-    activities.forEach(activity => {
-        const duration = calculateDuration(activity.startTime, activity.endTime);
-        if (!typeTotals[activity.activityName]) {
-            typeTotals[activity.activityName] = 0;
-        }
-        typeTotals[activity.activityName] += duration;
-    });
-
-    // คำนวณจำนวนวันที่มีกิจกรรม
-    const activityDates = [...new Set(activities.map(activity => activity.date))];
-    const daysWithActivities = activityDates.length;
-
-    // ========== เพิ่มส่วนคำนวณวันที่ไม่มีกิจกรรม ==========
-    // คำนวณจำนวนวันทั้งหมดในช่วงเวลาที่เลือก
-    let totalDays = 0;
-    let daysWithoutActivities = 0;
-
-    if (startDate && endDate) {
-        // กรณีมีช่วงวันที่
-        const start = new Date(startDate);
-        const end = new Date(endDate);
-        totalDays = Math.floor((end - start) / (1000 * 60 * 60 * 24)) + 1;
-        daysWithoutActivities = totalDays - daysWithActivities;
-    } else if (startDate) {
-        // กรณีวันเดียว
-        totalDays = 1;
-        daysWithoutActivities = daysWithActivities > 0 ? 0 : 1;
-    } else {
-        // กรณีทั้งหมด (ใช้ช่วงเวลาของข้อมูลที่มี)
-        if (activityDates.length > 0) {
-            const sortedDates = activityDates.sort();
-            const firstDate = new Date(sortedDates[0]);
-            const lastDate = new Date(sortedDates[sortedDates.length - 1]);
-            totalDays = Math.floor((lastDate - firstDate) / (1000 * 60 * 60 * 24)) + 1;
-            daysWithoutActivities = totalDays - daysWithActivities;
-        } else {
-            totalDays = 0;
-            daysWithoutActivities = 0;
-        }
-    }
-    // ========== จบส่วนเพิ่มเติม ==========
-
-    // กำหนดช่วงวันที่
-    let dateRangeText = '';
-    if (startDate && endDate) {
-        if (startDate === endDate) {
-            dateRangeText = `สรุปของวันที่ ${formatDateForDisplay(startDate)}`;
-        } else {
-            dateRangeText = `ช่วงวันที่ ${formatDateForDisplay(startDate)} ถึง ${formatDateForDisplay(endDate)}`;
-        }
-    } else if (startDate) {
-        dateRangeText = `สรุปของวันที่ ${formatDateForDisplay(startDate)}`;
-    } else {
-        const allDates = activityDates.sort();
-        if (allDates.length > 0) {
-            if (allDates[0] === allDates[allDates.length - 1]) {
-                dateRangeText = `สรุปของวันที่ ${formatDateForDisplay(allDates[0])}`;
-            } else {
-                dateRangeText = `จากวันที่ ${formatDateForDisplay(allDates[0])} ถึง ${formatDateForDisplay(allDates[allDates.length - 1])}`;
-            }
-        } else {
-            dateRangeText = 'ไม่มีกิจกรรมในช่วงที่เลือก';
-        }
-    }
-
-    // คำนวณค่าเฉลี่ยต่อวัน
-    const avgDurationPerDay = daysWithActivities > 0 ? totalDurationAll / daysWithActivities : 0;
-
-    // ✅ หาผู้ทำกิจกรรมทั้งหมดและตรวจสอบว่ามีแค่คนเดียวในระบบหรือไม่
-    const allPersons = [...new Set(activities.map(activity => activity.person))];
-    const allPersonsInSystem = getFromLocalStorage('persons') || [];
-    
-    let personSummaryText = '';
-    if (allPersonsInSystem.length === 1) {
-        // ✅ กรณีมีผู้ทำกิจกรรมแค่คนเดียวในระบบ: แสดงชื่อคนนั้นเลย
-        personSummaryText = `สรุปกิจกรรมของ: ${allPersonsInSystem[0].name}`;
-    } else if (allPersons.length > 0) {
-        // กรณีมีหลายคน: แสดงตามที่เลือก
-        personSummaryText = `สรุปกิจกรรมของ: ${personFilter === 'all' ? 'ทุกคน' : allPersons.join(', ')}`;
-    } else {
-        personSummaryText = 'ไม่มีข้อมูลผู้ทำกิจกรรม';
-    }
-
-    // สร้าง HTML หลัก
-    let summaryHTML = `
-        <div class="summaryResult" style="font-family: Arial, sans-serif; max-width: 900px; margin: 0 auto; padding: 8px; border: 1.5px solid #F660EB; border-radius: 15px; background-color: #FAFAD2; text-align: center; line-height: 1.0; width: 100%; box-sizing: border-box;">
-            <div style="text-align: center; margin: 2px 0;">
-                <h3 style="color: blue; font-size: 0.9rem; line-height: 1.0; margin: 2px 0;">
-                    ${personSummaryText}
-                </h3>
-            </div>
-            <div style="text-align: center; margin: 2px 0;">
-                <h3 style="color: blue; font-size: 0.9rem; line-height: 1.0; margin: 2px 0;">
-                    สรุปวันที่ ${getCurrentDateTimeThai().replace(/(\d{2}\/\d{2}\/\d{4}) (\d{2}:\d{2})/, '$1 เวลา $2 น.')}
-                </h3>
-            </div>
-            <div style="text-align: center; margin: 2px 0;">
-                <h3 style="color: blue; font-size: 0.9rem; line-height: 1.0; margin: 2px 0;">
-                    ${dateRangeText}
-                </h3>
-            </div>
-
-            <div style="background-color: #FAFAD2; padding: 5px; margin: 5px 0; text-align: center; color: blue;">
-                <h4 style="margin: 5px 0; font-size: 0.9rem; line-height: 1.0;">สรุปจำนวนวัน</h4>
-                <p style="margin: 3px 0; font-size: 0.9rem; line-height: 1.2;">• จำนวนวันทั้งหมด: ${totalDays} วัน</p>
-                <p style="margin: 3px 0; font-size: 0.9rem; line-height: 1.2;">• จำนวนวันที่มีกิจกรรม: ${daysWithActivities} วัน</p>
-                <p style="margin: 3px 0; font-size: 0.9rem; line-height: 1.2;">• วันที่ไม่มีกิจกรรม: ${daysWithoutActivities} วัน</p>
-                <p style="margin: 3px 0; font-size: 0.9rem; line-height: 1.2;">• เวลาเฉลี่ยต่อวัน: ${formatDuration(avgDurationPerDay)}</p>
-                <p style="margin: 3px 0; font-size: 0.9rem; line-height: 1.2;">• รวมเวลาทั้งหมด: ${formatDuration(totalDurationAll)}</p>
-            </div>
-
-            <h4 style="color: #0056b3; margin: 5px 0; font-size: 0.9rem;">
-                สรุปตามประเภทกิจกรรม
-            </h4>
-            <table style="width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 0.9rem;">
-                <thead>
-                    <tr style="background-color: #007bff; color: white;">
-                        <th style="padding: 6px; border: 1px solid #ddd;">ประเภทกิจกรรม</th>
-                        <th style="padding: 6px; border: 1px solid #ddd;">ระยะเวลารวม</th>
-                    </tr>
-                </thead>
-                <tbody>
-    `;
-
-    Object.entries(typeTotals).forEach(([type, duration]) => {
-        summaryHTML += `
-            <tr>
-                <td style="padding: 5px; border: 1px solid #ddd;">${type}</td>
-                <td style="padding: 5px; border: 1px solid #ddd;">${formatDuration(duration)}</td>
-            </tr>
-        `;
-    });
-
-    summaryHTML += `
-                </tbody>
-            </table>
-    `;
-
-    // สำหรับสรุปอย่างย่อ
-    if (type === 'brief-summary') {
-        summaryHTML += `
-            <h4 style="color: #0056b3; margin: 5px 0; font-size: 0.9rem;">
-                กิจกรรมล่าสุด (4 รายการ)
-            </h4>
-            <table style="width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 0.8rem;">
-                <thead>
-                    <tr style="background-color: #007bff; color: white;">
-                        <th style="padding: 6px; border: 1px solid #ddd;">กิจกรรม</th>
-                        <th style="padding: 6px; border: 1px solid #ddd;">วันที่</th>
-                        <th style="padding: 6px; border: 1px solid #ddd;">เวลาเริ่ม&สิ้นสุด</th>
-                        <th style="padding: 6px; border: 1px solid #ddd;">รวมเวลา</th>
-                        <th style="padding: 6px; border: 1px solid #ddd;">รายละเอียด</th>
-                    </tr>
-                </thead>
-                <tbody>
-        `;
-
-        const latestActivities = [...activities]
-            .sort((a, b) => {
-                const dateCompare = b.date.localeCompare(a.date);
-                if (dateCompare !== 0) return dateCompare;
-                return b.startTime.localeCompare(a.startTime);
-            })
-            .slice(0, 4);
-
-        latestActivities.forEach(activity => {
-            const duration = calculateDuration(activity.startTime, activity.endTime);
-            summaryHTML += `
-                <tr>
-                    <td style="padding: 5px; border: 1px solid #ddd;">${activity.activityName}</td>
-                    <td style="padding: 5px; border: 1px solid #ddd;">${formatDateForDisplay(activity.date)}</td>
-                    <td style="padding: 5px; border: 1px solid #ddd;">${activity.startTime} - ${activity.endTime}</td>
-                    <td style="padding: 5px; border: 1px solid #ddd;">${formatDuration(duration)}</td>
-                    <td style="padding: 5px; border: 1px solid #ddd;">${activity.details || '-'}</td>
-                </tr>
-            `;
-        });
-
-        summaryHTML += `
-                </tbody>
-            </table>
-        `;
-    } else {
-        // สำหรับสรุปแบบเต็ม
-        summaryHTML += `
-            <h4 style="color: #0056b3; margin: 5px 0; font-size: 0.9rem;">
-                รายการกิจกรรมทั้งหมด (${activities.length} รายการ)
-            </h4>
-            <table style="width: 100%; border-collapse: collapse; margin: 8px 0; font-size: 0.8rem;">
-                <thead>
-                    <tr style="background-color: #007bff; color: white;">
-                        <th style="padding: 6px; border: 1px solid #ddd;">กิจกรรม</th>
-                        <th style="padding: 6px; border: 1px solid #ddd;">วันที่</th>
-                        <th style="padding: 6px; border: 1px solid #ddd;">เวลาเริ่ม&สิ้นสุด</th>
-                        <th style="padding: 6px; border: 1px solid #ddd;">รวมเวลา</th>
-                        <th style="padding: 6px; border: 1px solid #ddd;">รายละเอียด</th>
-                    </tr>
-                </thead>
-                <tbody>
-        `;
-
-        const sortedActivities = [...activities].sort((a, b) => {
-            const dateCompare = b.date.localeCompare(a.date);
-            if (dateCompare !== 0) return dateCompare;
-            return b.startTime.localeCompare(a.startTime);
-        });
-
-        sortedActivities.forEach(activity => {
-            const duration = calculateDuration(activity.startTime, activity.endTime);
-            summaryHTML += `
-                <tr>
-                    <td style="padding: 5px; border: 1px solid #ddd;">${activity.activityName}</td>
-                    <td style="padding: 5px; border: 1px solid #ddd;">${formatDateForDisplay(activity.date)}</td>
-                    <td style="padding: 5px; border: 1px solid #ddd;">${activity.startTime} - ${activity.endTime}</td>
-                    <td style="padding: 5px; border: 1px solid #ddd;">${formatDuration(duration)}</td>
-                    <td style="padding: 5px; border: 1px solid #ddd;">${activity.details || '-'}</td>
-                </tr>
-            `;
-        });
-
-        summaryHTML += `
-                </tbody>
-            </table>
-        `;
-    }
-
-    summaryHTML += `</div>`;
-
-    // แสดงผลใน modal
-    document.getElementById('modalBodyContent').innerHTML = summaryHTML;
-    document.getElementById('summaryModal').style.display = 'flex';
-}
-
-function exportSummaryToXLSX() {
-    // ใช้ SheetJS library สำหรับการส่งออก XLSX
-    if (typeof XLSX === 'undefined') {
-        alert('ไม่สามารถส่งออกไฟล์ XLSX ได้ เนื่องจากไลบรารีไม่พร้อมใช้งาน');
-        return;
-    }
-    
-    const { activities } = summaryContext;
-    
-    // สร้างข้อมูลสำหรับ Excel
-    const worksheetData = [
-        ['วันที่', 'เวลาเริ่มต้น', 'เวลาสิ้นสุด', 'ผู้ทำกิจกรรม', 'ประเภทกิจกรรม', 'รวมเวลา', 'รายละเอียด']
-    ];
-    
-    activities.forEach(activity => {
-        const duration = calculateDuration(activity.startTime, activity.endTime);
-        const formattedDuration = formatDuration(duration);
-        
-        worksheetData.push([
-            formatDateForDisplay(activity.date),
-            activity.startTime,
-            activity.endTime,
-            activity.person,
-            activity.activityName,
-            formattedDuration,
-            activity.details || ''
-        ]);
-    });
-    
-    const worksheet = XLSX.utils.aoa_to_sheet(worksheetData);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'กิจกรรม');
-    
-    // สร้างชื่อไฟล์
-    let fileName = 'กิจกรรมสรุป';
-    if (summaryContext.type === 'today') {
-        fileName = `กิจกรรม_${formatDateForDisplay(summaryContext.date)}`;
-    } else if (summaryContext.type === 'customDate') {
-        fileName = `กิจกรรม_${formatDateForDisplay(summaryContext.date)}`;
-    } else if (summaryContext.type === 'dateRange') {
-        fileName = `กิจกรรม_${formatDateForDisplay(summaryContext.startDate)}_ถึง_${formatDateForDisplay(summaryContext.endDate)}`;
-    } else {
-        fileName = 'กิจกรรมทั้งหมด';
-    }
-    
-    XLSX.writeFile(workbook, `${fileName}.xlsx`);
-    notifyDataManagement('export');
-}
-
-// === ฟังก์ชันสำหรับการพิมพ์ PDF ที่ปรับปรุงแล้ว ===
-function exportSummaryToPDF() {
-    const { type, activities, startDate, endDate, date } = summaryContext;
-    
-    if (!activities || activities.length === 0) {
-        alert('ไม่มีข้อมูลกิจกรรมสำหรับสร้าง PDF');
-        return;
-    }
-    
-    const allPersons = [...new Set(activities.map(activity => activity.person))];
-    const personSummaryText = allPersons.length === 1 
-        ? `สรุปกิจกรรมของ: ${allPersons[0]}` 
-        : allPersons.length > 1 
-            ? 'สรุปกิจกรรมของ: ทุกคน' 
-            : 'สรุปกิจกรรมของ: ไม่ระบุ';
-
-    // คำนวณข้อมูลสรุป
-    const totalDurationAll = activities.reduce((total, activity) => {
-        return total + calculateDuration(activity.startTime, activity.endTime);
-    }, 0);
-    
-    // จัดกลุ่มกิจกรรมตามประเภท
-    const typeTotals = {};
-    activities.forEach(activity => {
-        const duration = calculateDuration(activity.startTime, activity.endTime);
-        if (!typeTotals[activity.activityName]) {
-            typeTotals[activity.activityName] = 0;
-        }
-        typeTotals[activity.activityName] += duration;
-    });
-    
-    // คำนวณจำนวนวัน
-    const activityDates = [...new Set(activities.map(activity => activity.date))];
-    const daysWithActivities = activityDates.length;
-    const totalDays = daysWithActivities;
-    
-    // กำหนดช่วงวันที่ (ใช้ปี พ.ศ.)
-    let dateRangeText = '';
-    if (type === 'dateRange') {
-        dateRangeText = `ช่วงวันที่ ${formatDateForDisplay(startDate)} ถึง ${formatDateForDisplay(endDate)}`;
-    } else if (type === 'today' || type === 'customDate') {
-        dateRangeText = `วันที่ ${formatDateForDisplay(date)}`;
-    } else {
-        const allDates = activityDates.sort();
-        if (allDates.length > 0) {
-            dateRangeText = `จากวันที่ ${formatDateForDisplay(allDates[0])} ถึง ${formatDateForDisplay(allDates[allDates.length - 1])}`;
-        } else {
-            dateRangeText = 'ไม่มีกิจกรรมในช่วงที่เลือก';
-        }
-    }
-    
-    // คำนวณค่าเฉลี่ยต่อวัน
-    const avgDurationPerDay = daysWithActivities > 0 ? totalDurationAll / daysWithActivities : 0;
-    const daysWithoutActivities = 0;
-    
-    // ตั้งชื่อไฟล์ PDF ให้มีเวลาพ่วงท้าย (ใช้ปี พ.ศ.)
-    const now = new Date();
-    const thaiYear = now.getFullYear() + 543;
-    const month = (now.getMonth() + 1).toString().padStart(2, '0');
-    const day = now.getDate().toString().padStart(2, '0');
-    const hours = now.getHours().toString().padStart(2, '0');
-    const minutes = now.getMinutes().toString().padStart(2, '0');
-    
-    const timestamp = `${day}${month}${thaiYear}_${hours}${minutes}`;
-    const fileName = `สรุปกิจกรรม-${timestamp}.pdf`;
-
-    // สร้าง HTML สำหรับพิมพ์ - ปรับปรุงให้กะทัดรัดและต่อเนื่อง
-    let printHTML = `
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>${personSummaryText}</title>
-            <meta charset="UTF-8">
-            <style>
-                body { 
-                    font-family: Arial, sans-serif; 
-                    margin: 5mm 3mm 3mm 3mm; 
-                    padding: 0;
-                    color: #000;
-                    line-height: 1.1;
-                    font-size: 9px;
-                    text-align: center;
-                }
-                
-                .header { 
-                    text-align: center; 
-                    margin-bottom: 5px;
-                    border-bottom: 1px solid #000;
-                    padding-bottom: 3px;
-                }
-                .header h1 { 
-                    margin: 0 0 2px 0; 
-                    font-size: 12px;
-                }
-                .header h2 { 
-                    margin: 0 0 2px 0; 
-                    font-size: 10px;
-                    font-weight: normal;
-                }
-                .date-range { 
-                    font-size: 9px;
-                    margin-top: 2px;
-                }
-                
-                /* เพิ่มสไตล์สำหรับวันที่สรุป */
-                .summary-date {
-                    text-align: center;
-                    margin-bottom: 3px;
-                    color: blue;
-                    font-size: 9px;
-                    line-height: 1.0;
-                }
-                
-                .summary-section {
-                    margin: 5px 0;
-                    text-align: center;
-                    page-break-inside: avoid;
-                }
-                .summary-section h3 { 
-                    margin: 0 0 5px 0;
-                    font-size: 10px;
-                    background-color: #f0f0f0;
-                    padding: 3px 5px;
-                    text-align: center;
-                }
-                
-                /* สไตล์ใหม่สำหรับเนื้อหาสรุป - จัดกึ่งกลางทั้งหมด */
-                .summary-content {
-                    text-align: center;
-                    margin: 0 auto;
-                    max-width: 100%;
-                    line-height: 1.2;
-                }
-                .summary-line {
-                    margin: 3px 0;
-                    padding: 2px 0;
-                    border-bottom: 1px dashed #ddd;
-                    text-align: center;
-                }
-                .summary-text {
-                    display: inline;
-                    white-space: normal;
-                    word-wrap: break-word;
-                    text-align: center;
-                }
-                
-                /* สไตล์สำหรับตารางรายการกิจกรรม - ปรับปรุงให้กะทัดรัดมากขึ้น */
-                table { 
-                    width: 100%; 
-                    border-collapse: collapse; 
-                    margin: 3px auto;
-                    font-size: 8px;
-                    table-layout: fixed;
-                    word-wrap: break-word;
-                    page-break-inside: avoid;
-                }
-                th { 
-                    background-color: #ddd; 
-                    padding: 2px 1px;
-                    border: 1px solid #000;
-                    text-align: center;
-                    white-space: nowrap;
-                    font-size: 8px;
-                }
-                td { 
-                    padding: 2px 1px;
-                    border: 1px solid #000;
-                    word-break: break-word;
-                    vertical-align: middle;
-                    text-align: center;
-                    font-size: 7px;
-                    line-height: 1.0;
-                }
-                
-                /* ปรับความกว้างคอลัมน์ใหม่ให้กะทัดรัดมากขึ้น */
-                .col-act-name { width: 18%; }
-                .col-date { width: 10%; }
-                .col-time { width: 12%; }
-                .col-duration-small { width: 12%; }
-                .col-details { width: 48%; }
-                
-                .total-row {
-                    background-color: #f0f0f0;
-                    font-weight: bold;
-                }
-                
-                .page-info {
-                    text-align: center;
-                    margin-top: 5px;
-                    font-size: 7px;
-                    color: #666;
-                }
-                
-                /* ป้องกันการแบ่งหน้าในตาราง */
-                table, tr, td, th {
-                    page-break-inside: avoid !important;
-                }
-                
-                /* สไตล์สำหรับตารางสรุปประเภทกิจกรรม */
-                .summary-table {
-                    width: 100%;
-                    margin: 3px 0;
-                    font-size: 8px;
-                }
-                
-                .summary-table th,
-                .summary-table td {
-                    padding: 2px 1px;
-                    border: 1px solid #000;
-                }
-
-                /* ลดพื้นที่ว่างระหว่างส่วนต่างๆ */
-                .compact-section {
-                    margin: 2px 0;
-                }
-
-                /* ปรับปรุงการแสดงผลสำหรับข้อมูลสรุป */
-                .stats-grid {
-                    display: grid;
-                    grid-template-columns: 1fr 1fr;
-                    gap: 2px;
-                    margin: 3px 0;
-                    font-size: 8px;
-                }
-
-                .stat-item {
-                    padding: 2px;
-                    border: 0.5px solid #ccc;
-                    text-align: center;
-                }
-            </style>
-        </head>
-        <body>
-            <div class="header">
-                <h1>สรุปกิจกรรม</h1>
-                <h2>${personSummaryText}</h2>
-    `;
-    
-    // ส่วนหัวเรื่องวันที่
-    if (startDate && endDate && startDate !== endDate) {
-        printHTML += `<div class="date-range">ช่วงวันที่ ${formatDateForDisplay(startDate)} ถึง ${formatDateForDisplay(endDate)}</div>`;
-    } else if (startDate) {
-        printHTML += `<div class="date-range">สรุปของวันที่ ${formatDateForDisplay(startDate)}</div>`;
-    } else {
-        const allActivityDates = Array.from(new Set(activities.map(activity => activity.date))).sort();
-        if (allActivityDates.length > 0) {
-            if (allActivityDates[0] === allActivityDates[allActivityDates.length - 1]) {
-                printHTML += `<div class="date-range">สรุปของวันที่ ${formatDateForDisplay(allActivityDates[0])}</div>`;
-            } else {
-                printHTML += `<div class="date-range">จากวันที่ ${formatDateForDisplay(allActivityDates[0])} ถึง ${formatDateForDisplay(allActivityDates[allActivityDates.length - 1])}</div>`;
-            }
-        } else {
-            printHTML += `<div class="date-range">ไม่มีกิจกรรมในช่วงที่เลือก</div>`;
-        }
-    }
-    
-    // เพิ่มส่วน "สรุปเมื่อ"
-    printHTML += `
-                <div class="summary-date">
-                    <h3 style="color: blue; font-size: 9px; line-height: 1.0; margin: 2px 0;">
-                        สรุปวันที่ ${getCurrentDateTimeThai().replace(/(\d{2}\/\d{2}\/\d{4}) (\d{2}:\d{2})/, '$1 เวลา $2 น.')}
-                    </h3>
-                </div>
-            </div>
-    `;
-    
-    // ส่วนสรุปจำนวนวัน - ใช้รูปแบบกะทัดรัด
-    printHTML += `
-            <div class="summary-section compact-section">
-                <h3>สรุปจำนวนวัน</h3>
-                <div class="stats-grid">
-                    <div class="stat-item">จำนวนวันทั้งหมด<br>${totalDays} วัน</div>
-                    <div class="stat-item">วันที่มีกิจกรรม<br>${daysWithActivities} วัน</div>
-                    <div class="stat-item">วันที่ไม่มีกิจกรรม<br>${daysWithoutActivities} วัน</div>
-                    <div class="stat-item">เวลาเฉลี่ยต่อวัน<br>${formatDuration(avgDurationPerDay)}</div>
-                </div>
-                <div style="margin-top: 2px; font-weight: bold;">
-                    เวลารวมทั้งหมด: ${formatDuration(totalDurationAll)}
-                </div>
-            </div>
-    `;
-    
-    // ส่วนสรุปตามประเภทกิจกรรม
-    printHTML += `
-            <div class="summary-section compact-section">
-                <h3>สรุปตามประเภทกิจกรรม</h3>
-                <table class="summary-table">
-                    <thead>
-                        <tr>
-                            <th>ประเภทกิจกรรม</th>
-                            <th>ระยะเวลารวม</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-    `;
-    
-    Object.entries(typeTotals).forEach(([type, duration]) => {
-        printHTML += `
-            <tr>
-                <td>${type}</td>
-                <td>${formatDuration(duration)}</td>
-            </tr>
-        `;
-    });
-    
-    printHTML += `
-                        <tr class="total-row">
-                            <td><strong>รวมทั้งหมด</strong></td>
-                            <td><strong>${formatDuration(totalDurationAll)}</strong></td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-    `;
-    
-    // ตารางรายการกิจกรรมทั้งหมด (ปรับปรุงให้กะทัดรัดมากที่สุด)
-    if (activities.length > 0) {
-        printHTML += `
-            <div class="summary-section compact-section">
-                <h3>รายการกิจกรรมทั้งหมด (${activities.length} รายการ)</h3>
-                <table>
-                    <colgroup>
-                        <col class="col-act-name">
-                        <col class="col-date">
-                        <col class="col-time">
-                        <col class="col-duration-small">
-                        <col class="col-details">
-                    </colgroup>
-                    <thead>
-                        <tr>
-                            <th>กิจกรรม</th>
-                            <th>วันที่</th>
-                            <th>เวลา</th>
-                            <th>รวมเวลา</th>
-                            <th>รายละเอียด</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-        `;
-        
-        // เรียงลำดับกิจกรรมตามวันที่และเวลา
-        const sortedActivities = [...activities].sort((a, b) => {
-            const dateCompare = b.date.localeCompare(a.date);
-            if (dateCompare !== 0) return dateCompare;
-            return b.startTime.localeCompare(a.startTime);
-        });
-        
-        sortedActivities.forEach(activity => {
-            const duration = calculateDuration(activity.startTime, activity.endTime);
-            printHTML += `
-                <tr>
-                    <td>${activity.activityName}</td>
-                    <td>${formatDateForDisplay(activity.date)}</td>
-                    <td>${activity.startTime}-${activity.endTime}</td>
-                    <td>${formatDuration(duration)}</td>
-                    <td>${activity.details || '-'}</td>
-                </tr>
-            `;
-        });
-        
-        printHTML += `
-                    </tbody>
-                </table>
-            </div>
-        `;
-    } else {
-        printHTML += `
-            <div class="summary-section compact-section">
-                <h3>รายการกิจกรรมทั้งหมด</h3>
-                <p>ไม่มีกิจกรรมในช่วงที่เลือก</p>
-            </div>
-        `;
-    }
-    
-    printHTML += `
-            <div class="page-info">
-                สร้างเมื่อ: ${new Date().toLocaleDateString('th-TH')} - ระบบบันทึกกิจกรรม
-            </div>
-        </body>
-        </html>
-    `;
-    
-    // สร้างหน้าต่างใหม่สำหรับพิมพ์
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
-        alert('กรุณาอนุญาตป๊อปอัพสำหรับการพิมพ์ PDF');
-        return;
-    }
-    
-    // ตั้งชื่อ title ให้กับหน้าต่าง (ช่วยในการตั้งชื่อไฟล์เมื่อบันทึก)
-    printWindow.document.title = fileName;
-    
-    // เขียน HTML ไปยังหน้าต่างใหม่
-    printWindow.document.open();
-    printWindow.document.write(printHTML);
-    printWindow.document.close();
-    
-    // พิมพ์อัตโนมัติเมื่อโหลดหน้าเสร็จ
-    printWindow.onload = function() {
-        setTimeout(function() {
-            printWindow.print();
-        }, 500);
-    };
-    
-    showToast('กำลังเปิดหน้าต่างพิมพ์ PDF...', 'success');
-}
-// === ฟังก์ชันเสริมสำหรับการพิมพ์ PDF ===
-function getCurrentDateTimeThai() {
-    const now = new Date();
-    const thaiYear = now.getFullYear() + 543;
-    const day = now.getDate().toString().padStart(2, '0');
-    const month = (now.getMonth() + 1).toString().padStart(2, '0');
-    const hours = now.getHours().toString().padStart(2, '0');
-    const minutes = now.getMinutes().toString().padStart(2, '0');
-    
-    return `${day}/${month}/${thaiYear} ${hours}:${minutes}`;
-}
-
-// === ฟังก์ชันสำหรับจัดรูปแบบวันที่ ===
-function formatDate(dateString) {
-    const date = new Date(dateString);
-    if (isNaN(date)) return dateString;
-    
-    const day = date.getDate().toString().padStart(2, '0');
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const year = (date.getFullYear() + 543).toString(); // แปลงจาก ค.ศ. เป็น พ.ศ.
-    
-    return `${day}/${month}/${year}`;
-}
-
-function closeSummaryModal() {
-    document.getElementById('summaryModal').style.display = 'none';
-}
-
-function closeSummaryOutputModal() {
-    document.getElementById('summaryOutputModal').style.display = 'none';
-}
-
-// === ฟังก์ชันบันทึกเป็นรูปภาพ ===
-function saveSummaryAsImage() {
-    const pinkFrame = document.querySelector('.summaryResult[style*="border: 1.5px solid #F660EB"]');
-    
-    if (!pinkFrame) {
-        alert('ไม่พบกรอบสีชมพูสำหรับบันทึก');
-        return;
-    }
-    
-    // บันทึก style เดิม
-    const originalMargin = pinkFrame.style.margin;
-    const originalBoxSizing = pinkFrame.style.boxSizing;
-    
-    // เพิ่ม margin เพื่อสร้างพื้นที่ขอบสีขาว
-    pinkFrame.style.margin = '2px';
-    pinkFrame.style.boxSizing = 'content-box';
-    
-    html2canvas(pinkFrame, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: '#FFFFFF',
-        logging: false,
-        onclone: function(clonedDoc, element) {
-            const clonedFrame = element;
-            clonedFrame.style.backgroundColor = '#FAFAD2';
-        }
-    }).then(canvas => {
-        // สร้าง canvas ใหม่ที่มีพื้นที่ขอบสีขาวเพิ่ม
-        const finalCanvas = document.createElement('canvas');
-        const finalCtx = finalCanvas.getContext('2d');
-        const borderSize = 2;
-        
-        finalCanvas.width = canvas.width + (borderSize * 2);
-        finalCanvas.height = canvas.height + (borderSize * 2);
-        
-        finalCtx.fillStyle = '#FFFFFF';
-        finalCtx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
-        
-        finalCtx.drawImage(canvas, borderSize, borderSize);
-        
-        pinkFrame.style.margin = originalMargin;
-        pinkFrame.style.boxSizing = originalBoxSizing;
-        
-        const link = document.createElement('a');
-        let fileName = 'สรุปกิจกรรม';
-        
-        // ใช้ปี พ.ศ. ในชื่อไฟล์
-        if (summaryContext.type === 'today') {
-            const today = new Date();
-            const thaiYear = today.getFullYear() + 543;
-            const month = (today.getMonth() + 1).toString().padStart(2, '0');
-            const day = today.getDate().toString().padStart(2, '0');
-            fileName = `สรุปกิจกรรม_วันนี้_${day}${month}${thaiYear}`;
-        } else if (summaryContext.type === 'customDate') {
-            fileName = `สรุปกิจกรรม_${formatDateForDisplay(summaryContext.date)}`;
-        } else if (summaryContext.type === 'dateRange') {
-            fileName = `สรุปกิจกรรม_${formatDateForDisplay(summaryContext.startDate)}_ถึง_${formatDateForDisplay(summaryContext.endDate)}`;
-        } else {
-            const today = new Date();
-            const thaiYear = today.getFullYear() + 543;
-            const month = (today.getMonth() + 1).toString().padStart(2, '0');
-            const day = today.getDate().toString().padStart(2, '0');
-            fileName = `สรุปกิจกรรม_ทั้งหมด_${day}${month}${thaiYear}`;
-        }
-        
-        link.download = `${fileName}.png`;
-        link.href = finalCanvas.toDataURL('image/png');
-        link.click();
-        
-        showToast('บันทึกรูปภาพเรียบร้อยแล้ว', 'success');
-        
-    }).catch(error => {
-        pinkFrame.style.margin = originalMargin;
-        pinkFrame.style.boxSizing = originalBoxSizing;
-        
-        console.error('Error saving image:', error);
-        alert('เกิดข้อผิดพลาดในการบันทึกรูปภาพ: ' + error.message);
-    });
-}
-
-// === ฟังก์ชันจัดการข้อมูลซ้ำและไฟล์ขยะ ===
-// ฟังก์ชันสำหรับทำความสะอาดข้อมูลอัตโนมัติ
-function cleanDuplicateData() {
-    let allActivities = getFromLocalStorage('activities') || [];
-    const initialCount = allActivities.length;
-    
-    if (allActivities.length === 0) {
-        alert('ไม่มีข้อมูลกิจกรรมให้ทำความสะอาด');
-        return;
-    }
-    
-    // ลบกิจกรรมซ้ำโดยใช้ ID
-    const uniqueActivities = [];
-    const seenIds = new Set();
-    
-    allActivities.forEach(activity => {
-        if (!seenIds.has(activity.id)) {
-            seenIds.add(activity.id);
-            uniqueActivities.push(activity);
-        }
-    });
-    
-    allActivities = uniqueActivities;
-    saveToLocalStorage('activities', allActivities);
-    
-    const removedCount = initialCount - allActivities.length;
-    
-    // โหลดกิจกรรมใหม่เพื่ออัปเดตการแสดงผล
-    loadUserActivities();
-    
-    if (removedCount > 0) {
-        showToast(`ทำความสะอาดข้อมูลเรียบร้อย! ลบข้อมูลซ้ำ ${removedCount} รายการ`, 'success');
-    } else {
-        showToast('ไม่พบข้อมูลซ้ำ', 'info');
-    }
-}
-
-// ฟังก์ชันทำความสะอาดข้อมูลขั้นสูง
-function advancedDataCleanup() {
-    if (!confirm('การทำความสะอาดข้อมูลขั้นสูงจะลบกิจกรรมที่ซ้ำกันและข้อมูลที่ไม่สมบูรณ์\n\nคุณแน่ใจหรือไม่?')) {
-        return;
-    }
-    
-    let allActivities = getFromLocalStorage('activities') || [];
-    const initialCount = allActivities.length;
-    
-    if (allActivities.length === 0) {
-        alert('ไม่มีข้อมูลกิจกรรมให้ทำความสะอาด');
-        return;
-    }
-    
-    // ขั้นตอนที่ 1: ลบกิจกรรมซ้ำโดยใช้ ID
-    const uniqueActivities = [];
-    const seenIds = new Set();
-    
-    allActivities.forEach(activity => {
-        if (!seenIds.has(activity.id)) {
-            seenIds.add(activity.id);
-            uniqueActivities.push(activity);
-        }
-    });
-    
-    // ขั้นตอนที่ 2: ลบกิจกรรมที่ไม่สมบูรณ์
-    const completeActivities = uniqueActivities.filter(activity => 
-        activity.date && 
-        activity.startTime && 
-        activity.endTime && 
-        activity.person && 
-        activity.activityName
-    );
-    
-    allActivities = completeActivities;
-    saveToLocalStorage('activities', allActivities);
-    
-    const removedDuplicates = initialCount - uniqueActivities.length;
-    const removedIncomplete = uniqueActivities.length - completeActivities.length;
-    const totalRemoved = initialCount - completeActivities.length;
-    
-    // โหลดกิจกรรมใหม่เพื่ออัปเดตการแสดงผล
-    loadUserActivities();
-    
-    let message = `ทำความสะอาดข้อมูลเรียบร้อย!\n\n`;
-    message += `• จำนวนกิจกรรมเริ่มต้น: ${initialCount} รายการ\n`;
-    message += `• ลบกิจกรรมซ้ำ: ${removedDuplicates} รายการ\n`;
-    message += `• ลบกิจกรรมไม่สมบูรณ์: ${removedIncomplete} รายการ\n`;
-    message += `• จำนวนกิจกรรมหลังทำความสะอาด: ${completeActivities.length} รายการ\n`;
-    message += `• ลบทั้งหมด: ${totalRemoved} รายการ`;
-    
-    alert(message);
-    showToast('ทำความสะอาดข้อมูลขั้นสูงเรียบร้อยแล้ว', 'success');
-}
-// =============================================
-// 19.5 ระบบตรวจสอบสุขภาพข้อมูลและทำความสะอาด
-// =============================================
-
-function showDataHealthReport() {
-    const allActivities = getFromLocalStorage('activities') || [];
-    const allPersons = getFromLocalStorage('persons') || [];
-    const allActivityTypes = getFromLocalStorage('activityTypes') || [];
-    
-    let report = "📊 รายงานสุขภาพข้อมูล\n\n";
-    
-    // ตรวจสอบกิจกรรม
-    report += `📝 กิจกรรมทั้งหมด: ${allActivities.length} รายการ\n`;
-    
-    // ตรวจสอบกิจกรรมที่ขาดข้อมูลสำคัญ
-    const incompleteActivities = allActivities.filter(activity => 
-        !activity.date || !activity.startTime || !activity.endTime || 
-        !activity.person || !activity.activityName
-    );
-    
-    report += `⚠️  กิจกรรมที่ขาดข้อมูล: ${incompleteActivities.length} รายการ\n`;
-    
-    // ตรวจสอบกิจกรรมที่มีเวลาไม่ถูกต้อง
-    const invalidTimeActivities = allActivities.filter(activity => {
-        const duration = calculateDuration(activity.startTime, activity.endTime);
-        return duration <= 0 || isNaN(duration);
-    });
-    
-    report += `⏰ กิจกรรมที่มีเวลาไม่ถูกต้อง: ${invalidTimeActivities.length} รายการ\n`;
-    
-    // ตรวจสอบกิจกรรมซ้ำ
-    const duplicateActivities = findDuplicateActivities(allActivities);
-    report += `🔄 กิจกรรมซ้ำ: ${duplicateActivities.length} รายการ\n\n`;
-    
-    // ตรวจสอบผู้ทำกิจกรรม
-    report += `👥 ผู้ทำกิจกรรม: ${allPersons.length} คน\n`;
-    
-    // ตรวจสอบผู้ทำกิจกรรมที่ไม่ได้ใช้
-    const unusedPersons = allPersons.filter(person => 
-        !allActivities.some(activity => activity.person === person.name)
-    );
-    
-    report += `🚫 ผู้ทำกิจกรรมที่ไม่ได้ใช้: ${unusedPersons.length} คน\n\n`;
-    
-    // ตรวจสอบประเภทกิจกรรม
-    report += `📋 ประเภทกิจกรรม: ${allActivityTypes.length} ประเภท\n`;
-    
-    // ตรวจสอบประเภทกิจกรรมที่ไม่ได้ใช้
-    const unusedActivityTypes = allActivityTypes.filter(type => 
-        !allActivities.some(activity => activity.activityName === type.name)
-    );
-    
-    report += `🚫 ประเภทกิจกรรมที่ไม่ได้ใช้: ${unusedActivityTypes.length} ประเภท\n\n`;
-    
-    // ตรวจสอบข้อมูลที่เสียหาย
-    const corruptedActivities = allActivities.filter(activity => 
-        !activity.id || typeof activity.id !== 'string'
-    );
-    
-    report += `❌ กิจกรรมที่ข้อมูลเสียหาย: ${corruptedActivities.length} รายการ\n`;
-    
-    // แสดงรายงาน
-    alert(report);
-    
-    if (incompleteActivities.length === 0 && 
-        invalidTimeActivities.length === 0 && 
-        duplicateActivities.length === 0 &&
-        unusedPersons.length === 0 &&
-        unusedActivityTypes.length === 0 &&
-        corruptedActivities.length === 0) {
-        showToast('✅ ข้อมูลอยู่ในสภาพดี', 'success');
-    } else {
-        showToast('⚠️ พบปัญหาบางอย่างในข้อมูล', 'warning');
-    }
-}
-
-function cleanDuplicateData() {
-    if (!confirm('คุณแน่ใจว่าต้องการทำความสะอาดข้อมูลซ้ำอัตโนมัติ?\nการกระทำนี้ไม่สามารถย้อนกลับได้')) {
-        return;
-    }
-    
-    const allActivities = getFromLocalStorage('activities') || [];
-    const originalCount = allActivities.length;
-    
-    if (originalCount === 0) {
-        alert('ไม่มีข้อมูลกิจกรรมให้ทำความสะอาด');
-        return;
-    }
-    
-    // ลบกิจกรรมซ้ำ
-    const uniqueActivities = removeDuplicateActivities(allActivities);
-    
-    // ลบกิจกรรมที่ข้อมูลไม่สมบูรณ์
-    const cleanedActivities = uniqueActivities.filter(activity => 
-        activity.date && activity.startTime && activity.endTime && 
-        activity.person && activity.activityName &&
-        calculateDuration(activity.startTime, activity.endTime) > 0
-    );
-    
-    // บันทึกข้อมูลที่ทำความสะอาดแล้ว
-    saveToLocalStorage('activities', cleanedActivities);
-    
-    const removedCount = originalCount - cleanedActivities.length;
-    
-    // สร้างรายงานผล
-    let report = "🧹 ผลการทำความสะอาดข้อมูลอัตโนมัติ\n\n";
-    report += `📝 ก่อนทำความสะอาด: ${originalCount} รายการ\n`;
-    report += `📝 หลังทำความสะอาด: ${cleanedActivities.length} รายการ\n`;
-    report += `🗑️  ลบไปแล้ว: ${removedCount} รายการ\n\n`;
-    
-    if (removedCount > 0) {
-        report += `✅ ทำความสะอาดข้อมูลเรียบร้อยแล้ว!\n`;
-        report += `ข้อมูลที่เสียหายและซ้ำซ้อนถูกกำจัดออกแล้ว`;
-    } else {
-        report += `ℹ️  ไม่พบข้อมูลที่ต้องทำความสะอาด\n`;
-        report += `ข้อมูลอยู่ในสภาพดีอยู่แล้ว`;
-    }
-    
-    alert(report);
-    
-    // โหลดข้อมูลใหม่
-    loadUserActivities();
-    
-    if (removedCount > 0) {
-        showToast(`ทำความสะอาดข้อมูลเรียบร้อย (ลบ ${removedCount} รายการ)`, 'success');
-    } else {
-        showToast('ไม่พบข้อมูลที่ต้องทำความสะอาด', 'info');
-    }
-}
-
-function advancedDataCleanup() {
-    if (!confirm('คุณแน่ใจว่าต้องการทำความสะอาดข้อมูลขั้นสูง?\nการกระทำนี้จะลบ:\n• กิจกรรมที่ข้อมูลไม่สมบูรณ์\n• ผู้ทำกิจกรรมที่ไม่ได้ใช้\n• ประเภทกิจกรรมที่ไม่ได้ใช้\n\nการกระทำนี้ไม่สามารถย้อนกลับได้')) {
-        return;
-    }
-    
-    const allActivities = getFromLocalStorage('activities') || [];
-    const allPersons = getFromLocalStorage('persons') || [];
-    const allActivityTypes = getFromLocalStorage('activityTypes') || [];
-    
-    const originalStats = {
-        activities: allActivities.length,
-        persons: allPersons.length,
-        activityTypes: allActivityTypes.length
-    };
-    
-    // 1. ลบกิจกรรมที่ข้อมูลไม่สมบูรณ์
-    const cleanedActivities = allActivities.filter(activity => 
-        activity.date && activity.startTime && activity.endTime && 
-        activity.person && activity.activityName &&
-        activity.id && typeof activity.id === 'string' &&
-        calculateDuration(activity.startTime, activity.endTime) > 0
-    );
-    
-    // 2. ลบกิจกรรมซ้ำ
-    const uniqueActivities = removeDuplicateActivities(cleanedActivities);
-    
-    // 3. ลบผู้ทำกิจกรรมที่ไม่ได้ใช้
-    const usedPersons = new Set(uniqueActivities.map(activity => activity.person));
-    const cleanedPersons = allPersons.filter(person => usedPersons.has(person.name));
-    
-    // 4. ลบประเภทกิจกรรมที่ไม่ได้ใช้
-    const usedActivityTypes = new Set(uniqueActivities.map(activity => activity.activityName));
-    const cleanedActivityTypes = allActivityTypes.filter(type => usedActivityTypes.has(type.name));
-    
-    // 5. บันทึกข้อมูลที่ทำความสะอาดแล้ว
-    saveToLocalStorage('activities', uniqueActivities);
-    saveToLocalStorage('persons', cleanedPersons);
-    saveToLocalStorage('activityTypes', cleanedActivityTypes);
-    
-    const finalStats = {
-        activities: uniqueActivities.length,
-        persons: cleanedPersons.length,
-        activityTypes: cleanedActivityTypes.length
-    };
-    
-    // สร้างรายงานผล
-    let report = "🔧 ผลการทำความสะอาดข้อมูลขั้นสูง\n\n";
-    report += "📊 ก่อนทำความสะอาด:\n";
-    report += `   • กิจกรรม: ${originalStats.activities} รายการ\n`;
-    report += `   • ผู้ทำกิจกรรม: ${originalStats.persons} คน\n`;
-    report += `   • ประเภทกิจกรรม: ${originalStats.activityTypes} ประเภท\n\n`;
-    
-    report += "📊 หลังทำความสะอาด:\n";
-    report += `   • กิจกรรม: ${finalStats.activities} รายการ\n`;
-    report += `   • ผู้ทำกิจกรรม: ${finalStats.persons} คน\n`;
-    report += `   • ประเภทกิจกรรม: ${finalStats.activityTypes} ประเภท\n\n`;
-    
-    report += "🗑️  ลบไปแล้ว:\n";
-    report += `   • กิจกรรม: ${originalStats.activities - finalStats.activities} รายการ\n`;
-    report += `   • ผู้ทำกิจกรรม: ${originalStats.persons - finalStats.persons} คน\n`;
-    report += `   • ประเภทกิจกรรม: ${originalStats.activityTypes - finalStats.activityTypes} ประเภท\n\n`;
-    
-    report += "✅ ทำความสะอาดข้อมูลเรียบร้อยแล้ว!";
-    
-    alert(report);
-    
-    // โหลดข้อมูลใหม่
-    loadUserActivities();
-    populatePersonDropdown('personSelect');
-    populateActivityTypeDropdowns('activityTypeSelect');
-    populatePersonFilter();
-    
-    showToast('ทำความสะอาดข้อมูลขั้นสูงเรียบร้อยแล้ว', 'success');
-}
-
-// ฟังก์ชันช่วยเหลือสำหรับการทำความสะอาด
-function findDuplicateActivities(activities) {
-    const duplicates = [];
-    const seen = new Set();
-    
-    activities.forEach(activity => {
-        const key = `${activity.date}-${activity.startTime}-${activity.endTime}-${activity.person}-${activity.activityName}`;
-        
-        if (seen.has(key)) {
-            duplicates.push(activity);
-        } else {
-            seen.add(key);
-        }
-    });
-    
-    return duplicates;
-}
-
-function removeDuplicateActivities(activities) {
-    const uniqueActivities = [];
-    const seen = new Set();
-    
-    activities.forEach(activity => {
-        const key = `${activity.date}-${activity.startTime}-${activity.endTime}-${activity.person}-${activity.activityName}`;
-        
-        if (!seen.has(key)) {
-            uniqueActivities.push(activity);
-            seen.add(key);
-        }
-    });
-    
-    return uniqueActivities;
-}
-
-function findOrphanedData() {
-    const allActivities = getFromLocalStorage('activities') || [];
-    const allPersons = getFromLocalStorage('persons') || [];
-    const allActivityTypes = getFromLocalStorage('activityTypes') || [];
-    
-    // หาผู้ทำกิจกรรมที่ไม่มีกิจกรรมอ้างอิง
-    const orphanedPersons = allPersons.filter(person => 
-        !allActivities.some(activity => activity.person === person.name)
-    );
-    
-    // หาประเภทกิจกรรมที่ไม่มีกิจกรรมอ้างอิง
-    const orphanedActivityTypes = allActivityTypes.filter(type => 
-        !allActivities.some(activity => activity.activityName === type.name)
-    );
-    
-    return {
-        orphanedPersons,
-        orphanedActivityTypes
+    return { 
+        isValid: true, 
+        startDateStr, 
+        endDateStr, 
+        startDate, 
+        endDate: new Date(endDate.setHours(23, 59, 59, 999))
     };
 }
 
-// === ฟังก์ชันจัดการการแสดงผลผู้ทำกิจกรรม ===
-function updateCurrentPersonDisplay() {
-    const personSelect = document.getElementById('personSelect');
-    const currentPersonValue = document.getElementById('currentPersonValue');
-    
-    if (!currentPersonValue) {
-        console.error('❌ ไม่พบ element currentPersonValue');
-        return;
-    }
-    
-    // ตรวจสอบว่ามีการเลือกอัตโนมัติหรือไม่
-    const selectedValue = personSelect.value;
-    const selectedText = personSelect.options[personSelect.selectedIndex]?.text || '';
-    
-    // ตรวจสอบว่ามีการเลือกอัตโนมัติโดยดูจาก display style
-    const wrapper = personSelect.closest('.select-wrapper');
-    const isAutoSelected = wrapper?.classList.contains('hide-dropdown');
-    
-    if (selectedValue && selectedValue !== '' && selectedValue !== 'custom') {
-        if (isAutoSelected) {
-            // กรณีเลือกอัตโนมัติ
-            currentPersonValue.textContent = `${selectedText}`;
-            currentPersonValue.style.color = '#28a745';
-            currentPersonValue.className = 'current-person-value selected';
-        } else {
-            // กรณีเลือกด้วยตนเอง
-            currentPersonValue.textContent = selectedText;
-            currentPersonValue.style.color = '#007bff';
-            currentPersonValue.className = 'current-person-value selected';
-        }
-    } else {
-        // กรณียังไม่ได้เลือก
-        currentPersonValue.textContent = 'ยังไม่ได้เลือก';
-        currentPersonValue.style.color = '#dc3545';
-        currentPersonValue.className = 'current-person-value not-selected';
-    }
-    
-    // บังคับให้แสดงในบรรทัดเดียวกัน
-    const container = document.querySelector('.current-person-container');
-    if (container) {
-        container.style.flexDirection = 'row';
-        container.style.flexWrap = 'nowrap';
-        container.style.whiteSpace = 'nowrap';
-    }
-    
-    console.log(`👤 อัปเดตแสดงผลผู้ทำกิจกรรม: ${currentPersonValue.textContent}`);
+function filterRecordsByDateRange(startDate, endDate) {
+    return records.filter(record => {
+        if (record.account !== currentAccount) return false;
+        
+        const recordDate = parseLocalDateTime(record.dateTime);
+        return recordDate >= startDate && recordDate <= endDate;
+    });
 }
 
-// === ฟังก์ชันจัดการการแสดงผลผู้ทำกิจกรรมบนมือถือ ===
-function setupMobilePersonDisplay() {
-    const isMobile = window.innerWidth <= 768;
-    const container = document.querySelector('.current-person-container');
-    
-    if (isMobile && container) {
-        // บนมือถือ: บังคับให้แสดงในบรรทัดเดียวกัน
-        container.style.flexDirection = 'row';
-        container.style.flexWrap = 'nowrap';
-        container.style.whiteSpace = 'nowrap';
-        container.style.justifyContent = 'center';
-        container.style.alignItems = 'center';
-        
-        // ปรับขนาดตัวอักษรให้เหมาะสมกับมือถือ
-        const label = container.querySelector('.current-person-label');
-        const value = container.querySelector('.current-person-value');
-        
-        if (label) label.style.fontSize = 'clamp(0.8rem, 2.5vw, 0.9rem)';
-        if (value) value.style.fontSize = 'clamp(0.8rem, 2.5vw, 0.9rem)';
-    }
+function showNoDataAlert(startDateStr, endDateStr) {
+    alert(`ไม่พบข้อมูลในบัญชี "${currentAccount}" ระหว่างวันที่ ${startDateStr} ถึง ${endDateStr}`);
 }
 
-// === ฟังก์ชันโหลดข้อมูลผู้ทำกิจกรรมลงใน dropdown กรอง ===
-function populatePersonFilter() {
-    const personFilter = document.getElementById('personFilter');
-    if (!personFilter) {
-        console.error('❌ ไม่พบ element personFilter');
-        return;
-    }
+// ==============================================
+// ฟังก์ชันเริ่มต้น
+// ==============================================
+
+window.onload = function () {
+    document.getElementById('detailsSection').style.display = 'none';
+    loadFromLocal();
+    toggleSection('account-section');
     
-    const allPersons = getFromLocalStorage('persons') || [];
-    
-    // เก็บค่าเดิมที่เลือกไว้
-    const selectedValue = personFilter.value;
-    
-    // ล้าง options ทั้งหมดยกเว้น option "ทั้งหมด"
-    while (personFilter.options.length > 1) {
-        personFilter.remove(1);
-    }
-    
-    // เพิ่มตัวเลือกจากฐานข้อมูล
-    allPersons.forEach(person => {
-        const option = document.createElement('option');
-        option.value = person.name;
-        option.textContent = person.name;
-        personFilter.appendChild(option);
+    document.getElementById('backup-password-form').addEventListener('submit', saveBackupPassword);
+    document.getElementById('show-backup-password').addEventListener('change', (e) => {
+        document.getElementById('backup-password').type = e.target.checked ? 'text' : 'password';
+        document.getElementById('backup-password-confirm').type = e.target.checked ? 'text' : 'password';
     });
     
-    // คืนค่าที่เลือกไว้เดิม (ถ้ายังมีอยู่)
-    if (selectedValue && Array.from(personFilter.options).some(opt => opt.value === selectedValue)) {
-        personFilter.value = selectedValue;
-    }
-    
-    console.log(`✅ โหลด ${allPersons.length} ผู้ทำกิจกรรมลงในตัวกรอง`);
-}
-
-function updatePersonFilterVisibility() {
-    const personFilterContainer = document.querySelector('.person-filter-container');
-    const allPersons = getFromLocalStorage('persons') || [];
-    
-    if (personFilterContainer) {
-        if (allPersons.length === 1) {
-            personFilterContainer.style.display = 'none';
-            console.log('✅ ซ่อน dropdown กรองผู้ทำกิจกรรม (มีแค่คนเดียว)');
-        } else {
-            personFilterContainer.style.display = 'block';
+    window.addEventListener('click', (event) => {
+        const modal = document.getElementById('summaryModal');
+        if (event.target == modal) { 
+            closeSummaryModal(); 
         }
-    }
-}
-
-// เรียกใช้ฟังก์ชันนี้เมื่อโหลดหน้าและเมื่อมีการเปลี่ยนแปลงข้อมูลผู้ทำกิจกรรม
-document.addEventListener('DOMContentLoaded', function() {
-    updatePersonFilterVisibility();
-});
-
-// เรียกใช้เมื่อมีการเพิ่ม/ลบ/แก้ไขผู้ทำกิจกรรม
-function updatePersonFilterAfterChange() {
-    populatePersonFilter();
-    updateSummaryPersonDisplay();
-}
-
-// === ฟังก์ชันอัพเดทการแสดงผลผู้ทำกิจกรรมในหน้าสรุป ===
-function updateSummaryPersonDisplay() {
-    const allPersons = getFromLocalStorage('persons') || [];
-    const personFilterContainer = document.getElementById('personFilterContainer');
-    const autoSelectedPerson = document.getElementById('autoSelectedPerson');
-    const selectedPersonName = document.getElementById('selectedPersonName');
-    const personFilter = document.getElementById('personFilter');
-    
-    if (allPersons.length === 1) {
-        // ✅ กรณีมีแค่คนเดียว: ซ่อน dropdown และแสดงชื่อคนนั้นเลย
-        if (personFilterContainer) personFilterContainer.style.display = 'none';
-        if (autoSelectedPerson) {
-            autoSelectedPerson.style.display = 'block';
-            selectedPersonName.textContent = allPersons[0].name;
-        }
-        console.log(`✅ สรุปกิจกรรม: แสดงผู้ทำกิจกรรมอัตโนมัติ - ${allPersons[0].name}`);
-    } else {
-        // ✅ กรณีมีหลายคน: แสดง dropdown ปกติ
-        if (personFilterContainer) personFilterContainer.style.display = 'block';
-        if (autoSelectedPerson) autoSelectedPerson.style.display = 'none';
-        populatePersonFilter();
-    }
-}
-
-// === ฟังก์ชันกรองกิจกรรมตามผู้ทำกิจกรรม ===
-function filterActivitiesByPerson(activities, selectedPerson) {
-    if (selectedPerson === 'all') {
-        return activities;
-    }
-    return activities.filter(activity => activity.person === selectedPerson);
-}
-
-// === ฟังก์ชันปรับขนาดตัวอักษรและความสูงบรรทัด ===
-function adjustSummaryFontSize() {
-    const slider = document.getElementById('summaryFontSizeSlider');
-    const valueDisplay = document.getElementById('summaryFontSizeValue');
-    const scale = parseFloat(slider.value);
-    
-    valueDisplay.textContent = `ขนาด: ${Math.round(scale * 100)}%`;
-    
-    const summaryResult = document.querySelector('.summaryResult');
-    if (summaryResult) {
-        summaryResult.style.fontSize = `${scale}rem`;
-    }
-}
-
-function adjustSummaryLineHeight() {
-    const slider = document.getElementById('summaryLineHeightSlider');
-    const valueDisplay = document.getElementById('summaryLineHeightValue');
-    const scale = parseFloat(slider.value);
-    
-    valueDisplay.textContent = `ความสูงของบรรทัด: ${scale.toFixed(1)}`;
-    
-    const summaryResult = document.querySelector('.summaryResult');
-    if (summaryResult) {
-        summaryResult.style.lineHeight = scale;
-    }
-}
-
-// === ฟังก์ชันจัดการ Modal ===
-function openExportOptionsModal() { 
-    document.getElementById('exportOptionsModal').style.display = 'flex'; 
-}
-
-function closeExportOptionsModal() { 
-    document.getElementById('exportOptionsModal').style.display = 'none'; 
-}
-
-function closeSingleDateExportModal() {
-    document.getElementById('singleDateExportModal').style.display = 'none';
-}
-
-function closeSummaryModal() {
-    document.getElementById('summaryModal').style.display = 'none';
-}
-
-function closeSummaryOutputModal() {
-    document.getElementById('summaryOutputModal').style.display = 'none';
-}
-
-// === ฟังก์ชันสำหรับจัดการ Responsive Design ===
-function initResponsiveDesign() {
-    // ตรวจสอบขนาดหน้าจอและปรับการแสดงผล
-    checkScreenSize();
-    
-    // เพิ่ม event listener สำหรับการเปลี่ยนแปลงขนาดหน้าจอ
-    window.addEventListener('resize', checkScreenSize);
-    
-    // ปรับปรุงการแสดงผลตารางบนมือถือ
-    adjustTableForMobile();
-}
-
-function checkScreenSize() {
-    const isMobile = window.innerWidth <= 768;
-    
-    // เพิ่มคลาส 'mobile' ให้กับ body ถ้าเป็นมือถือ
-    if (isMobile) {
-        document.body.classList.add('mobile');
-    } else {
-        document.body.classList.remove('mobile');
-    }
-    
-    // ปรับปรุงการแสดงผลเมนู
-    adjustMenuForMobile(isMobile);
-    
-    // ปรับปรุงการแสดงผลตาราง
-    adjustTableForMobile(isMobile);
-}
-
-function adjustTableForMobile(isMobile) {
-    const table = document.getElementById('activityTable');
-    table.className = 'recent-activities';
-    if (!table) return;
-    
-    const rows = table.querySelectorAll('tbody tr');
-    
-    // บนมือถือ: แสดงตารางปกติและให้เลื่อนในแนวนอน
-    // ไม่ต้องแปลงเป็นการ์ดอีกต่อไป
-    rows.forEach(row => {
-        row.style.display = '';
     });
     
-    // ลบการ์ดทั้งหมดที่อาจถูกสร้างขึ้นโดยฟังก์ชันเก่า
-    const cards = document.querySelectorAll('.activity-card');
-    cards.forEach(card => card.remove());
-    
-    console.log('📱 ปรับตารางสำหรับมือถือ: แสดงตารางปกติพร้อมการเลื่อนแนวนอน');
-}
-
-function adjustMenuForMobile(isMobile) {
-    // ปรับปรุงการแสดงผลเมนูสำหรับมือถือ
-    // สามารถเพิ่มโค้ดเฉพาะสำหรับมือถือได้ที่นี่
-}
-
-function adjustTimeInputsForMobile() {
-    const timeInputsContainer = document.querySelector('.time-inputs-container');
-    if (!timeInputsContainer) return;
-    
-    const isMobile = window.innerWidth <= 768;
-    
-    if (isMobile) {
-        // บนมือถือ: ใช้ flexbox เพื่อให้อยู่ในแถวเดียวกัน
-        timeInputsContainer.style.flexWrap = 'nowrap';
-        timeInputsContainer.style.overflowX = 'auto';
-        timeInputsContainer.style.justifyContent = 'space-between';
-        
-        // ปรับขนาดขั้นต่ำของกลุ่มเวลา
-        const timeInputGroups = timeInputsContainer.querySelectorAll('.time-input-group');
-        timeInputGroups.forEach(group => {
-            group.style.minWidth = '100px';
-            group.style.flex = '1';
-        });
-    } else {
-        // บนเดสก์ท็อป: รีเซ็ตค่า
-        timeInputsContainer.style.flexWrap = '';
-        timeInputsContainer.style.overflowX = '';
-        timeInputsContainer.style.justifyContent = '';
-        
-        const timeInputGroups = timeInputsContainer.querySelectorAll('.time-input-group');
-        timeInputGroups.forEach(group => {
-            group.style.minWidth = '';
-            group.style.flex = '';
-        });
+    if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone || localStorage.getItem('pwa_installed') === 'true') {
+        hideInstallPrompt();
     }
-}
-
-// === ฟังก์ชันสำหรับสลับการแสดงผลตารางกิจกรรม ===
-function toggleActivitiesVisibility() {
-    const activitiesSection = document.getElementById('activitiesSection');
-    if (activitiesSection.style.display === 'none') {
-        activitiesSection.style.display = 'block';
-        loadUserActivities();
-    } else {
-        activitiesSection.style.display = 'none';
-    }
-}
-
-// === ฟังก์ชันจัดการเมนูหลัก ===
-function closeAllMainSections() {
-    const allMainSections = document.querySelectorAll('.main-section-content');
-    const allMainHeaders = document.querySelectorAll('.main-section-header');
     
-    allMainSections.forEach(section => {
-        section.classList.remove('active');
+    console.log('Menu functions loaded:', {
+        toggleMainSection: typeof toggleMainSection,
+        toggleSubSection: typeof toggleSubSection
     });
     
-    allMainHeaders.forEach(header => {
-        header.classList.remove('active');
-    });
-    
-    console.log('📂 ปิดเมนูทั้งหมดแล้ว');
-}
-
-function toggleMainSection(sectionId) {
-    const section = document.getElementById(sectionId);
-    const header = document.querySelector(`[onclick="toggleMainSection('${sectionId}')"]`);
-    
-    if (!section || !header) {
-        console.error(`❌ ไม่พบเมนู: ${sectionId}`);
-        return;
-    }
-    
-    const isActive = section.classList.contains('active');
-    
-    // ปิดเมนูทั้งหมดก่อน
-    closeAllMainSections();
-    
-    // ถ้าเมนูนี้ยังไม่เปิดอยู่ ให้เปิดมัน
-    if (!isActive) {
-        section.classList.add('active');
-        if (header) header.classList.add('active');
-        console.log(`📂 เปิดเมนู: ${sectionId}`);
-        
-        // โหลดข้อมูลเมื่อเปิดเมนู
-        loadSectionData(sectionId);
-    }
-}
-
-function openSingleSection(sectionId) {
-    closeAllMainSections();
-    
-    const section = document.getElementById(sectionId);
-    const header = document.querySelector(`[onclick="toggleMainSection('${sectionId}')"]`);
-    
-    if (section && header) {
-        section.classList.add('active');
-        header.classList.add('active');
-        console.log(`📂 เปิดเมนูเดียว: ${sectionId}`);
-        
-        // โหลดข้อมูลเมื่อเปิดเมนู
-        loadSectionData(sectionId);
-    }
-}
-
-function loadSectionData(sectionId) {
-    switch(sectionId) {
-        case 'add-activity-section':
-            // โหลดข้อมูลสำหรับเพิ่มกิจกรรม
-            populateActivityTypeDropdowns('activityTypeSelect');
-            populatePersonDropdown('personSelect');
-            setDefaultDateTime();
-            break;
-            
-        case 'view-activities-section':
-            // โหลดข้อมูลสำหรับดูกิจกรรม
-            loadUserActivities();
-            break;
-            
-        case 'summary-section':
-            // โหลดข้อมูลสำหรับสรุป
-            loadSummaryData();
-            populatePersonFilter();
-            break;
-            
-        case 'backup-section':
-            // โหลดข้อมูลสำหรับสำรองข้อมูล
-            console.log('📊 โหลดส่วนสำรองข้อมูล');
-            break;
-    }
-}
-
-function getActiveMenu() {
-    const activeSection = document.querySelector('.main-section-content.active');
-    return activeSection ? activeSection.id : null;
-}
-
-function switchToMenu(sectionId) {
-    const currentActive = getActiveMenu();
-    if (currentActive === sectionId) {
-        console.log(`📂 เมนู ${sectionId} เปิดอยู่แล้ว`);
-        return;
-    }
-    
-    openSingleSection(sectionId);
-    console.log(`📂 สลับจาก ${currentActive} ไปยัง ${sectionId}`);
-}
-
-function refreshCurrentMenu() {
-    const currentMenu = getActiveMenu();
-    if (currentMenu) {
-        console.log(`🔄 รีเฟรชเมนู: ${currentMenu}`);
-        
-        switch(currentMenu) {
-            case 'add-activity-section':
-                populateActivityTypeDropdowns('activityTypeSelect');
-                populatePersonDropdown('personSelect');
-                break;
-            case 'view-activities-section':
-                loadUserActivities();
-                break;
-            case 'summary-section':
-                loadSummaryData();
-                break;
-        }
-    }
-}
-
-// === ฟังก์ชัน PWA และการติดตั้ง ===
-function hideInstallPromptPermanently() {
-    document.getElementById('install-guide').style.display = 'none';
-    localStorage.setItem('hideInstallPrompt', 'true');
-}
-
-function checkAndShowInstallPrompt() {
-    // ตรวจสอบว่าซ่อนคำแนะนำการติดตั้งหรือไม่
-    if (localStorage.getItem('hideInstallPrompt') === 'true') {
-        const installGuide = document.getElementById('install-guide');
-        if (installGuide) {
-            installGuide.style.display = 'none';
-        }
-    }
-}
-
-// === การโหลดครั้งแรก ===
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('🚀 เริ่มโหลดแอปพลิเคชัน...');
-    
-    // ตรวจสอบว่าซ่อนคำแนะนำการติดตั้งหรือไม่
-    checkAndShowInstallPrompt();
-    
-    // กำหนดค่าเริ่มต้นให้กับฟอร์ม
-    const today = new Date().toISOString().split('T')[0];
-    document.getElementById('activity-date').value = today;
-    
-    // โหลดข้อมูลพื้นฐาน
-    initializeDefaultData();
-    
-    // โหลดกิจกรรม
-    loadUserActivities();
-    populatePersonFilter();
-    
-    // กำหนดค่าเริ่มต้นสำหรับฟิลด์สรุป
-    document.getElementById('summary-date').value = today;
-    document.getElementById('summary-start-date').value = today;
-    document.getElementById('summary-end-date').value = today;
-    
-    // กำหนด event listeners
-    document.getElementById('activity-form').addEventListener('submit', handleActivityFormSubmit);
-    document.getElementById('update-activity-button').addEventListener('click', handleActivityFormSubmit);
-    document.getElementById('cancel-edit-activity-button').addEventListener('click', cancelEditActivity);
-    
-    // Event listeners สำหรับจัดการผู้ทำกิจกรรม
-    document.getElementById('addPersonBtn').addEventListener('click', addPerson);
-    document.getElementById('editPersonBtn').addEventListener('click', editPerson);
-    document.getElementById('deletePersonBtn').addEventListener('click', deletePerson);
-    document.getElementById('resetPersonBtn').addEventListener('click', resetPerson);
-    document.getElementById('savePersonBtn').addEventListener('click', savePerson);
-    document.getElementById('cancelPersonBtn').addEventListener('click', closePersonModal);
-    
-    // Event listeners สำหรับจัดการประเภทกิจกรรม
-    document.getElementById('addActivityTypeBtn').addEventListener('click', addActivityType);
-    document.getElementById('editActivityTypeBtn').addEventListener('click', editActivityType);
-    document.getElementById('deleteActivityTypeBtn').addEventListener('click', deleteActivityType);
-    document.getElementById('resetActivityTypeBtn').addEventListener('click', resetActivityType);
-    document.getElementById('saveActivityTypeBtn').addEventListener('click', saveActivityType);
-    document.getElementById('cancelActivityTypeBtn').addEventListener('click', closeActivityTypeModal);
-    
-    // Event listener สำหรับบันทึกเป็นรูปภาพ
-    const saveImageBtn = document.getElementById('saveSummaryAsImageBtn');
-    if (saveImageBtn) {
-        saveImageBtn.addEventListener('click', saveSummaryAsImage);
-    }
-    
-    // Event listener สำหรับการเปลี่ยนแปลงผู้ทำกิจกรรม
-    document.getElementById('personSelect').addEventListener('change', updateCurrentPersonDisplay);
-    
-    // เรียกครั้งแรกเพื่อแสดงสถานะเริ่มต้น
-    updateCurrentPersonDisplay();
-    
-    // เปิดเมนูแรกโดยอัตโนมัติ
     setTimeout(() => {
-        toggleMainSection('add-activity-section');
-    }, 500);
-    
-    // เรียกใช้ฟังก์ชัน responsive
-    initResponsiveDesign();
-    
-    console.log('✅ โหลดแอปพลิเคชันเสร็จสิ้น');
-});
-// === ฟังก์ชันเรียกใช้เมื่อมีการเปลี่ยนแปลงผู้ทำกิจกรรม (เพิ่มใหม่) ===
-function refreshPersonFilter() {
-    console.log('🔄 รีเฟรชตัวกรองผู้ทำกิจกรรม');
-    populatePersonFilter();
-    updateSummaryPersonDisplay();
+        toggleMainSection('account-section');
+    }, 100);
+};
+
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').then(registration => {
+            console.log('ServiceWorker registration successful with scope: ', registration.scope);
+        }, err => {
+            console.log('ServiceWorker registration failed: ', err);
+        });
+    });
 }
+
+window.addEventListener('appinstalled', () => { 
+    console.log('App was installed.'); 
+    hideInstallPrompt(); 
+    localStorage.setItem('pwa_installed', 'true'); 
+});

@@ -1,6 +1,6 @@
-// service-worker.js
-const staticCacheName = 'activity-tracker-static-v4';
-const dynamicCacheName = 'activity-tracker-dynamic-v3';
+// กำหนดชื่อ Cache
+const staticCacheName = 'account-app-static-v4';
+const dynamicCacheName = 'account-app-dynamic-v3';
 
 // ไฟล์ที่ต้องการ cache
 const assets = [
@@ -10,8 +10,7 @@ const assets = [
   './style.css',
   './script.js',
   './192.png',
-  './512.png',
-  './service-worker.js'
+  './512.png'
 ];
 
 // Install event
@@ -50,12 +49,7 @@ self.addEventListener('fetch', evt => {
   // ข้ามการ cache สำหรับ external resources และ API calls
   if (evt.request.url.includes('cdnjs.cloudflare.com') || 
       evt.request.url.includes('cdn.jsdelivr.net')) {
-    return fetch(evt.request);
-  }
-
-  // ข้ามการ cache สำหรับ non-GET requests
-  if (evt.request.method !== 'GET') {
-    return fetch(evt.request);
+    return;
   }
 
   evt.respondWith(
@@ -69,15 +63,15 @@ self.addEventListener('fetch', evt => {
         // ถ้าไม่เจอ ให้โหลดจาก network
         return fetch(evt.request)
           .then(fetchRes => {
-            // ตรวจสอบว่า response ถูกต้อง
-            if (!fetchRes || fetchRes.status !== 200 || fetchRes.type !== 'basic') {
-              return fetchRes;
-            }
-
             // เก็บใน dynamic cache สำหรับครั้งต่อไป
             return caches.open(dynamicCacheName)
               .then(cache => {
-                cache.put(evt.request.url, fetchRes.clone());
+                // เก็บเฉพาะ successful responses และไม่ใช่ external resources
+                if (fetchRes.status === 200 && 
+                    !evt.request.url.includes('cdnjs.cloudflare.com') &&
+                    !evt.request.url.includes('cdn.jsdelivr.net')) {
+                  cache.put(evt.request.url, fetchRes.clone());
+                }
                 return fetchRes;
               });
           })
@@ -85,10 +79,6 @@ self.addEventListener('fetch', evt => {
             // Fallback สำหรับหน้า HTML
             if (evt.request.destination === 'document') {
               return caches.match('./index.html');
-            }
-            // Fallback สำหรับรูปภาพ
-            if (evt.request.destination === 'image') {
-              return caches.match('./192.png');
             }
           });
       })
