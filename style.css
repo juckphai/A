@@ -11,6 +11,8 @@ body {
     -webkit-text-size-adjust: 100%; 
     -ms-text-size-adjust: 100%; 
     text-size-adjust: 100%; 
+    min-height: 100vh;
+    width: 100%;
 }
 
 h2 { 
@@ -30,6 +32,61 @@ h2 {
     border-radius: 10px; 
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); 
     width: 95%; 
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+/* ===== CENTERED LAYOUT STYLES ===== */
+.main-content-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 600px;
+}
+
+/* ===== POPUP STYLES FINAL CORRECTION ===== */
+.popup-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    z-index: 1000;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 40px 0 20px 0; /* MODIFIED: Removed left/right padding */
+    box-sizing: border-box;
+    overflow-y: auto;
+}
+
+.popup-content {
+    background-color: #FFFFD1;
+    border-radius: 15px;
+    box-shadow: 0 0 20px rgba(0,0,0,0.3);
+    width: 100%;
+    max-width: 600px;
+    padding: 25px 5px;
+    position: relative;
+    box-sizing: border-box;
+}
+
+.result-container-popup { 
+    border: 1.5px solid #4CAF50; 
+    background-color: #FFFFD1; 
+    margin: 0; 
+    padding: 15px 3px; 
+    border-radius: 15px; 
+    text-align: center; 
+    box-shadow: 0 4px 10px rgba(0, 128, 0, 0.2); 
+    position: relative; 
+    min-height: 300px; 
+    box-sizing: border-box; 
+    overflow: hidden; 
 }
 
 /* ===== SECTION HEADERS ===== */
@@ -44,6 +101,9 @@ h2 {
     justify-content: space-between; 
     align-items: center; 
     transition: all 0.3s ease; 
+    width: 100%;
+    justify-content: center;
+    text-align: center;
 }
 
 .section-header:hover { 
@@ -120,6 +180,7 @@ h2 {
     background-color: #f9f9f9; 
     margin-bottom: 15px; 
     transition: all 0.3s ease; 
+    width: 100%;
 }
 
 .section-content.active { 
@@ -131,8 +192,8 @@ h2 {
 .main-section-header {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
-    padding: 15px;
-    margin: 10px 0;
+    padding: 10px;
+    margin: 5px 0;
     border-radius: 10px;
     cursor: pointer;
     font-weight: bold;
@@ -142,6 +203,9 @@ h2 {
     align-items: center;
     transition: all 0.3s ease;
     box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    width: 100%;
+    justify-content: center;
+    text-align: center;
 }
 
 .main-section-header:hover {
@@ -166,6 +230,7 @@ h2 {
     margin-bottom: 15px;
     border-left: 4px solid #667eea;
     transition: all 0.3s ease;
+    width: 100%;
 }
 
 .main-section-content.active {
@@ -187,6 +252,9 @@ h2 {
     align-items: center;
     transition: all 0.3s ease;
     border-left: 4px solid #667eea;
+    width: 100%;
+    justify-content: center;
+    text-align: center;
 }
 
 .sub-section-header:hover {
@@ -210,6 +278,7 @@ h2 {
     margin: 5px 0 15px 0;
     border: 1px solid #e9ecef;
     transition: all 0.3s ease;
+    width: 100%;
 }
 
 .sub-section-content.active {
@@ -228,12 +297,35 @@ h2 {
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); 
     gap: 15px; 
     margin-bottom: 15px; 
+    width: 100%;
+    justify-content: center;
 }
 
 .entry-group { 
     display: flex; 
     flex-direction: column; 
     gap: 5px; 
+    align-items: center;
+    text-align: center;
+    width: 100%;
+}
+
+.entry-group label {
+    width: 100%;
+    text-align: center;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.entry-group input,
+.entry-group select {
+    width: 100%;
+    padding: 10px;
+    font-size: 16px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    background-color: #f9f9f9;
+    text-align: center;
 }
 
 label { 
@@ -249,7 +341,7 @@ select, input[type="text"], input[type="number"], input[type="date"], input[type
     padding: 10px; 
     font-size: 16px; 
     border: 1px solid #ccc; 
-    border-radius: 20px; 
+    border-radius: 5px; 
     background-color: #f9f9f9; 
     text-align: center; 
 }
@@ -270,7 +362,7 @@ input[type=number] {
     gap: 10px; 
     background-color: #e9ecef; 
     padding: 10px; 
-    border-radius: 20px; 
+    border-radius: 5px; 
     border: 1px solid #ced4da; 
 }
 
@@ -285,12 +377,42 @@ input[type=number] {
     width: auto; 
 }
 
+/* ===== TWO-COLUMN LAYOUT FOR AMOUNT AND TYPE ===== */
+.amount-type-group {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    width: 100%;
+}
+
+.amount-group,
+.type-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    width: 100%;
+}
+
+/* ===== DATE-TIME GROUP STYLES ===== */
+.date-time-group {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    width: 100%;
+}
+
 /* ===== BUTTON STYLES ===== */
 .button-group, .button-container { 
     display: grid; 
     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); 
     gap: 10px; 
     margin: 10px 0; 
+    width: 100%;
+    justify-items: center;
 }
 
 .button-group button, .button-container button { 
@@ -343,6 +465,8 @@ input[type=number] {
     display: flex; 
     gap: 10px; 
     align-items: center; 
+    justify-content: center;
+    width: 100%;
 }
 
 .action-button { 
@@ -399,10 +523,10 @@ input[type=number] {
     font-size: clamp(12px, 2.2vw, 15px); 
     font-weight: normal; 
     color: blue; 
-    background-color: #FAFAD2;
+    background-color: #FAFAD2; 
     border: 1px solid #4CAF50; 
     border-radius: 5px; 
-    padding: 10px 5px;
+    padding: 10px 5px; /* <-- แก้ไขเรียบร้อย */
     width: 100%; 
     margin: 0; 
     text-align: center; 
@@ -435,32 +559,32 @@ input[type=number] {
 }
 
 /* ===== MODAL & POPUP STYLES ===== */
-.modal-overlay { 
-    position: fixed; 
-    z-index: 1000; 
-    left: 0; 
-    top: 0; 
-    width: 100%; 
-    height: 100%; 
-    background-color: rgba(0,0,0,0.6);
-    display: none; 
-    justify-content: center; 
-    align-items: center; 
-    padding: 10px;
-    overflow-y: auto; 
-}
+    .modal-overlay { 
+        position: fixed; 
+        z-index: 1000; 
+        left: 0; 
+        top: 0; 
+        width: 100%; 
+        height: 100%; 
+        background-color: rgba(0,0,0,0.6);
+        display: none; 
+        justify-content: center; 
+        align-items: center; 
+        padding: 1px;
+        overflow-y: auto; 
+    }
 
-.modal-content-container { 
-    background-color: #FAFAD2; 
-    padding: 10px; 
-    border-radius: 10px; 
-    box-shadow: 0 5px 15px rgba(0,0,0,0.3); 
-    display: flex; 
-    flex-direction: column; 
-    align-items: center; 
-    margin: auto 0; 
-    width: 100%; 
-    max-width: 800px; 
+.modal-content-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 800px;
+  margin: auto 0;
+  padding: 10px;
+  background-color: #FAFAD2;
+  border-radius: 10px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
 }
 
 .modal-close-btn { 
@@ -482,16 +606,16 @@ input[type=number] {
 }
 
 .modal-controls {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    width: 100%;
-    margin-top: 10px;
-    max-width: 600px;
-    background-color: #f0f0f0;
-    padding: 10px;
-    border-radius: 8px;
-}
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 100%;
+        margin-top: 10px;
+        max-width: 600px;
+        background-color: #f0f0f0;
+        padding: 10px;
+        border-radius: 8px;
+    }
 
 .control-group {
     display: flex;
@@ -593,12 +717,18 @@ input[type=number] {
     padding: 12px 24px; 
     color: white; 
     border-radius: 30px; 
-    box-shadow: 0 2px 10px rgba(0,0,0,0.2); 
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3); 
     z-index: 1001; 
     opacity: 0; 
     visibility: hidden; 
     transition: opacity 0.5s, visibility 0.5s, transform 0.5s; 
     transform: translateY(20px); 
+    font-weight: bold;
+    font-size: 14px;
+    text-align: center;
+    min-width: 250px;
+    max-width: 400px;
+    word-wrap: break-word;
 }
 
 .toast-notification.show { 
@@ -809,14 +939,23 @@ footer div {
 @media screen and (max-width: 600px) { 
     .container { 
         padding: 5px; 
+        margin: 10px auto;
+        width: 98%;
     } 
     
     h2 { 
         font-size: 24px; 
     } 
     
-    .entry-form, .button-group, .button-container { 
+    .entry-form { 
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+    } 
+    
+    .button-group, .button-container { 
         grid-template-columns: 1fr; 
+        gap: 8px;
     } 
     
     .sub-section-content .button-group { 
@@ -847,7 +986,103 @@ footer div {
     
     .back-button { 
         width: 100%; 
-    } 
+    }
+    
+    /* ปรับแต่งกลุ่มจำนวนเงินและประเภทสำหรับมือถือ */
+    .amount-type-group {
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+    }
+    
+    .amount-group input,
+    .type-group input {
+        width: 100%;
+    }
+    
+    .date-time-group {
+        margin-bottom: 0;
+    }
+    
+    .date-time-group label {
+        font-size: 14px;
+        margin-bottom: 3px;
+    }
+    
+    .date-time-group input {
+        padding: 8px;
+        font-size: 14px;
+        width: 100%;
+    }
+    
+    /* สำหรับมือถือ - เรียงแนวนอนด้วย */
+    .centered-date-form.horizontal {
+        flex-direction: row;
+        justify-content: center;
+        gap: 10px;
+    }
+    
+    .centered-date-form.horizontal .centered-date-group {
+        max-width: 150px;
+        margin-bottom: 0;
+    }
+    
+    .centered-date-form.horizontal .centered-date-group label {
+        font-size: 14px;
+    }
+    
+    .centered-date-form.horizontal .centered-date-group input {
+        padding: 8px;
+        font-size: 14px;
+    }
+    
+    /* ปรับปรุง popup สำหรับมือถือ */
+    .popup-overlay {
+        padding: 20px 0 10px 0;
+        align-items: flex-start;
+    }
+    
+    .popup-content {
+        width: 95%;
+        margin: 0 auto;
+        padding: 20px 5px;
+    }
+    
+    .result-container-popup {
+        min-height: 250px;
+        padding: 10px 3px;
+    }
+}
+
+/* ปรับแต่งสำหรับหน้าจอขนาดใหญ่ */
+@media screen and (min-width: 601px) {
+    .entry-form {
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+    }
+    
+    .date-time-group,
+    .amount-group,
+    .type-group {
+        flex: 1;
+    }
+    
+    .date-time-group input,
+    .amount-group input,
+    .type-group input {
+        width: 100%;
+    }
+    
+    /* สำหรับเดสก์ท็อป - เรียงแนวนอน */
+    .centered-date-form.horizontal {
+        flex-direction: row;
+        justify-content: center;
+        gap: 15px;
+    }
+    
+    .centered-date-form.horizontal .centered-date-group {
+        max-width: 200px;
+        margin-bottom: 0;
+    }
 }
 
 /* Responsive design for footer */
@@ -877,6 +1112,17 @@ footer div {
     footer div {
         white-space: normal;
         display: block;
+    }
+}
+
+/* Responsive design for toast */
+@media (max-width: 600px) {
+    .toast-notification {
+        right: 10px;
+        left: 10px;
+        bottom: 10px;
+        max-width: none;
+        min-width: auto;
     }
 }
 
@@ -944,4 +1190,31 @@ footer div {
 
 .header-summary {
     background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+}
+
+@media print {
+    .toast-notification {
+        display: none !important;
+    }
+    
+    /* ซ่อนองค์ประกอบอื่นๆ ที่ไม่ต้องการให้พิมพ์ */
+    .modal-overlay,
+    .modal-controls,
+    .section-header,
+    .container > div:not(#print-container) {
+        display: none !important;
+    }
+    
+    /* แสดงเฉพาะเนื้อหาที่ต้องการพิมพ์ */
+    #print-container {
+        display: block !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    
+    body {
+        margin: 0 !important;
+        padding: 0 !important;
+    }
 }

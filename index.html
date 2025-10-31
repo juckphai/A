@@ -23,7 +23,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
-  <!-- สไตล์สำหรับเมนู -->
+  <!-- สไตล์เพิ่มเติมสำหรับการจัดกึ่งกลาง -->
   <style>
     /* สไตล์สำหรับเมนูใหญ่และเมนูย่อย */
     .main-section-content,
@@ -60,6 +60,78 @@
 
     .section-header:hover {
       background-color: #e9e9e9;
+    }
+
+    /* สไตล์สำหรับจัดกึ่งกลางฟอร์มวันที่ */
+    .centered-date-form {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+      margin-bottom: 0;
+    }
+
+    .centered-date-group {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+      max-width: 300px;
+      margin-bottom: 10px;
+    }
+
+    .centered-date-group label {
+      width: 100%;
+      text-align: center;
+      font-weight: bold;
+      margin-bottom: 5px;
+    }
+
+    .centered-date-group input {
+      width: 100%;
+      padding: 10px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      background-color: #f9f9f9;
+      text-align: center;
+    }
+
+    /* สำหรับเดสก์ท็อป - เรียงแนวนอน */
+    @media screen and (min-width: 601px) {
+      .centered-date-form.horizontal {
+        flex-direction: row;
+        justify-content: center;
+        gap: 15px;
+      }
+      
+      .centered-date-form.horizontal .centered-date-group {
+        max-width: 200px;
+        margin-bottom: 0;
+      }
+    }
+
+    /* สำหรับมือถือ - เรียงแนวนอนด้วย */
+    @media screen and (max-width: 600px) {
+      .centered-date-form.horizontal {
+        flex-direction: row;
+        justify-content: center;
+        gap: 10px;
+      }
+      
+      .centered-date-form.horizontal .centered-date-group {
+        max-width: 150px;
+        margin-bottom: 0;
+      }
+      
+      .centered-date-form.horizontal .centered-date-group label {
+        font-size: 14px;
+      }
+      
+      .centered-date-form.horizontal .centered-date-group input {
+        padding: 8px;
+        font-size: 14px;
+      }
     }
   </style>
 </head>
@@ -122,101 +194,108 @@
               </div>
             
               <!-- เมนูใหญ่ 2: เพิ่มข้อมูล -->
-              <div class="section-header main-section-header header-add-data" onclick="toggleMainSection('add-data-section')">
-                <span>เพิ่มข้อมูล</span>
-                <span class="arrow">▶</span>
-              </div>
-              <div id="add-data-section" class="section-content main-section-content">
-                <div class="entry-form">
-                  <div class="entry-group">
-                    <label for="entryDate">วันที่</label>
-                    <input type="date" id="entryDate">
-                  </div>
-                  <div class="entry-group">
-                    <label for="entryTime">เวลา</label>
-                    <input type="time" id="entryTime">
-                  </div>
-                </div>
-                <div class="entry-group">
-                  <label for="amount">จำนวนเงิน</label>
-                  <input type="number" id="amount" required>
-                </div>
-                <div class="entry-group">
-                  <label for="type">ประเภท</label>
-                  <input list="typeList" id="type" required placeholder="เลือกหรือพิมพ์ประเภท" style="height: 40px;" onfocus="showAllTypes(this)" onblur="restoreType(this)">
-                  <datalist id="typeList"></datalist>
-                  
-                  <div class="sub-section-header" onclick="toggleSubSection('manage-types-submenu')" style="margin-top:10px;">
-                    <span>จัดการประเภท</span>
-                    <span class="arrow">▶</span>
-                  </div>
+<div class="section-header main-section-header header-add-data" onclick="toggleMainSection('add-data-section')">
+  <span>เพิ่มข้อมูล</span>
+  <span class="arrow">▶</span>
+</div>
+<div id="add-data-section" class="section-content main-section-content">
+  <div class="entry-form">
+    <div class="entry-group date-time-group">
+      <label for="entryDate">วันที่</label>
+      <input type="date" id="entryDate">
+    </div>
+    <div class="entry-group date-time-group">
+      <label for="entryTime">เวลา</label>
+      <input type="time" id="entryTime">
+    </div>
+  </div>
 
-                  <div id="manage-types-submenu" class="section-content sub-section-content">
-                    <div class="button-group">
-                        <button onclick="addNewType()">➕ เพิ่มประเภท</button>
-                        <button onclick="editType()">✏️ แก้ไขประเภท</button>
-                        <button onclick="deleteType()">🗑️ ลบประเภท</button>
-                    </div>
-                </div>
-                </div>
-                <div class="entry-group">
-                  <label for="description">รายละเอียด</label>
-                  <input type="text" id="description" required>
-                </div>
-                
-                <!-- SECTION เติมข้อมูล -->
-                <div class="sub-section-header" onclick="toggleSubSection('import-data-main-submenu')">
-                  <span>เติมข้อมูล</span>
-                  <span class="arrow">▶</span>
-                </div>
-                <div id="import-data-main-submenu" class="section-content sub-section-content">
-                  
-                  <!-- เติมข้อมูลจากบัญชีอื่น -->
-                  <div id="import-from-account-section">
-                    <label class="summary-subsection-header" style="color: #673ab7; margin-bottom: 10px;">เติมข้อมูลจากบัญชีอื่น</label>
-                    <div class="entry-form">
-                      <div class="entry-group">
-                        <label for="importAccountSelect">เลือกบัญชีต้นทาง</label>
-                        <select id="importAccountSelect"></select>
-                      </div>
-                      <div class="entry-group">
-                        <label for="importDate">เลือกวันที่ของข้อมูล</label>
-                        <input type="date" id="importDate">
-                      </div>
-                    </div>
-                    <div class="button-container" style="text-align: center; margin-top: 10px;">
-                      <button type="button" onclick="importEntriesFromAccount()" style="background-color: #673ab7;">ดึงข้อมูลมาเติม</button>
-                    </div>
-                  </div>
+  <!-- จำนวนเงินและประเภทในแถวเดียวกัน -->
+  <div class="amount-type-group">
+    <div class="entry-group amount-group">
+      <label for="amount">จำนวนเงิน</label>
+      <input type="number" id="amount" required>
+    </div>
+    
+    <div class="entry-group type-group">
+      <label for="type">ประเภท</label>
+      <input list="typeList" id="type" required placeholder="เลือกหรือพิมพ์ประเภท" style="height: 40px;" onfocus="showAllTypes(this)" onblur="restoreType(this)">
+      <datalist id="typeList"></datalist>
+    </div>
+  </div>
 
-                  <!-- เติมข้อมูลจากไฟล์ -->
-                  <div id="import-from-file-section" style="border-top: 1px solid #ccc; margin-top: 15px; padding-top: 15px;">
-                    <label class="summary-subsection-header" style="color: #009688; margin-bottom: 10px;">เติมข้อมูลจากไฟล์ (รายวัน)</label>
-                    <p style="text-align:center; color:#333; margin-bottom:10px;">
-                      ใช้สำหรับนำเข้าไฟล์ที่ได้จากการ "บันทึกเฉพาะวันที่เลือก" เพื่อเติมข้อมูลลงในบัญชีปัจจุบัน
-                    </p>
-                    <input type="file" id="mergeFileInput" onchange="importFromFileForMerging(event)" style="display: none;" accept=".json,application/json,.csv,text/csv">
-                    <div class="button-container" style="text-align: center;">
-                      <button type="button" onclick="document.getElementById('mergeFileInput').click()" style="background-color: #009688;">เลือกไฟล์ข้อมูลรายวัน</button>
-                    </div>
-                  </div>
-                </div>
+  <!-- ส่วนจัดการประเภท -->
+  <div class="sub-section-header" onclick="toggleSubSection('manage-types-submenu')" style="margin-top:10px;">
+    <span>จัดการประเภท</span>
+    <span class="arrow">▶</span>
+  </div>
 
-                <div class="entry-group" id="multiAccountSelector" style="display: none; margin-top: 10px;">
-                  <div class="sub-section-header" onclick="toggleSubSection('multi-account-submenu')">
-                    <span>เพิ่มรายการนี้ในบัญชีอื่นด้วย</span>
-                    <span class="arrow">▶</span>
-                  </div>
-                  <div id="multi-account-submenu" class="section-content sub-section-content">
-                    <div id="multiAccountCheckboxes" class="checkbox-container">
-                    </div>
-                  </div>
-                </div>
-            
-                <div class="button-container" style="text-align: center; margin-top: 20px;">
-                  <button type="button" onclick="addEntry()" style="background-color: #e91e63;">เพิ่มข้อมูล</button>
-                </div>
-              </div>
+  <div id="manage-types-submenu" class="section-content sub-section-content">
+    <div class="button-group">
+        <button onclick="addNewType()">➕ เพิ่มประเภท</button>
+        <button onclick="editType()">✏️ แก้ไขประเภท</button>
+        <button onclick="deleteType()">🗑️ ลบประเภท</button>
+    </div>
+  </div>
+
+  <div class="entry-group">
+    <label for="description">รายละเอียด</label>
+    <input type="text" id="description" required>
+  </div>
+  
+  <!-- SECTION เติมข้อมูล -->
+  <div class="sub-section-header" onclick="toggleSubSection('import-data-main-submenu')">
+    <span>เติมข้อมูล</span>
+    <span class="arrow">▶</span>
+  </div>
+  <div id="import-data-main-submenu" class="section-content sub-section-content">
+    
+    <!-- เติมข้อมูลจากบัญชีอื่น -->
+    <div id="import-from-account-section">
+      <label class="summary-subsection-header" style="color: #673ab7; margin-bottom: 10px;">เติมข้อมูลจากบัญชีอื่น</label>
+      <div class="entry-form">
+        <div class="entry-group">
+          <label for="importAccountSelect">เลือกบัญชีต้นทาง</label>
+          <select id="importAccountSelect"></select>
+        </div>
+        <div class="entry-group">
+          <label for="importDate">เลือกวันที่ของข้อมูล</label>
+          <input type="date" id="importDate">
+        </div>
+      </div>
+      <div class="button-container" style="text-align: center; margin-top: 10px;">
+        <button type="button" onclick="importEntriesFromAccount()" style="background-color: #673ab7;">ดึงข้อมูลมาเติม</button>
+      </div>
+    </div>
+
+    <!-- เติมข้อมูลจากไฟล์ -->
+    <div id="import-from-file-section" style="border-top: 1px solid #ccc; margin-top: 15px; padding-top: 15px;">
+      <label class="summary-subsection-header" style="color: #009688; margin-bottom: 10px;">เติมข้อมูลจากไฟล์ (รายวัน)</label>
+      <p style="text-align:center; color:#333; margin-bottom:10px;">
+        ใช้สำหรับนำเข้าไฟล์ที่ได้จากการ "บันทึกเฉพาะวันที่เลือก" เพื่อเติมข้อมูลลงในบัญชีปัจจุบัน
+      </p>
+      <input type="file" id="mergeFileInput" onchange="importFromFileForMerging(event)" style="display: none;" accept=".json,application/json,.csv,text/csv">
+      <div class="button-container" style="text-align: center;">
+        <button type="button" onclick="document.getElementById('mergeFileInput').click()" style="background-color: #009688;">เลือกไฟล์ข้อมูลรายวัน</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="entry-group" id="multiAccountSelector" style="display: none; margin-top: 10px;">
+    <div class="sub-section-header" onclick="toggleSubSection('multi-account-submenu')">
+      <span>เพิ่มรายการนี้ในบัญชีอื่นด้วย</span>
+      <span class="arrow">▶</span>
+    </div>
+    <div id="multi-account-submenu" class="section-content sub-section-content">
+      <div id="multiAccountCheckboxes" class="checkbox-container">
+      </div>
+    </div>
+  </div>
+
+  <div class="button-container" style="text-align: center; margin-top: 20px;">
+    <button type="button" onclick="addEntry()" style="background-color: #e91e63;">เพิ่มข้อมูล</button>
+  </div>
+</div>
               
               <!-- เมนูใหญ่ 3: จัดการข้อมูล -->
               <div class="section-header main-section-header header-actions" onclick="toggleMainSection('other-actions-section')">
@@ -260,10 +339,11 @@
                   <button type="button" onclick="openExportOptionsModal()" style="flex: 1; background-color: #0d47a1;">บันทึกข้อมูล</button>
                 </div>
                 
-                <div class="summary-subsection">
+                <!-- ส่วนลบข้อมูลตามวันที่เลือก - ปรับให้อยู่กึ่งกลาง -->
+                <div class="summary-subsection" style="text-align: center;">
                   <label class="summary-subsection-header" style="color: #c0392b;">ลบข้อมูลตามวันที่เลือก (ในบัญชีนี้)</label>
-                  <div class="entry-form" style="margin-bottom: 0;">
-                    <div class="entry-group">
+                  <div class="centered-date-form">
+                    <div class="centered-date-group">
                       <label for="deleteByDateInput">เลือกวันที่ต้องการลบ:</label>
                       <input type="date" id="deleteByDateInput">
                     </div>
@@ -290,10 +370,12 @@
                     <button type="button" onclick="summarizeAll()" style="background-color: #673ab7; color: #FFFFFF;">สรุปข้อมูลทั้งหมด</button>
                   </div>
                 </div>
-                <div class="summary-subsection">
+                
+                <!-- ส่วนสรุปวันที่เลือก - ปรับให้อยู่กึ่งกลาง -->
+                <div class="summary-subsection" style="text-align: center;">
                   <label class="summary-subsection-header">สรุปวันที่เลือก</label>
-                  <div class="entry-form" style="margin-bottom: 0;">
-                    <div class="entry-group">
+                  <div class="centered-date-form">
+                    <div class="centered-date-group">
                       <label for="customDayMonth">วันที่:</label>
                       <input type="date" id="customDayMonth">
                     </div>
@@ -302,14 +384,16 @@
                     <button type="button" onclick="summarizeByDayMonth()" style="background-color: #03a9f4;">สรุปวันที่เลือก</button>
                   </div>
                 </div>
-                <div class="summary-subsection">
+                
+                <!-- ส่วนสรุปวันที่ถึงวันที่ - ปรับให้อยู่กึ่งกลาง -->
+                <div class="summary-subsection" style="text-align: center;">
                   <label class="summary-subsection-header">สรุปวันที่ถึงวันที่</label>
-                  <div class="entry-form" style="margin-bottom: 0;">
-                    <div class="entry-group">
+                  <div class="centered-date-form horizontal">
+                    <div class="centered-date-group">
                       <label for="startDate">จากวันที่:</label>
                       <input type="date" id="startDate">
                     </div>
-                    <div class="entry-group">
+                    <div class="centered-date-group">
                       <label for="endDate">ถึงวันที่:</label>
                       <input type="date" id="endDate">
                     </div>

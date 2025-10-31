@@ -13,6 +13,44 @@ let singleDateExportContext = {};
 let dateRangeExportContext = {};
 
 // ==============================================
+// ฟังก์ชันจัดการ Toast Notification
+// ==============================================
+
+function showToast(message, type = 'info') {
+    const toast = document.getElementById('toast');
+    
+    // กำหนดสีตามประเภท
+    let backgroundColor = '#007bff'; // เริ่มต้นสีน้ำเงิน
+    switch(type) {
+        case 'success':
+            backgroundColor = '#28a745';
+            break;
+        case 'error':
+            backgroundColor = '#dc3545';
+            break;
+        case 'warning':
+            backgroundColor = '#ffc107';
+            break;
+        case 'info':
+        default:
+            backgroundColor = '#007bff';
+            break;
+    }
+    
+    // ตั้งค่าข้อความและสี
+    toast.textContent = message;
+    toast.style.backgroundColor = backgroundColor;
+    
+    // แสดง toast
+    toast.className = "toast-notification show";
+    
+    // ซ่อน toast หลังจาก 3 วินาที
+    setTimeout(function() {
+        toast.className = toast.className.replace("show", "");
+    }, 3000);
+}
+
+// ==============================================
 // ฟังก์ชันจัดการเมนู
 // ==============================================
 
@@ -91,6 +129,7 @@ function openSummaryModal(htmlContent) {
     modalBody.innerHTML = htmlContent;
     modal.style.display = 'flex';
     setupSummaryControlsAndSave();
+    showToast("📊 เปิดหน้าต่างสรุปข้อมูลเรียบร้อย", 'info');
 }
 
 function closeSummaryModal() { 
@@ -100,6 +139,7 @@ function closeSummaryModal() {
 
 function openExportOptionsModal() { 
     document.getElementById('exportOptionsModal').style.display = 'flex'; 
+    showToast("💾 เปิดหน้าต่างบันทึกข้อมูลเรียบร้อย", 'info');
 }
 
 function closeExportOptionsModal() { 
@@ -204,9 +244,10 @@ function setupSummaryControlsAndSave() {
             link.download = fileName;
             link.href = canvas.toDataURL("image/png");
             link.click();
+            showToast(`🖼️ บันทึกภาพสรุปเป็น "${fileName}" สำเร็จ`, 'success');
         }).catch(err => {
             console.error("Error creating image:", err);
-            alert("ขออภัย, ไม่สามารถบันทึกเป็นรูปภาพได้");
+            showToast("❌ ขออภัย, ไม่สามารถบันทึกเป็นรูปภาพได้", 'error');
         }).finally(() => {
             if (controlsElement) controlsElement.style.display = '';
             modalContentContainer.style.padding = '';
@@ -227,10 +268,10 @@ function addAccount() {
         accounts.push(accountName); 
         updateAccountSelect(); 
         updateMultiAccountSelector(); 
-        alert("เพิ่มบัญชีสำเร็จ"); 
+        showToast(`✓ เพิ่มบัญชี "${accountName}" สำเร็จ`, 'success');
         saveToLocal(); 
     } else { 
-        alert("ชื่อบัญชีซ้ำหรือกรอกข้อมูลไม่ถูกต้อง"); 
+        showToast("❌ ชื่อบัญชีซ้ำหรือกรอกข้อมูลไม่ถูกต้อง", 'error'); 
     } 
 }
 
@@ -253,16 +294,16 @@ function changeAccount() {
     updateMultiAccountSelector();
     updateImportAccountSelect();
     
-    // ✅ เพิ่ม: ตรวจสอบข้อมูลเมื่อเปลี่ยนบัญชี
     if (currentAccount) {
         const accountRecords = records.filter(record => record.account === currentAccount);
         console.log(`Loaded ${accountRecords.length} records for account: ${currentAccount}`);
+        showToast(`📂 โหลดข้อมูลบัญชี "${currentAccount}" สำเร็จ (${accountRecords.length} รายการ)`, 'success');
     }
 }
 
 function editAccount() { 
     if (!currentAccount) { 
-        alert("กรุณาเลือกบัญชีที่ต้องการแก้ไข"); 
+        showToast("❌ กรุณาเลือกบัญชีที่ต้องการแก้ไข", 'error'); 
         return; 
     } 
     const newAccountName = prompt("กรุณากรอกชื่อบัญชีใหม่:", currentAccount); 
@@ -287,11 +328,11 @@ function editAccount() {
             document.getElementById('accountName').textContent = currentAccount; 
             displayRecords(); 
             updateMultiAccountSelector(); 
-            alert("แก้ไขชื่อบัญชีเรียบร้อย"); 
+            showToast(`✓ แก้ไขชื่อบัญชีเป็น "${newAccountName}" สำเร็จ`, 'success'); 
             saveToLocal(); 
         } 
     } else { 
-        alert("ชื่อบัญชีซ้ำหรือกรอกข้อมูลไม่ถูกต้อง"); 
+        showToast("❌ ชื่อบัญชีซ้ำหรือกรอกข้อมูลไม่ถูกต้อง", 'error'); 
     } 
 }
 
@@ -312,11 +353,11 @@ function deleteAccount() {
             updateAccountSelect(); 
             displayRecords(); 
             updateMultiAccountSelector(); 
-            alert("ลบบัญชีเรียบร้อย"); 
+            showToast(`✓ ลบบัญชี "${accountToDelete}" สำเร็จ`, 'success'); 
             saveToLocal(); 
         } 
     } else { 
-        alert("กรุณาเลือกบัญชีที่ต้องการลบ"); 
+        showToast("❌ กรุณาเลือกบัญชีที่ต้องการลบ", 'error'); 
     } 
 }
 
@@ -379,7 +420,7 @@ function restoreType(inputElement) {
 
 function addNewType() { 
     if (!currentAccount) { 
-        alert("กรุณาเลือกบัญชีก่อนเพิ่มประเภท"); 
+        showToast("❌ กรุณาเลือกบัญชีก่อนเพิ่มประเภท", 'error'); 
         return; 
     } 
     
@@ -389,13 +430,13 @@ function addNewType() {
     // ใช้ prompt สำหรับชื่อประเภทแทนการดึงจาก input
     const typeName = prompt("กรุณากรอกชื่อประเภทใหม่:"); 
     if (!typeName || typeName.trim() === '') {
-        alert("กรุณากรอกชื่อประเภท");
+        showToast("❌ กรุณากรอกชื่อประเภท", 'error');
         return;
     }
     
     const category = prompt("เลือกหมวดหมู่ที่จะเพิ่ม (รายรับ/รายจ่าย):"); 
     if (category !== "รายรับ" && category !== "รายจ่าย") { 
-        alert("กรุณากรอก 'รายรับ' หรือ 'รายจ่าย' เท่านั้น"); 
+        showToast("❌ กรุณากรอก 'รายรับ' หรือ 'รายจ่าย' เท่านั้น", 'error'); 
         return; 
     } 
     
@@ -403,7 +444,7 @@ function addNewType() {
     
     // ตรวจสอบว่ามีประเภทนี้อยู่แล้วหรือไม่
     if (types[category].includes(trimmedTypeName)) { 
-        alert("ประเภทนี้มีอยู่แล้วในหมวด '" + category + "'"); 
+        showToast(`❌ ประเภท "${trimmedTypeName}" มีอยู่แล้วในหมวด "${category}"`, 'error'); 
         return; 
     } 
     
@@ -414,13 +455,13 @@ function addNewType() {
     // อัพเดทค่าใน input
     document.getElementById('type').value = trimmedTypeName;
     
-    alert(`เพิ่มประเภท "${trimmedTypeName}" ในหมวด "${category}" เรียบร้อย`); 
+    showToast(`✓ เพิ่มประเภท "${trimmedTypeName}" ในหมวด "${category}" สำเร็จ`, 'success'); 
     saveToLocal(); 
 }
 
 function editType() { 
     if (!currentAccount) { 
-        alert("กรุณาเลือกบัญชีก่อนแก้ไขประเภท"); 
+        showToast("❌ กรุณาเลือกบัญชีก่อนแก้ไขประเภท", 'error'); 
         return; 
     } 
     
@@ -430,7 +471,7 @@ function editType() {
     const currentType = typeInput.value.trim(); 
     
     if (!currentType) { 
-        alert("กรุณาเลือกหรือพิมพ์ประเภทที่ต้องการแก้ไข"); 
+        showToast("❌ กรุณาเลือกหรือพิมพ์ประเภทที่ต้องการแก้ไข", 'error'); 
         return; 
     } 
     
@@ -444,26 +485,26 @@ function editType() {
     } 
     
     if (!foundCategory) { 
-        alert("ไม่พบประเภทที่ต้องการแก้ไข"); 
+        showToast("❌ ไม่พบประเภทที่ต้องการแก้ไข", 'error'); 
         return; 
     } 
     
     const newName = prompt("กรุณากรอกชื่อประเภทใหม่:", currentType); 
     if (!newName || newName.trim() === '') {
-        alert("กรุณากรอกชื่อประเภทใหม่");
+        showToast("❌ กรุณากรอกชื่อประเภทใหม่", 'error');
         return;
     }
     
     const trimmedNewName = newName.trim();
     if (trimmedNewName === currentType) {
-        alert("ชื่อประเภทใหม่ต้องแตกต่างจากชื่อเดิม");
+        showToast("❌ ชื่อประเภทใหม่ต้องแตกต่างจากชื่อเดิม", 'error');
         return;
     }
     
     // ตรวจสอบว่าชื่อใหม่ซ้ำกับประเภทอื่นหรือไม่
     for (const category in types) {
         if (types[category].includes(trimmedNewName)) {
-            alert("มีประเภท '" + trimmedNewName + "' อยู่แล้วในระบบ");
+            showToast(`❌ มีประเภท "${trimmedNewName}" อยู่แล้วในระบบ`, 'error');
             return;
         }
     }
@@ -481,13 +522,13 @@ function editType() {
     
     updateTypeList(); 
     typeInput.value = trimmedNewName; 
-    alert("แก้ไขชื่อประเภทเรียบร้อย"); 
+    showToast(`✓ แก้ไขชื่อประเภทเป็น "${trimmedNewName}" สำเร็จ`, 'success'); 
     saveToLocal(); 
 }
 
 function deleteType() { 
     if (!currentAccount) { 
-        alert("กรุณาเลือกบัญชีก่อนลบประเภท"); 
+        showToast("❌ กรุณาเลือกบัญชีก่อนลบประเภท", 'error'); 
         return; 
     } 
     
@@ -497,7 +538,7 @@ function deleteType() {
     const currentType = typeInput.value.trim(); 
     
     if (!currentType) { 
-        alert("กรุณาเลือกหรือพิมพ์ประเภทที่ต้องการลบ"); 
+        showToast("❌ กรุณาเลือกหรือพิมพ์ประเภทที่ต้องการลบ", 'error'); 
         return; 
     } 
     
@@ -511,7 +552,7 @@ function deleteType() {
     } 
     
     if (!foundCategory) { 
-        alert("ไม่พบประเภทที่ต้องการลบ"); 
+        showToast("❌ ไม่พบประเภทที่ต้องการลบ", 'error'); 
         return; 
     } 
     
@@ -534,14 +575,14 @@ function deleteType() {
     
     updateTypeList(); 
     typeInput.value = ''; 
-    alert("ลบประเภทเรียบร้อย"); 
+    showToast(`✓ ลบประเภท "${currentType}" สำเร็จ`, 'success'); 
     saveToLocal(); 
 }
 
 // ฟังก์ชันเสริมสำหรับการจัดการประเภท
 function showTypeManagement() {
     if (!currentAccount) {
-        alert("กรุณาเลือกบัญชีก่อน");
+        showToast("❌ กรุณาเลือกบัญชีก่อน", 'error');
         return;
     }
     
@@ -592,13 +633,15 @@ function quickAddType(category) {
     const types = accountTypes.get(currentAccount);
     
     if (types[category].includes(trimmedTypeName)) {
-        alert("ประเภทนี้มีอยู่แล้ว");
+        showToast("❌ ประเภทนี้มีอยู่แล้ว", 'error');
         return;
     }
     
     types[category].push(trimmedTypeName);
     updateTypeList();
     saveToLocal();
+    
+    showToast(`✓ เพิ่มประเภท "${trimmedTypeName}" ในหมวด "${category}" สำเร็จ`, 'success');
     
     // รีเฟรช modal
     showTypeManagement();
@@ -615,6 +658,8 @@ function quickDeleteType(category, typeName) {
         types[category].splice(index, 1);
         updateTypeList();
         saveToLocal();
+        
+        showToast(`✓ ลบประเภท "${typeName}" สำเร็จ`, 'success');
         
         // รีเฟรช modal
         showTypeManagement();
@@ -649,21 +694,34 @@ function addEntry() {
     }
     
     const dateTime = `${datePart} ${timePart}`;
-    if (!currentAccount) { alert("กรุณาเลือกบัญชีก่อนเพิ่มรายการ"); return; }
-    if (!typeText) { alert("กรุณากรอกประเภท"); return; }
-    if (!description) { alert("กรุณากรอกรายละเอียด"); return; }
-    if (isNaN(amount) || amount <= 0) { alert("กรุณากรอกจำนวนเงินที่ถูกต้อง"); return; }
+    if (!currentAccount) { 
+        showToast("❌ กรุณาเลือกบัญชีก่อนเพิ่มรายการ", 'error'); 
+        return; 
+    }
+    if (!typeText) { 
+        showToast("❌ กรุณากรอกประเภท", 'error'); 
+        return; 
+    }
+    if (!description) { 
+        showToast("❌ กรุณากรอกรายละเอียด", 'error'); 
+        return; 
+    }
+    if (isNaN(amount) || amount <= 0) { 
+        showToast("❌ กรุณากรอกจำนวนเงินที่ถูกต้อง", 'error'); 
+        return; 
+    }
     
     initializeAccountTypes(currentAccount);
     const types = accountTypes.get(currentAccount);
-    let entryCategory = 'expense';
+    let entryCategory = 'expense'; // เริ่มต้นเป็นรายจ่าย
     if (types["รายรับ"].includes(typeText)) {
-        entryCategory = 'income';
+        entryCategory = 'income'; // เปลี่ยนเป็นรายรับถ้าพบในรายรับ
     }
     
     if (editingIndex !== null) {
         records[editingIndex] = { dateTime, type: typeText, description, amount, account: currentAccount };
         editingIndex = null;
+        showToast(`✓ แก้ไขรายการ "${description}" สำเร็จ`, 'success');
     } else {
         records.push({ dateTime, type: typeText, description, amount, account: currentAccount });
         const selectedCheckboxes = document.querySelectorAll('#multiAccountCheckboxes input:checked');
@@ -671,6 +729,17 @@ function addEntry() {
             const targetAccount = checkbox.value;
             records.push({ dateTime, type: typeText, description, amount, account: targetAccount });
         });
+        
+        if (selectedCheckboxes.length > 0) {
+            showToast(`✓ เพิ่มรายการ "${description}" ใน ${selectedCheckboxes.length + 1} บัญชีสำเร็จ`, 'success');
+        } else {
+            // ใช้ entryCategory เพื่อกำหนดสีของ Toast
+            if (entryCategory === 'income') {
+                showToast(`💰 เพิ่มรายรับ "${description}" สำเร็จ`, 'success');
+            } else {
+                showToast(`💸 เพิ่มรายจ่าย "${description}" สำเร็จ`, 'error');
+            }
+        }
     }
     
     displayRecords();
@@ -682,7 +751,7 @@ function addEntry() {
     document.querySelectorAll('#multiAccountCheckboxes input:checked').forEach(checkbox => {
         checkbox.checked = false;
     });
-    saveDataAndShowToast(entryCategory);
+    saveDataAndShowToast(entryCategory); // ส่งประเภทการบันทึกไปด้วย
     updateMultiAccountSelector();
 }
 
@@ -728,12 +797,15 @@ function editRecord(index) {
     document.getElementById('entryTime').value = timePart;
     editingIndex = index;
     updateMultiAccountSelector();
+    showToast("📝 กำลังแก้ไขรายการ...", 'info');
 }
 
 function deleteRecord(index) { 
     if (confirm("คุณแน่ใจว่าจะลบรายการนี้หรือไม่?")) { 
+        const record = records[index];
         records.splice(index, 1); 
         displayRecords(); 
+        showToast(`✓ ลบรายการ "${record.description}" สำเร็จ`, 'success');
         saveDataAndShowToast(); 
     } 
 }
@@ -742,8 +814,10 @@ function toggleRecordsVisibility() {
     const detailsSection = document.getElementById('detailsSection'); 
     if (detailsSection.style.display === 'none' || detailsSection.style.display === '') { 
         detailsSection.style.display = 'block'; 
+        showToast("📋 แสดงรายการทั้งหมดเรียบร้อย", 'success');
     } else { 
         detailsSection.style.display = 'none'; 
+        showToast("📋 ซ่อนรายการทั้งหมดเรียบร้อย", 'info');
     } 
 }
 
@@ -751,11 +825,11 @@ function deleteRecordsByDate() {
     const dateInput = document.getElementById('deleteByDateInput');
     const selectedDate = dateInput.value;
     if (!currentAccount) {
-        alert("กรุณาเลือกบัญชีที่ต้องการลบข้อมูลก่อน");
+        showToast("❌ กรุณาเลือกบัญชีที่ต้องการลบข้อมูลก่อน", 'error');
         return;
     }
     if (!selectedDate) {
-        alert("กรุณาเลือกวันที่ที่ต้องการลบข้อมูล");
+        showToast("❌ กรุณาเลือกวันที่ที่ต้องการลบข้อมูล", 'error');
         return;
     }
     
@@ -766,7 +840,7 @@ function deleteRecordsByDate() {
     });
     
     if (recordsToDelete.length === 0) {
-        alert(`ไม่พบข้อมูลในบัญชี "${currentAccount}" ของวันที่ ${selectedDate}`);
+        showToast(`❌ ไม่พบข้อมูลในบัญชี "${currentAccount}" ของวันที่ ${selectedDate}`, 'error');
         return;
     }
     
@@ -778,7 +852,7 @@ function deleteRecordsByDate() {
         records = records.filter(record => !recordsToDelete.includes(record));
         displayRecords();
         saveDataAndShowToast();
-        alert(`ลบข้อมูล ${recordsToDelete.length} รายการของวันที่ ${selectedDate} เรียบร้อยแล้ว`);
+        showToast(`✓ ลบข้อมูล ${recordsToDelete.length} รายการของวันที่ ${selectedDate} สำเร็จ`, 'success');
         dateInput.value = ''; 
     }
 }
@@ -846,15 +920,15 @@ function importEntriesFromAccount() {
     const importDateStr = document.getElementById('importDate').value;
 
     if (!currentAccount) {
-        alert("กรุณาเลือกบัญชีปัจจุบัน (บัญชีปลายทาง) ก่อน");
+        showToast("❌ กรุณาเลือกบัญชีปัจจุบัน (บัญชีปลายทาง) ก่อน", 'error');
         return;
     }
     if (!sourceAccount) {
-        alert("กรุณาเลือกบัญชีต้นทางที่ต้องการดึงข้อมูล");
+        showToast("❌ กรุณาเลือกบัญชีต้นทางที่ต้องการดึงข้อมูล", 'error');
         return;
     }
     if (!importDateStr) {
-        alert("กรุณาเลือกวันที่ของข้อมูลที่ต้องการดึง");
+        showToast("❌ กรุณาเลือกวันที่ของข้อมูลที่ต้องการดึง", 'error');
         return;
     }
 
@@ -863,7 +937,7 @@ function importEntriesFromAccount() {
     });
 
     if (recordsToImport.length === 0) {
-        alert(`ไม่พบข้อมูลในบัญชี "${sourceAccount}" ของวันที่ ${importDateStr}`);
+        showToast(`❌ ไม่พบข้อมูลในบัญชี "${sourceAccount}" ของวันที่ ${importDateStr}`, 'error');
         return;
     }
 
@@ -890,7 +964,7 @@ function importEntriesFromAccount() {
         });
         displayRecords();
         saveDataAndShowToast();
-        alert(`คัดลอกข้อมูลสำเร็จ!\nเพิ่ม ${importedCount} รายการใหม่\nข้าม ${skippedCount} รายการที่ซ้ำซ้อน`);
+        showToast(`✓ คัดลอกข้อมูลสำเร็จ! เพิ่ม ${importedCount} รายการใหม่, ข้าม ${skippedCount} รายการที่ซ้ำซ้อน`, 'success');
     }
 }
 
@@ -935,7 +1009,7 @@ function formatDateForDisplay(dateTimeStr) {
 function generateSummaryData(startDate, endDate) {
     if (!currentAccount) { 
         console.error("❌ ไม่มีบัญชีปัจจุบันในการสรุปข้อมูล");
-        alert("ไม่พบบัญชีที่เลือก"); 
+        showToast("❌ ไม่พบบัญชีที่เลือก", 'error'); 
         return null; 
     }
     
@@ -1214,19 +1288,41 @@ function handleSummaryOutput(choice) {
     } else if (choice === 'xlsx') {
         const { summaryResult, title, dateString, remark, transactionDaysInfo, periodName } = summaryContext;
         exportSummaryToXlsx(summaryResult, title, dateString, remark, transactionDaysInfo, periodName);
+        showToast(`📊 สรุปข้อมูลบันทึกเป็นไฟล์ XLSX สำเร็จ`, 'success');
     } else if (choice === 'pdf') {
         const printContainer = document.getElementById('print-container');
         if (printContainer) {
             const htmlWithDetailsForPdf = buildPdfSummaryHtml(summaryContext);
             printContainer.innerHTML = `<div class="summaryResult">${htmlWithDetailsForPdf}</div>`;
-            setTimeout(() => { window.print(); }, 250);
+            
+            // ซ่อน Toast ก่อนพิมพ์
+            const toast = document.getElementById('toast');
+            if (toast) {
+                toast.style.display = 'none';
+            }
+            
+            // ใช้ setTimeout เพื่อให้แน่ใจว่า DOM อัพเดทเสร็จก่อนพิมพ์
+            setTimeout(() => { 
+                window.print(); 
+                
+                // แสดง Toast หลังจากพิมพ์เสร็จ (รอให้หน้าต่างพิมพ์ปิด)
+                setTimeout(() => {
+                    if (toast) {
+                        toast.style.display = '';
+                    }
+                    showToast(`📄 สรุปข้อมูลบันทึกเป็นไฟล์ PDF สำเร็จ`, 'success');
+                }, 1000);
+            }, 250);
         }
     }
     closeSummaryOutputModal();
 }
 
 function summarizeToday() {
-    if (!currentAccount) { alert("กรุณาเลือกบัญชีก่อน"); return; }
+    if (!currentAccount) { 
+        showToast("❌ กรุณาเลือกบัญชีก่อน", 'error'); 
+        return; 
+    }
     const startDate = new Date(new Date().setHours(0, 0, 0, 0));
     const endDate = new Date(new Date().setHours(23, 59, 59, 999));
     const summaryResult = generateSummaryData(startDate, endDate);
@@ -1238,13 +1334,20 @@ function summarizeToday() {
         summaryResult, type: 'today', title: "สรุปข้อมูลของวันที่", dateString: new Date(startDate).toLocaleDateString('en-CA'), thaiDateString: thaiDateString, remark: remarkInput, periodName: 'วันนี้', headerLine1: 'สรุปวันนี้ :', headerLine3: `รายละเอียดวันนี้ : ${thaiDateString}`
     };
     openSummaryOutputModal();
+    showToast("📊 สรุปข้อมูลวันนี้เรียบร้อย", 'success');
 }
 
 function summarizeByDayMonth() {
-    if (!currentAccount) { alert("กรุณาเลือกบัญชีก่อน"); return; }
+    if (!currentAccount) { 
+        showToast("❌ กรุณาเลือกบัญชีก่อน", 'error'); 
+        return; 
+    }
     const dayMonthInput = document.getElementById('customDayMonth').value;
     const selectedDate = parseDateInput(dayMonthInput);
-    if (!selectedDate) { alert("กรุณาเลือกวันที่ให้ถูกต้อง"); return; }
+    if (!selectedDate) { 
+        showToast("❌ กรุณาเลือกวันที่ให้ถูกต้อง", 'error'); 
+        return; 
+    }
     const startDate = new Date(selectedDate.setHours(0, 0, 0, 0));
     const endDate = new Date(selectedDate.setHours(23, 59, 59, 999));
     const summaryResult = generateSummaryData(startDate, endDate);
@@ -1256,16 +1359,26 @@ function summarizeByDayMonth() {
         summaryResult, type: 'byDayMonth', title: "สรุปข้อมูลของวันที่", dateString: dayMonthInput, thaiDateString: thaiDateString, remark: remarkInput, periodName: dayMonthInput.replace(/-/g, '_'), headerLine1: 'สรุป :', headerLine3: `รายละเอียดวันที่เลือก : ${thaiDateString}`
     };
     openSummaryOutputModal();
+    showToast("📊 สรุปข้อมูลวันที่เลือกเรียบร้อย", 'success');
 }
 
 function summarize() {
-    if (!currentAccount) { alert("กรุณาเลือกบัญชีก่อน"); return; }
+    if (!currentAccount) { 
+        showToast("❌ กรุณาเลือกบัญชีก่อน", 'error'); 
+        return; 
+    }
     const startDateStr = document.getElementById('startDate').value;
     const endDateStr = document.getElementById('endDate').value;
     const startDate = parseDateInput(startDateStr); 
     const endDate = parseDateInput(endDateStr);
-    if (!startDate || !endDate) { alert("กรุณาเลือกวันที่ให้ครบถ้วน"); return; }
-    if (startDate > endDate) { alert("วันที่เริ่มต้นต้องมาก่อนวันที่สิ้นสุด"); return; }
+    if (!startDate || !endDate) { 
+        showToast("❌ กรุณาเลือกวันที่ให้ครบถ้วน", 'error'); 
+        return; 
+    }
+    if (startDate > endDate) { 
+        showToast("❌ วันที่เริ่มต้นต้องมาก่อนวันที่สิ้นสุด", 'error'); 
+        return; 
+    }
 const adjustedEndDate = new Date(endDate);
 adjustedEndDate.setHours(23, 59, 59, 999);
 const summaryResult = generateSummaryData(startDate, adjustedEndDate);
@@ -1279,12 +1392,19 @@ const summaryResult = generateSummaryData(startDate, adjustedEndDate);
         summaryResult, type: 'range', title: "สรุปวันที่", dateString: `${startDateStr} to ${endDateStr}`, thaiDateString: thaiDateString, remark: remarkInput, transactionDaysInfo: transactionDaysInfo, periodName: `จาก${startDateStr.replace(/-/g, '_')}_ถึง${endDateStr.replace(/-/g, '_')}`, headerLine1: 'สรุป :', headerLine2: 'เงินในบัญชีถึงวันนี้มี'
     };
     openSummaryOutputModal();
+    showToast("📊 สรุปข้อมูลตามช่วงวันที่เรียบร้อย", 'success');
 }
 
 function summarizeAll() {
-    if (!currentAccount) { alert("กรุณาเลือกบัญชีก่อน"); return; }
+    if (!currentAccount) { 
+        showToast("❌ กรุณาเลือกบัญชีก่อน", 'error'); 
+        return; 
+    }
     const accountRecords = records.filter(r => r.account === currentAccount);
-    if (accountRecords.length === 0) { alert("ไม่มีข้อมูลในบัญชีนี้ให้สรุป"); return; }
+    if (accountRecords.length === 0) { 
+        showToast("❌ ไม่มีข้อมูลในบัญชีนี้ให้สรุป", 'error'); 
+        return; 
+    }
     const allDates = accountRecords.map(r => parseLocalDateTime(r.dateTime));
     const startDate = new Date(Math.min.apply(null, allDates)); 
     const endDate = new Date(Math.max.apply(null, allDates));
@@ -1304,6 +1424,7 @@ const summaryResult = generateSummaryData(startDate, adjustedEndDate);
         summaryResult, type: 'all', title: "สรุปข้อมูลทั้งหมดตั้งแต่", dateString: `${startDateStr} to ${endDateStr}`, thaiDateString: thaiDateString, remark: remarkInput, transactionDaysInfo: transactionDaysInfo, periodName: 'ทั้งหมด', headerLine1: 'สรุป :', headerLine2: 'เงินคงเหลือในบัญชีทั้งหมด'
     };
     openSummaryOutputModal();
+    showToast("📊 สรุปข้อมูลทั้งหมดเรียบร้อย", 'success');
 }
 
 // ==============================================
@@ -1313,43 +1434,46 @@ const summaryResult = generateSummaryData(startDate, adjustedEndDate);
 function saveToFile() { 
     closeExportOptionsModal(); 
     if (accounts.length === 0) { 
-        alert("ไม่มีบัญชีให้บันทึก"); 
+        showToast("❌ ไม่มีบัญชีให้บันทึก", 'error'); 
         return; 
     } 
     document.getElementById('formatSelectionModal').style.display = 'flex'; 
+    showToast("📁 กำลังเปิดหน้าต่างบันทึกไฟล์...", 'info');
 }
 
 function exportSelectedAccount() { 
     closeExportOptionsModal(); 
     if (!currentAccount) { 
-        alert("กรุณาเลือกบัญชีที่ต้องการบันทึกก่อน"); 
+        showToast("❌ กรุณาเลือกบัญชีที่ต้องการบันทึกก่อน", 'error'); 
         return; 
     } 
     document.getElementById('exportSingleAccountModal').style.display = 'flex'; 
+    showToast("📁 กำลังเปิดหน้าต่างบันทึกบัญชี...", 'info');
 }
 
 function initiateSingleDateExport() {
     if (!currentAccount) {
-        alert("กรุณาเลือกบัญชีที่ต้องการบันทึกก่อน");
+        showToast("❌ กรุณาเลือกบัญชีที่ต้องการบันทึกก่อน", 'error');
         return;
     }
     closeExportOptionsModal();
     document.getElementById('singleDateAccountName').textContent = currentAccount;
     document.getElementById('exportSingleDate').value = new Date().toISOString().slice(0, 10);
     document.getElementById('singleDateExportModal').style.display = 'flex';
+    showToast("📅 กำลังเปิดหน้าต่างบันทึกข้อมูลรายวัน...", 'info');
 }
 
 function processSingleDateExport() {
     const selectedDateStr = document.getElementById('exportSingleDate').value;
     if (!selectedDateStr) {
-        alert("กรุณาเลือกวันที่ที่ต้องการบันทึก");
+        showToast("❌ กรุณาเลือกวันที่ที่ต้องการบันทึก", 'error');
         return;
     }
     const filteredRecords = records.filter(record => {
         return record.account === currentAccount && record.dateTime.startsWith(selectedDateStr);
     });
     if (filteredRecords.length === 0) {
-        alert(`ไม่พบข้อมูลในบัญชี "${currentAccount}" ในวันที่ ${selectedDateStr}`);
+        showToast(`❌ ไม่พบข้อมูลในบัญชี "${currentAccount}" ในวันที่ ${selectedDateStr}`, 'error');
         return;
     }
     singleDateExportContext = {
@@ -1358,17 +1482,19 @@ function processSingleDateExport() {
     };
     closeSingleDateExportModal();
     document.getElementById('singleDateExportFormatModal').style.display = 'flex';
+    showToast(`✅ พบข้อมูล ${filteredRecords.length} รายการสำหรับวันที่ ${selectedDateStr}`, 'success');
 }
 
 function initiateDateRangeExport() {
     if (!currentAccount) {
-        alert("กรุณาเลือกบัญชีที่ต้องการบันทึกก่อน");
+        showToast("❌ กรุณาเลือกบัญชีที่ต้องการบันทึกก่อน", 'error');
         return;
     }
     
     closeExportOptionsModal();
     setupDateRangeModal();
     document.getElementById('dateRangeExportModal').style.display = 'flex';
+    showToast("📅 กำลังเปิดหน้าต่างบันทึกข้อมูลตามช่วงวันที่...", 'info');
 }
 
 function setupDateRangeModal() {
@@ -1390,7 +1516,7 @@ function setupDateRangeModal() {
 function processDateRangeExport() {
     const validationResult = validateDateRangeInput();
     if (!validationResult.isValid) {
-        alert(validationResult.message);
+        showToast(validationResult.message, 'error');
         return;
     }
     
@@ -1412,7 +1538,7 @@ async function exportDateRangeAsJson(filteredRecords, startDate, endDate) {
     const fileName = prompt("กรุณากรอกชื่อไฟล์ (ไม่ต้องใส่นามสกุล):", defaultFileName);
     
     if (!fileName) {
-        alert("ยกเลิกการบันทึกไฟล์");
+        showToast("❌ ยกเลิกการบันทึกไฟล์", 'info');
         return;
     }
     
@@ -1434,12 +1560,12 @@ async function exportDateRangeAsJson(filteredRecords, startDate, endDate) {
     let dataString = JSON.stringify(exportData, null, 2);
     
     if (backupPassword) {
-        alert('กำลังเข้ารหัสข้อมูล...');
+        showToast('🔐 กำลังเข้ารหัสข้อมูล...', 'info');
         try {
             const encryptedObject = await encryptData(dataString, backupPassword);
             dataString = JSON.stringify(encryptedObject, null, 2);
         } catch (e) {
-            alert('การเข้ารหัสล้มเหลว!');
+            showToast('❌ การเข้ารหัสล้มเหลว!', 'error');
             return;
         }
     }
@@ -1455,10 +1581,10 @@ async function exportDateRangeAsJson(filteredRecords, startDate, endDate) {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
         
-        alert(`บันทึกข้อมูลช่วงวันที่ ${startDate} ถึง ${endDate} เป็น JSON เรียบร้อย\n\nไฟล์: ${fileName}.json\nจำนวนรายการ: ${filteredRecords.length} รายการ\n✅ บันทึกข้อมูลประเภทบัญชีเรียบร้อยแล้ว`);
+        showToast(`✅ บันทึกข้อมูลช่วงวันที่ ${startDate} ถึง ${endDate} เป็น JSON เรียบร้อย\nจำนวนรายการ: ${filteredRecords.length} รายการ`, 'success');
     } catch (error) {
         console.error("Error downloading file:", error);
-        alert("เกิดข้อผิดพลาดในการบันทึกไฟล์: " + error.message);
+        showToast("❌ เกิดข้อผิดพลาดในการบันทึกไฟล์: " + error.message, 'error');
     }
 }
 
@@ -1478,22 +1604,23 @@ function saveDataAndShowToast(entryCategory = 'neutral') {
         localStorage.setItem('accountData', JSON.stringify(dataToSave)); 
     } catch (error) { 
         console.error("บันทึกข้อมูลไม่สำเร็จ:", error); 
-        alert("⚠️ เกิดข้อผิดพลาดในการบันทึกข้อมูล"); 
+        showToast("❌ เกิดข้อผิดพลาดในการบันทึกข้อมูล", 'error'); 
         return; 
     } 
-    const toast = document.getElementById('toast'); 
-    toast.textContent = '✓ บันทึกข้อมูลสำเร็จแล้ว'; 
+    
+    // กำหนดข้อความและสีตามประเภทการบันทึก
+    let message = '✓ บันทึกข้อมูลสำเร็จแล้ว';
+    let type = 'info';
+    
     if (entryCategory === 'income') { 
-        toast.style.backgroundColor = '#28a745'; 
+        message = '💰 บันทึกรายรับสำเร็จ';
+        type = 'success'; // สีเขียว
     } else if (entryCategory === 'expense') { 
-        toast.style.backgroundColor = '#dc3545'; 
-    } else { 
-        toast.style.backgroundColor = '#007bff'; 
-    } 
-    toast.className = "toast-notification show"; 
-    setTimeout(function(){ 
-        toast.className = toast.className.replace("show", ""); 
-    }, 2500); 
+        message = '💸 บันทึกรายจ่ายสำเร็จ'; 
+        type = 'error'; // สีแดง
+    }
+    
+    showToast(message, type);
 }
 
 function saveToLocal(fromPasswordSave = false) {
@@ -1507,11 +1634,11 @@ function saveToLocal(fromPasswordSave = false) {
     try {
         localStorage.setItem('accountData', JSON.stringify(dataToSave));
         if (!fromPasswordSave) {
-             alert('✓ บันทึกข้อมูลชั่วคราวในเบราว์เซอร์เรียบร้อยแล้ว');
+            showToast('✓ บันทึกข้อมูลชั่วคราวในเบราว์เซอร์เรียบร้อยแล้ว', 'success');
         }
     } catch (error) {
         console.error("บันทึกข้อมูลชั่วคราวไม่สำเร็จ:", error);
-        alert("⚠️ เกิดข้อผิดพลาดในการบันทึกข้อมูลชั่วคราว: " + error.message);
+        showToast("❌ เกิดข้อผิดพลาดในการบันทึกข้อมูลชั่วคราว", 'error');
     }
 }
 
@@ -1531,8 +1658,10 @@ function loadFromLocal() {
                 document.getElementById('accountSelect').value = currentAccount;
             }
             changeAccount();
+            showToast('📂 โหลดข้อมูลจากเครื่องสำเร็จ', 'success');
         } catch (error) {
             console.error("โหลดข้อมูลจาก LocalStorage ไม่สำเร็จ", error);
+            showToast('❌ โหลดข้อมูลจากเครื่องไม่สำเร็จ', 'error');
         }
     }
     updateMultiAccountSelector();
@@ -1542,7 +1671,10 @@ async function handleSaveAs(format) {
     closeFormatModal();
     const formatLower = format.toLowerCase().trim();
     const fileName = prompt("กรุณากรอกชื่อไฟล์สำหรับสำรองข้อมูล (ไม่ต้องใส่นามสกุล):", "สำรองทุกบัญชี");
-    if (!fileName) return;
+    if (!fileName) {
+        showToast("❌ ยกเลิกการบันทึกไฟล์", 'info');
+        return;
+    }
     const now = new Date();
     const dateTimeString = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`;
     
@@ -1551,18 +1683,20 @@ async function handleSaveAs(format) {
         const data = { accounts, currentAccount, records, accountTypes: Array.from(accountTypes.entries()), backupPassword: null };
         let dataString = JSON.stringify(data, null, 2);
         if (backupPassword) {
-            alert('กำลังเข้ารหัสข้อมูล...');
+            showToast('🔐 กำลังเข้ารหัสข้อมูล...', 'info');
             try {
                 const encryptedObject = await encryptData(dataString, backupPassword);
                 dataString = JSON.stringify(encryptedObject, null, 2);
             } catch (e) {
-                alert('การเข้ารหัสล้มเหลว!'); return;
+                showToast('❌ การเข้ารหัสล้มเหลว!', 'error'); 
+                return;
             }
         }
         const blob = new Blob([dataString], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a'); a.href = url; a.download = fullFileName; a.click();
         URL.revokeObjectURL(url);
+        showToast(`✅ บันทึกข้อมูลทั้งหมดเป็น JSON เรียบร้อย\nไฟล์: ${fullFileName}`, 'success');
     } else if (formatLower === 'csv') {
         const fullFileName = `${fileName}_${dateTimeString}.csv`;
         let csvData = [];
@@ -1590,18 +1724,21 @@ async function handleSaveAs(format) {
         link.download = fullFileName;
         link.click();
         URL.revokeObjectURL(link.href);
-        alert(`บันทึกข้อมูลทั้งหมดลงในไฟล์ CSV "${fullFileName}" เรียบร้อยแล้ว`);
+        showToast(`✅ บันทึกข้อมูลทั้งหมดลงในไฟล์ CSV "${fullFileName}" เรียบร้อยแล้ว`, 'success');
     }
 }
 
 async function handleExportSelectedAs(format) {
     closeExportSingleAccountModal();
     if (!currentAccount) {
-        alert("เกิดข้อผิดพลาด: ไม่พบบัญชีที่เลือก");
+        showToast("❌ เกิดข้อผิดพลาด: ไม่พบบัญชีที่เลือก", 'error');
         return;
     }
     const fileName = prompt(`กรุณากรอกชื่อไฟล์สำหรับบัญชี ${currentAccount} (ไม่ต้องใส่นามสกุล):`, currentAccount);
-    if (!fileName) return;
+    if (!fileName) {
+        showToast("❌ ยกเลิกการบันทึกไฟล์", 'info');
+        return;
+    }
     const now = new Date();
     const dateTimeString = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}_${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}`;
     
@@ -1614,18 +1751,20 @@ async function handleExportSelectedAs(format) {
         };
         let dataString = JSON.stringify(accountData, null, 2);
         if (backupPassword) {
-            alert('กำลังเข้ารหัสข้อมูล...');
+            showToast('🔐 กำลังเข้ารหัสข้อมูล...', 'info');
             try {
                 const encryptedObject = await encryptData(dataString, backupPassword);
                 dataString = JSON.stringify(encryptedObject, null, 2);
             } catch (e) {
-                alert('การเข้ารหัสล้มเหลว!'); return;
+                showToast('❌ การเข้ารหัสล้มเหลว!', 'error'); 
+                return;
             }
         }
         const blob = new Blob([dataString], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a'); a.href = url; a.download = fullFileName; a.click();
         URL.revokeObjectURL(url);
+        showToast(`✅ บันทึกบัญชี "${currentAccount}" เป็น JSON เรียบร้อย\nไฟล์: ${fullFileName}`, 'success');
     } else if (format === 'csv') {
         const fullFileName = `${fileName}_${dateTimeString}.csv`;
         initializeAccountTypes(currentAccount);
@@ -1646,7 +1785,7 @@ async function handleExportSelectedAs(format) {
         const blob = new Blob(["\uFEFF" + csvContent], { type: "text/csv;charset=utf-8;" });
         const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = fullFileName; link.click();
         setTimeout(() => URL.revokeObjectURL(link.href), 100);
-        alert(`บันทึกบัญชี "${currentAccount}" เป็น CSV เรียบร้อย\n\nไฟล์: ${fullFileName}`);
+        showToast(`✅ บันทึกบัญชี "${currentAccount}" เป็น CSV เรียบร้อย\nไฟล์: ${fullFileName}`, 'success');
     }
 }
 
@@ -1655,11 +1794,14 @@ async function handleSingleDateExportAs(format) {
     const { records: filteredRecords, selectedDate } = singleDateExportContext;
     
     if (!filteredRecords || filteredRecords.length === 0) {
-        alert("เกิดข้อผิดพลาด: ไม่พบข้อมูลที่จะบันทึก");
+        showToast("❌ เกิดข้อผิดพลาด: ไม่พบข้อมูลที่จะบันทึก", 'error');
         return;
     }
     const fileName = prompt(`กรุณากรอกชื่อไฟล์ (ไม่ต้องใส่นามสกุล):`, `${currentAccount}_${selectedDate}`);
-    if (!fileName) return;
+    if (!fileName) {
+        showToast("❌ ยกเลิกการบันทึกไฟล์", 'info');
+        return;
+    }
     const fullFileName = `${fileName}.${format}`;
     
     if (format === 'json') {
@@ -1671,19 +1813,20 @@ async function handleSingleDateExportAs(format) {
         };
         let dataString = JSON.stringify(exportData, null, 2);
         if (backupPassword) {
-            alert('กำลังเข้ารหัสข้อมูล...');
+            showToast('🔐 กำลังเข้ารหัสข้อมูล...', 'info');
             try {
                 const encryptedObject = await encryptData(dataString, backupPassword);
                 dataString = JSON.stringify(encryptedObject, null, 2);
             } catch (e) {
-                alert('การเข้ารหัสล้มเหลว!'); return;
+                showToast('❌ การเข้ารหัสล้มเหลว!', 'error'); 
+                return;
             }
         }
         const blob = new Blob([dataString], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a'); a.href = url; a.download = fullFileName; a.click();
         URL.revokeObjectURL(url);
-        alert(`บันทึกข้อมูลวันที่ ${selectedDate} เป็น JSON เรียบร้อย\n\nไฟล์: ${fullFileName}`);
+        showToast(`✅ บันทึกข้อมูลวันที่ ${selectedDate} เป็น JSON เรียบร้อย\nไฟล์: ${fullFileName}`, 'success');
 
     } else if (format === 'xlsx') {
         const wb = XLSX.utils.book_new();
@@ -1730,7 +1873,7 @@ async function handleSingleDateExportAs(format) {
         XLSX.utils.book_append_sheet(wb, ws, "ข้อมูลบัญชี");
         
         XLSX.writeFile(wb, fullFileName);
-        alert(`บันทึกข้อมูลวันที่ ${selectedDate} เป็น XLSX เรียบร้อย\n\nไฟล์: ${fullFileName}`);
+        showToast(`✅ บันทึกข้อมูลวันที่ ${selectedDate} เป็น XLSX เรียบร้อย\nไฟล์: ${fullFileName}`, 'success');
     }
     singleDateExportContext = {};
 }
@@ -1748,6 +1891,7 @@ async function loadFromFile(event) {
     if (fileName.endsWith('.csv')) {
         reader.onload = (e) => loadFromCsv(e.target.result);
         reader.readAsText(file, 'UTF-8');
+        showToast("📂 กำลังโหลดข้อมูลจากไฟล์ CSV...", 'info');
     } else if (fileName.endsWith('.json')) {
         reader.onload = async (e) => {
             try {
@@ -1758,17 +1902,17 @@ async function loadFromFile(event) {
                 if (importedData && importedData.isEncrypted === true) {
                     const password = prompt("ไฟล์นี้ถูกเข้ารหัส กรุณากรอกรหัสผ่านเพื่อถอดรหัส:");
                     if (!password) { 
-                        alert("ยกเลิกการนำเข้าไฟล์"); 
+                        showToast("❌ ยกเลิกการนำเข้าไฟล์", 'info'); 
                         event.target.value = ''; 
                         return; 
                     }
-                    alert('กำลังถอดรหัส...');
+                    showToast('🔓 กำลังถอดรหัส...', 'info');
                     const decryptedString = await decryptData(importedData, password);
                     if (decryptedString) {
                         finalDataToMerge = JSON.parse(decryptedString);
-                        alert('ถอดรหัสสำเร็จ!');
+                        showToast('✅ ถอดรหัสสำเร็จ!', 'success');
                     } else {
-                        alert("ถอดรหัสล้มเหลว! รหัสผ่านอาจไม่ถูกต้อง"); 
+                        showToast("❌ ถอดรหัสล้มเหลว! รหัสผ่านอาจไม่ถูกต้อง", 'error'); 
                         event.target.value = ''; 
                         return;
                     }
@@ -1784,7 +1928,7 @@ async function loadFromFile(event) {
                         records = finalDataToMerge.records;
                         accountTypes = new Map(finalDataToMerge.accountTypes);
                         currentAccount = finalDataToMerge.currentAccount;
-                        alert("โหลดข้อมูลทั้งหมดจาก JSON สำเร็จ");
+                        showToast("✅ โหลดข้อมูลทั้งหมดจาก JSON สำเร็จ", 'success');
                     }
                 } else if (finalDataToMerge.isDailyExport === true) {
                     // ไฟล์ข้อมูลรายวัน
@@ -1818,7 +1962,7 @@ async function loadFromFile(event) {
                         records.push(...(finalDataToMerge.records || []));
                         accountTypes.set(finalDataToMerge.accountName, finalDataToMerge.accountTypes || { "รายรับ": [], "รายจ่าย": [] });
                         currentAccount = finalDataToMerge.accountName;
-                        alert(`แทนที่ข้อมูลบัญชี "${finalDataToMerge.accountName}" สำเร็จ`);
+                        showToast(`✅ แทนที่ข้อมูลบัญชี "${finalDataToMerge.accountName}" สำเร็จ`, 'success');
                     }
                 } else {
                     throw new Error("รูปแบบไฟล์ JSON ไม่ถูกต้อง");
@@ -1835,14 +1979,14 @@ async function loadFromFile(event) {
                
                 
             } catch (error) {
-                alert("ไฟล์ JSON ไม่ถูกต้องหรือเสียหาย: " + error.message);
+                showToast("❌ ไฟล์ JSON ไม่ถูกต้องหรือเสียหาย: " + error.message, 'error');
             }
         };
         reader.readAsText(file);
     } else {
-        alert("กรุณาเลือกไฟล์ .json หรือ .csv เท่านั้น");
+        showToast("❌ กรุณาเลือกไฟล์ .json หรือ .csv เท่านั้น", 'error');
     }
-    reader.onerror = () => alert("เกิดข้อผิดพลาดในการอ่านไฟล์");
+    reader.onerror = () => showToast("❌ เกิดข้อผิดพลาดในการอ่านไฟล์", 'error');
     event.target.value = '';
 }
 
@@ -1899,7 +2043,7 @@ function processDateRangeImport(importedData) {
     // ✅ บันทึกข้อมูล
     saveToLocal();
     
-    alert(`เติมข้อมูลสำเร็จ!\nเพิ่ม ${addedCount} รายการใหม่\nข้าม ${skippedCount} รายการที่ซ้ำซ้อน\n✅ โหลดข้อมูลประเภทบัญชีเรียบร้อยแล้ว`);
+    showToast(`✅ เติมข้อมูลสำเร็จ!\nเพิ่ม ${addedCount} รายการใหม่\nข้าม ${skippedCount} รายการที่ซ้ำซ้อน\n✅ โหลดข้อมูลประเภทบัญชีเรียบร้อยแล้ว`, 'success');
     
 }
 
@@ -1943,7 +2087,7 @@ function showImportResult(result, accountName) {
     const { addedCount, skippedCount } = result;
     currentAccount = accountName;
     
-    alert(`เติมข้อมูลสำเร็จ!\nเพิ่ม ${addedCount} รายการใหม่\nข้าม ${skippedCount} รายการที่ซ้ำซ้อน`);
+    showToast(`✅ เติมข้อมูลสำเร็จ!\nเพิ่ม ${addedCount} รายการใหม่\nข้าม ${skippedCount} รายการที่ซ้ำซ้อน`, 'success');
 }
 
 function updateAccountSelection(accountName) {
@@ -1956,7 +2100,7 @@ function importFromFileForMerging(event) {
     const file = event.target.files[0];
     if (!file) { return; }
     if (!currentAccount) {
-        alert("กรุณาเลือกบัญชีปัจจุบัน (บัญชีปลายทาง) ก่อน");
+        showToast("❌ กรุณาเลือกบัญชีปัจจุบัน (บัญชีปลายทาง) ก่อน", 'error');
         event.target.value = '';
         return;
     }
@@ -1971,14 +2115,18 @@ function importFromFileForMerging(event) {
 
             if (parsedData && parsedData.isEncrypted === true) {
                 const password = prompt("ไฟล์นี้ถูกเข้ารหัส กรุณากรอกรหัสผ่านเพื่อถอดรหัส:");
-                if (!password) { alert("ยกเลิกการนำเข้าไฟล์"); return; }
-                alert('กำลังถอดรหัส...');
+                if (!password) { 
+                    showToast("❌ ยกเลิกการนำเข้าไฟล์", 'info'); 
+                    return; 
+                }
+                showToast('🔓 กำลังถอดรหัส...', 'info');
                 const decryptedString = await decryptData(parsedData, password);
                 if (decryptedString) {
                     finalDataToMerge = JSON.parse(decryptedString);
-                    alert('ถอดรหัสสำเร็จ!');
+                    showToast('✅ ถอดรหัสสำเร็จ!', 'success');
                 } else {
-                    alert("ถอดรหัสล้มเหลว! รหัสผ่านอาจไม่ถูกต้อง"); return;
+                    showToast("❌ ถอดรหัสล้มเหลว! รหัสผ่านอาจไม่ถูกต้อง", 'error'); 
+                    return;
                 }
             } else {
                 finalDataToMerge = parsedData;
@@ -2006,26 +2154,27 @@ function importFromFileForMerging(event) {
                     }
                 });
 
-                alert(`เติมข้อมูลสำเร็จ!\nเพิ่ม ${addedCount} รายการใหม่\nข้าม ${skippedCount} รายการที่ซ้ำซ้อน`);
+                showToast(`✅ เติมข้อมูลสำเร็จ!\nเพิ่ม ${addedCount} รายการใหม่\nข้าม ${skippedCount} รายการที่ซ้ำซ้อน`, 'success');
                 displayRecords();
                 saveDataAndShowToast();
 
             } else {
-                alert("ไฟล์ที่เลือกไม่ใช่ไฟล์ข้อมูลรายวันที่ถูกต้อง\nกรุณาใช้ไฟล์ที่ได้จากการ 'บันทึกเฉพาะวันที่เลือก' เท่านั้น");
+                showToast("❌ ไฟล์ที่เลือกไม่ใช่ไฟล์ข้อมูลรายวันที่ถูกต้อง\nกรุณาใช้ไฟล์ที่ได้จากการ 'บันทึกเฉพาะวันที่เลือก' เท่านั้น", 'error');
             }
         } catch (error) {
-            alert("ไฟล์ JSON ไม่ถูกต้องหรือเสียหาย: " + error.message);
+            showToast("❌ ไฟล์ JSON ไม่ถูกต้องหรือเสียหาย: " + error.message, 'error');
         }
     };
     
     if (fileName.endsWith('.json')) {
         reader.onload = (e) => processAndMerge(e.target.result);
         reader.readAsText(file);
+        showToast("📂 กำลังโหลดข้อมูลจากไฟล์ JSON...", 'info');
     } else {
-        alert("ฟังก์ชันนี้รองรับเฉพาะไฟล์ .json เท่านั้น");
+        showToast("❌ ฟังก์ชันนี้รองรับเฉพาะไฟล์ .json เท่านั้น", 'error');
     }
     
-    reader.onerror = () => alert("เกิดข้อผิดพลาดในการอ่านไฟล์");
+    reader.onerror = () => showToast("❌ เกิดข้อผิดพลาดในการอ่านไฟล์", 'error');
     event.target.value = '';
 }
 
@@ -2151,7 +2300,7 @@ function loadFromCsv(csvText) {
             } else if (csvImportData.accountName) {
                 // ... โค้ดเดิม ...
             } else {
-                alert('ไม่สามารถประมวลผลไฟล์ CSV ได้ รูปแบบอาจไม่ถูกต้อง');
+                showToast('❌ ไม่สามารถประมวลผลไฟล์ CSV ได้ รูปแบบอาจไม่ถูกต้อง', 'error');
             }
         }
     });
@@ -2166,12 +2315,18 @@ function saveBackupPassword(e) {
     const newPassword = document.getElementById('backup-password').value;
     const confirmPassword = document.getElementById('backup-password-confirm').value;
     if (newPassword !== confirmPassword) {
-        alert('รหัสผ่านไม่ตรงกัน กรุณากรอกใหม่อีกครั้ง');
+        showToast('❌ รหัสผ่านไม่ตรงกัน กรุณากรอกใหม่อีกครั้ง', 'error');
         return;
     }
     backupPassword = newPassword.trim() || null;
     saveToLocal(true); 
-    alert('บันทึกรหัสผ่านสำหรับไฟล์สำรองเรียบร้อยแล้ว');
+    
+    if (backupPassword) {
+        showToast('✅ บันทึกรหัสผ่านสำหรับไฟล์สำรองเรียบร้อยแล้ว', 'success');
+    } else {
+        showToast('✅ ลบรหัสผ่านสำหรับไฟล์สำรองเรียบร้อยแล้ว', 'success');
+    }
+    
     document.getElementById('backup-password').value = '';
     document.getElementById('backup-password-confirm').value = '';
     renderBackupPasswordStatus();
@@ -2427,14 +2582,14 @@ function validateDateRangeInput() {
     const endDateStr = document.getElementById('exportEndDate').value;
     
     if (!startDateStr || !endDateStr) {
-        return { isValid: false, message: "กรุณาเลือกวันที่เริ่มต้นและวันที่สิ้นสุด" };
+        return { isValid: false, message: "❌ กรุณาเลือกวันที่เริ่มต้นและวันที่สิ้นสุด" };
     }
     
     const startDate = new Date(startDateStr);
     const endDate = new Date(endDateStr);
     
     if (startDate > endDate) {
-        return { isValid: false, message: "วันที่เริ่มต้นต้องมาก่อนวันที่สิ้นสุด" };
+        return { isValid: false, message: "❌ วันที่เริ่มต้นต้องมาก่อนวันที่สิ้นสุด" };
     }
     
     return { 
@@ -2456,7 +2611,7 @@ function filterRecordsByDateRange(startDate, endDate) {
 }
 
 function showNoDataAlert(startDateStr, endDateStr) {
-    alert(`ไม่พบข้อมูลในบัญชี "${currentAccount}" ระหว่างวันที่ ${startDateStr} ถึง ${endDateStr}`);
+    showToast(`❌ ไม่พบข้อมูลในบัญชี "${currentAccount}" ระหว่างวันที่ ${startDateStr} ถึง ${endDateStr}`, 'error');
 }
 
 // ==============================================
@@ -2509,4 +2664,5 @@ window.addEventListener('appinstalled', () => {
     console.log('App was installed.'); 
     hideInstallPrompt(); 
     localStorage.setItem('pwa_installed', 'true'); 
+    showToast('✅ ติดตั้งแอปพลิเคชันสำเร็จ!', 'success');
 });
